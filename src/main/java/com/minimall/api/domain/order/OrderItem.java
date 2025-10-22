@@ -3,11 +3,14 @@ package com.minimall.api.domain.order;
 import com.minimall.api.common.base.BaseEntity;
 import com.minimall.api.domain.product.Product;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderItem extends BaseEntity {
 
     @Id
@@ -29,7 +32,18 @@ public class OrderItem extends BaseEntity {
 
 
     //==생성자 메서드==//
-    @Builder
+    public static OrderItem createOrderItem(Product product, int orderQuantity) {
+        product.removeStock(orderQuantity);
+        return OrderItem.builder()
+                .product(product)
+                .productName(product.getName())
+                .orderPrice(product.getPrice())
+                .orderQuantity(orderQuantity)
+                .build();
+    }
+
+
+    @Builder(access = AccessLevel.PRIVATE)
     public OrderItem(Order order, Product product, String productName, Integer orderPrice, Integer orderQuantity) {
         this.order = order;
         this.product = product;
@@ -45,4 +59,5 @@ public class OrderItem extends BaseEntity {
             order.addOrderItem(this);
         }
     }
+
 }

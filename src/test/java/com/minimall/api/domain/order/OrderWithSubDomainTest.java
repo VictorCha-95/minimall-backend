@@ -2,6 +2,7 @@ package com.minimall.api.domain.order;
 
 import com.minimall.api.domain.member.Grade;
 import com.minimall.api.domain.member.Member;
+import com.minimall.api.domain.member.MemberRepository;
 import com.minimall.api.domain.order.exception.OrderStatusException;
 import com.minimall.api.domain.order.sub.delivery.Delivery;
 import com.minimall.api.domain.order.sub.delivery.DeliveryStatus;
@@ -12,6 +13,7 @@ import com.minimall.api.domain.order.sub.pay.PayStatus;
 import com.minimall.api.domain.product.Product;
 import com.minimall.api.domain.embeddable.Address;
 import com.minimall.api.domain.embeddable.AddressException;
+import com.minimall.api.domain.product.ProductRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 public class OrderWithSubDomainTest {
+
+    @Autowired
+    MemberRepository memberRepository;
+
+    @Autowired
+    ProductRepository productRepository;
 
     @Autowired
     OrderRepository orderRepository;
@@ -91,6 +99,17 @@ public class OrderWithSubDomainTest {
         order.completeDelivery();
         assertThat(order.getDelivery().getDeliveryStatus()).isEqualTo(DeliveryStatus.COMPLETED);
 
+    }
+
+    @Test
+    @DisplayName("재고보다 많은 양을 주문하면 예외 발생")
+    void shouldFail_whenOrderQuantityGreaterThanProductStockQuantity() {
+        //given
+        Product product = new Product("키보드", 100000, 10);
+        productRepository.save(product);
+
+        //when, then
+        assertThrows(IllegalArgumentException.class, () -> OrderItem.createOrderItem(product, 20));
     }
 
 
@@ -205,12 +224,12 @@ public class OrderWithSubDomainTest {
     }
 
     private Member createMember() {
-        return Member.builder()
+        return memberRepository.save(Member.builder()
                 .loginId("user1")
                 .password("abc12345")
                 .name("차태승")
                 .email("cts9458@naver.com")
-                .build();
+                .build());
     }
 
     private List<OrderItem> createOrderItems() {
@@ -219,19 +238,13 @@ public class OrderWithSubDomainTest {
         Product product1 = new Product("키보드", 100000, 10);
         Product product2 = new Product("무선마우스", 50000, 50);
 
-        orderItems.add(createOrderItem(product1, 10));
-        orderItems.add(createOrderItem(product2, 20));
+        productRepository.save(product1);
+        productRepository.save(product2);
+
+        orderItems.add(OrderItem.createOrderItem(product1, 10));
+        orderItems.add(OrderItem.createOrderItem(product2, 20));
 
         return orderItems;
-    }
-
-    private OrderItem createOrderItem(Product product, int orderQuantity) {
-        return OrderItem.builder()
-                .product(product)
-                .productName(product.getName())
-                .orderPrice(product.getPrice())
-                .orderQuantity(orderQuantity)
-                .build();
     }
 
     private Address createAddress() {

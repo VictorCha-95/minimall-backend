@@ -40,6 +40,9 @@ public class Order extends BaseEntity {
     @Embedded
     private OrderAmount orderAmount;
 
+    @Embedded
+    private Address shipAddr;  // 역정규화(주문 시 배송지 입력 default member.getAddr() //TODO DB 컬럼 추가
+
     @OneToOne(fetch = FetchType.LAZY, mappedBy = "order")
     private Delivery delivery;
 

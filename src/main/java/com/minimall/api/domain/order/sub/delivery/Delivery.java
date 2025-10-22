@@ -9,6 +9,9 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 import static com.minimall.api.domain.order.sub.delivery.DeliveryStatus.*;
 
@@ -28,6 +31,7 @@ public class Delivery extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private DeliveryStatus deliveryStatus;
 
+    @Setter
     private String trackingNo;
 
     @Embedded
@@ -35,14 +39,18 @@ public class Delivery extends BaseEntity {
 
     private Integer deliveryFee; //TODO DB 컬럼 추가
 
+    private LocalDateTime shippedAt;     //TODO DB 컬럼 추가
+    private LocalDateTime arrivedAt;     //TODO DB 컬럼 추가
+
 
 
     //==생성자==//
-    public static void readyDelivery(Order order, Address shipAddr) {
+    public static Delivery readyDelivery(Order order, Address shipAddr) {
         validateShipAddr(shipAddr);
         Delivery delivery = new Delivery(order, shipAddr);
         order.setDelivery(delivery);
         delivery.prepareToShip();
+        return delivery;
     }
 
     private Delivery(Order order, Address shipAddr) {
@@ -66,17 +74,18 @@ public class Delivery extends BaseEntity {
     public void startDelivery() {
         ensureCanTransition(SHIPPING);
         deliveryStatus = SHIPPING;
+        shippedAt = LocalDateTime.now();
     }
     public void completeDelivery() {
         ensureCanTransition(COMPLETED);
         deliveryStatus = COMPLETED;
+        arrivedAt = LocalDateTime.now();
     }
 
     public void cancel() {
         ensureCanTransition(CANCELED);
         deliveryStatus = CANCELED;
     }
-
 
     //==검증 로직==//
     private void ensureCanTransition(DeliveryStatus next) {

@@ -2,7 +2,7 @@ package com.minimall.api.domain.member;
 
 import com.minimall.api.common.base.BaseEntity;
 import com.minimall.api.domain.order.Order;
-import com.minimall.api.embeddable.Address;
+import com.minimall.api.domain.embeddable.Address;
 import jakarta.persistence.*;
 import lombok.*;
 

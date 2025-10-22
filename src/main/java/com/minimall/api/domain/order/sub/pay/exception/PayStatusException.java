@@ -1,15 +1,15 @@
 package com.minimall.api.domain.order.sub.pay.exception;
 
-import com.minimall.api.domain.order.sub.delivery.DeliveryStatus;
+import com.minimall.api.domain.DomainType;
 import com.minimall.api.domain.order.sub.pay.PayStatus;
+import com.minimall.api.exception.CustomStatusException;
 
-public class PayStatusException extends RuntimeException {
+public class PayStatusException extends CustomStatusException {
     public PayStatusException(String message) {
         super(message);
     }
 
-    public PayStatusException(Long orderId, PayStatus currentStatus, String action) {
-        super(String.format("Pay 상태 오류 - orderId: %d, Action: %s, Current: %s",
-                orderId, action, currentStatus));
+    public PayStatusException(Long payId, PayStatus currentStatus, PayStatus targetStatus) {
+        super(DomainType.PAY, payId, currentStatus, targetStatus);
     }
 }

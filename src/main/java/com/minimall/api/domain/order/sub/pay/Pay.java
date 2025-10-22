@@ -2,6 +2,8 @@ package com.minimall.api.domain.order.sub.pay;
 
 import com.minimall.api.common.base.BaseEntity;
 import com.minimall.api.domain.order.Order;
+import com.minimall.api.domain.order.sub.delivery.DeliveryStatus;
+import com.minimall.api.domain.order.sub.delivery.exception.DeliveryStatusException;
 import com.minimall.api.domain.order.sub.pay.exception.PayAmountMismatchException;
 import com.minimall.api.domain.order.sub.pay.exception.PayStatusException;
 import com.minimall.api.domain.order.sub.pay.exception.NotPaidException;
@@ -53,29 +55,32 @@ public class Pay extends BaseEntity {
         }
     }
 
+
     //==비즈니스 로직==//
-    public void completePayment() {
+    public void completePayment(int orderAmount) {
+        ensureCanTransition(PayStatus.PAID);
+        validateAmount(orderAmount);
         payStatus = PayStatus.PAID;
         paidAt = LocalDateTime.now();
     }
 
     public void cancel() {
-        ensurePaid();
+        ensureCanTransition(PayStatus.CANCELED);
         payStatus = PayStatus.CANCELED;
     }
 
 
     //==검증 로직==//
+    private void ensureCanTransition(PayStatus next) {
+        if (!payStatus.canProgressTo(next)) {
+            throw new PayStatusException(id, payStatus, next);
+        }
+    }
+
     public void validateAmount(int orderAmount) {
         if (payAmount != orderAmount) {
             payStatus = PayStatus.FAILED;
             throw new PayAmountMismatchException(order.getId(), orderAmount, payAmount);
-        }
-    }
-
-    public void ensurePaid() {
-        if (payStatus != PayStatus.PAID) {
-            throw new NotPaidException(order.getId(), payStatus);
         }
     }
 }

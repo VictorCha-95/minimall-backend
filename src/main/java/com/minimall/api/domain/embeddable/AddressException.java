@@ -1,4 +1,4 @@
-package com.minimall.api.embeddable;
+package com.minimall.api.domain.embeddable;
 
 public class AddressException extends RuntimeException {
     public AddressException(String message) {

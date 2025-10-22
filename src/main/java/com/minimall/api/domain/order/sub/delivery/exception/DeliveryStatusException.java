@@ -1,15 +1,16 @@
 package com.minimall.api.domain.order.sub.delivery.exception;
 
+import com.minimall.api.domain.DomainType;
 import com.minimall.api.domain.order.sub.delivery.DeliveryStatus;
+import com.minimall.api.exception.CustomStatusException;
 
-public class DeliveryStatusException extends RuntimeException {
+public class DeliveryStatusException extends CustomStatusException {
     public DeliveryStatusException(String message) {
         super(message);
     }
 
-    public DeliveryStatusException(Long orderId, DeliveryStatus currentStatus, DeliveryStatus requireStatus) {
-        super(String.format("Delivery 상태 오류 - orderId: %d, Current: %s, Require: %s," ,
-                orderId, currentStatus, requireStatus));
+    public DeliveryStatusException(Long deliveryId, DeliveryStatus currentStatus, DeliveryStatus targetStatus) {
+        super(DomainType.DELIVERY, deliveryId, currentStatus, targetStatus);
     }
 
 

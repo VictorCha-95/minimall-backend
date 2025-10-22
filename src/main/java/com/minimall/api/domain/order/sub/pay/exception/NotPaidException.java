@@ -6,8 +6,4 @@ public class NotPaidException extends PayStatusException {
     public NotPaidException(String message) {
         super(message);
     }
-
-    public NotPaidException(Long orderId, PayStatus currentStatus) {
-        super(orderId, currentStatus, "Require PAID");
-    }
 }

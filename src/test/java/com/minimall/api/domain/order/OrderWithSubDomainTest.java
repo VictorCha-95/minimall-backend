@@ -1,13 +1,8 @@
-package com.minimall.api.domain;
+package com.minimall.api.domain.order;
 
 import com.minimall.api.domain.member.Grade;
 import com.minimall.api.domain.member.Member;
-import com.minimall.api.domain.member.MemberRepository;
-import com.minimall.api.domain.order.Order;
-import com.minimall.api.domain.order.OrderItem;
-import com.minimall.api.domain.order.OrderRepository;
-import com.minimall.api.domain.order.OrderStatus;
-import com.minimall.api.domain.order.exception.OrderAlreadyCanceledException;
+import com.minimall.api.domain.order.exception.OrderStatusException;
 import com.minimall.api.domain.order.sub.delivery.Delivery;
 import com.minimall.api.domain.order.sub.delivery.DeliveryStatus;
 import com.minimall.api.domain.order.sub.delivery.exception.DeliveryStatusException;
@@ -15,9 +10,8 @@ import com.minimall.api.domain.order.sub.pay.Pay;
 import com.minimall.api.domain.order.sub.pay.PayMethod;
 import com.minimall.api.domain.order.sub.pay.PayStatus;
 import com.minimall.api.domain.product.Product;
-import com.minimall.api.domain.product.ProductRepository;
-import com.minimall.api.embeddable.Address;
-import com.minimall.api.embeddable.AddressException;
+import com.minimall.api.domain.embeddable.Address;
+import com.minimall.api.domain.embeddable.AddressException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,56 +25,10 @@ import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@Transactional
-public class JpaMappingTest {
-
-    @Autowired
-    MemberRepository memberRepository;
+public class OrderWithSubDomainTest {
 
     @Autowired
     OrderRepository orderRepository;
-
-    @Autowired
-    ProductRepository productRepository;
-
-    @Test
-    @DisplayName("멤버 저장/조회")
-    void memberBasicTest() {
-        //given
-        Member member = createMember();
-
-        //when
-        memberRepository.save(member);
-        Member findMember = memberRepository.findById(member.getId()).get();
-
-        //then
-        assertThat(findMember.getName()).isEqualTo("차태승");
-        assertThat(findMember.getGrade()).isEqualTo(Grade.BRONZE); // default Grade: BRONZE
-    }
-
-
-    @Test
-    @DisplayName("상품 저장/조회")
-    void productBasicTest() {
-        //given
-        Product product1 = new Product("노트북", 1500000, 10);
-        Product product2 = new Product("무선마우스", 35000, 50);
-        Product product3 = new Product("기계식키보드", 120000, 30);
-
-        //when
-        productRepository.save(product1);
-        productRepository.save(product2);
-        productRepository.save(product3);
-        List<Product> productList = productRepository.findAll();
-        Product findProduct1 = productRepository.findById(product1.getId()).get();
-        Product findProduct2 = productRepository.findById(product2.getId()).get();
-
-        //then
-        assertThat(productList.size()).isEqualTo(3);
-        assertThat(findProduct1.getName()).isEqualTo("노트북");
-        assertThat(findProduct1).isEqualTo(product1);
-        assertThat(findProduct2).isEqualTo(product2);
-    }
 
     @Test
     @DisplayName("멤버, 상품, 주문 매핑 후 저장/조회")
@@ -120,8 +68,8 @@ public class JpaMappingTest {
         //given
         Order order = createOrder();
 
-        //결제되지 않은 상태에서 배송 준비 불가
-        assertThrows(IllegalStateException.class, () -> order.prepareDelivery(createAddress()));
+        //결제 되지 않은 주문은 배송 준비 불가
+        assertThrows(OrderStatusException.class, () -> order.prepareDelivery(createAddress()));
 
         order.processPayment(new Pay(PayMethod.CARD));
 
@@ -142,23 +90,9 @@ public class JpaMappingTest {
 
         order.completeDelivery();
         assertThat(order.getDelivery().getDeliveryStatus()).isEqualTo(DeliveryStatus.COMPLETED);
+
     }
 
-
-    @Test
-    void productStockTest() {
-        //given
-        Product product = new Product("노트북", 1500000, 10);
-        productRepository.save(product);
-
-        //when
-        product.addStock(20);
-        Product findProduct = productRepository.findById(product.getId()).get();
-
-        //then
-        assertThat(findProduct.getStockQuantity()).isEqualTo(30);
-        assertThrows(IllegalArgumentException.class, () -> product.removeStock(10000)); // 재고 과다 감량 -> 오류 발생
-    }
 
     @Test
     void orderPay() {
@@ -172,7 +106,15 @@ public class JpaMappingTest {
         //then
         assertThat(order.getPay().getPayStatus()).isEqualTo(PayStatus.PAID);
         assertThat(order.getPay().getPayMethod()).isEqualTo(PayMethod.BANK_TRANSFER);
-        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.COMPLETED);
+        assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
+    }
+
+    @Test
+    void prepareDelivery_shouldFail_whenPayStatusIsNotPaid() {
+        //given
+        Order order = createOrder();
+        Pay pay = new Pay(PayMethod.MOBILE_PAY);
+        order.processPayment(pay);
     }
 
     @Test
@@ -185,14 +127,15 @@ public class JpaMappingTest {
 
         //then
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCELED);
-        assertThrows(OrderAlreadyCanceledException.class, order::cancel);
+        assertThrows(OrderStatusException.class, order::cancel);
     }
 
     @Test
     void orderAndPayCancel() {
         //given
         Order order = createOrder();
-        order.processPayment(new Pay(PayMethod.CARD));
+        Pay pay = new Pay(PayMethod.CARD);
+        order.processPayment(pay);
 
         //when
         order.cancel();
@@ -206,7 +149,7 @@ public class JpaMappingTest {
     void orderAndDeliveryCancel() {
         //given
         Order order = createOrder();
-        Delivery.createDelivery(order, createAddress());
+        Delivery.readyDelivery(order, createAddress());
 
         //when
         order.cancel();
@@ -216,8 +159,45 @@ public class JpaMappingTest {
         assertThat(order.getDelivery().getDeliveryStatus()).isEqualTo(DeliveryStatus.CANCELED);
     }
 
+    @Test
+    void cancel_shouldFail_whenDeliveryAlreadyStarted() {
+        //given
+        Order order = createOrder();
+        Delivery.readyDelivery(order, createAddress());
 
-    //==helper method==//
+        //when
+        order.startDelivery();
+
+        //then
+        assertThrows(OrderStatusException.class, order::cancel);
+    }
+
+    @Test
+    void completeDelivery_shouldFail_whenDeliveryStatusNotShipping() {
+        //given
+        Order order = createOrder();
+        Delivery.readyDelivery(order, createAddress());
+
+        //when, then
+        assertThrows(DeliveryStatusException.class, order::completeDelivery);
+    }
+
+    @Test
+    void cancel_shouldFail_whenDeliveryAlreadyCompleted() {
+        //given
+        Order order = createOrder();
+        Delivery.readyDelivery(order, createAddress());
+
+        //when
+        order.startDelivery();
+        order.completeDelivery();
+
+        //then
+        assertThrows(OrderStatusException.class, order::cancel);
+    }
+
+
+    //==Helper Methods==//
     private Order createOrder() {
         Member member = createMember();
         List<OrderItem> orderItems = createOrderItems();

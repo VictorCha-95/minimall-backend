@@ -2,13 +2,11 @@ package com.minimall.api.domain.order;
 
 import com.minimall.api.common.base.BaseEntity;
 import com.minimall.api.domain.member.Member;
-import com.minimall.api.domain.order.exception.OrderAlreadyCanceledException;
+import com.minimall.api.domain.order.exception.OrderStatusException;
 import com.minimall.api.domain.order.sub.delivery.Delivery;
 import com.minimall.api.domain.order.sub.pay.Pay;
-import com.minimall.api.domain.order.sub.pay.PayStatus;
-import com.minimall.api.domain.order.sub.pay.exception.NotPaidException;
-import com.minimall.api.embeddable.Address;
-import com.minimall.api.embeddable.AddressException;
+import com.minimall.api.domain.embeddable.Address;
+import com.minimall.api.domain.embeddable.AddressException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -115,40 +113,45 @@ public class Order extends BaseEntity {
 
     //==비즈니스 로직==//
     public void processPayment(Pay pay) {
+        ensureCanTransition(OrderStatus.CONFIRMED);
         setPay(pay);
-        pay.validateAmount(orderAmount.getFinalAmount());
-        pay.completePayment();
-        orderStatus = OrderStatus.COMPLETED;
+        pay.completePayment(orderAmount.getFinalAmount());
+        orderStatus = OrderStatus.CONFIRMED;
     }
 
-    public Delivery prepareDelivery(Address shipAddr) {
-        if (pay == null) {
-            throw new IllegalStateException("결제 되지 않은 주문은 배송 불가");
-        }
-        pay.ensurePaid();
+    public void prepareDelivery(Address shipAddr) {
+        ensureCanTransition(OrderStatus.SHIPPING);
 
         if (shipAddr == null) {
             throw new AddressException("배송 주소는 필수");
         }
 
-        return Delivery.createDelivery(this, shipAddr);
+        Delivery.readyDelivery(this, shipAddr);
     }
 
     public void startDelivery() {
         delivery.startDelivery();
+        orderStatus = OrderStatus.SHIPPING;
     }
 
     public void completeDelivery() {
         delivery.completeDelivery();
+        orderStatus = OrderStatus.COMPLETED;
     }
 
-    public void cancel() {
-        if (orderStatus == OrderStatus.CANCELED) {
-            throw new OrderAlreadyCanceledException(id);
-        }
+    public void cancel() {   // 배송 시작 이전 단계에서만 취소 가능
+        ensureCanTransition(OrderStatus.CANCELED);
         if (pay != null) pay.cancel();
         if (delivery != null) delivery.cancel();
-        orderStatus = OrderStatus.CANCELED;
         orderItems.forEach(oi -> oi.getProduct().addStock(oi.getOrderQuantity())); //주문 취소 후 재고 복원
+        orderStatus = OrderStatus.CANCELED;
+    }
+
+
+    //==검증 로직==//
+    private void ensureCanTransition(OrderStatus next) {
+        if (!orderStatus.canProgressTo(next)) {
+            throw new OrderStatusException(id, orderStatus, next);
+        }
     }
 }

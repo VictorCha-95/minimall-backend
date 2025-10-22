@@ -3,8 +3,8 @@ package com.minimall.api.domain.order.sub.delivery;
 import com.minimall.api.common.base.BaseEntity;
 import com.minimall.api.domain.order.Order;
 import com.minimall.api.domain.order.sub.delivery.exception.DeliveryStatusException;
-import com.minimall.api.embeddable.Address;
-import com.minimall.api.embeddable.AddressException;
+import com.minimall.api.domain.embeddable.Address;
+import com.minimall.api.domain.embeddable.AddressException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -38,12 +38,11 @@ public class Delivery extends BaseEntity {
 
 
     //==생성자==//
-    public static Delivery createDelivery(Order order, Address shipAddr) {
+    public static void readyDelivery(Order order, Address shipAddr) {
         validateShipAddr(shipAddr);
         Delivery delivery = new Delivery(order, shipAddr);
         order.setDelivery(delivery);
         delivery.prepareToShip();
-        return delivery;
     }
 
     private Delivery(Order order, Address shipAddr) {
@@ -65,24 +64,24 @@ public class Delivery extends BaseEntity {
 
     //==비즈니스 로직==//
     public void startDelivery() {
-        ensureStatus(READY);
+        ensureCanTransition(SHIPPING);
         deliveryStatus = SHIPPING;
     }
     public void completeDelivery() {
-        ensureStatus(SHIPPING);
+        ensureCanTransition(COMPLETED);
         deliveryStatus = COMPLETED;
     }
 
     public void cancel() {
-        ensureStatus(READY);
+        ensureCanTransition(CANCELED);
         deliveryStatus = CANCELED;
     }
 
 
     //==검증 로직==//
-    private void ensureStatus(DeliveryStatus expected) {
-        if (deliveryStatus != expected) {
-            throw new DeliveryStatusException(order.getId(), deliveryStatus, expected);
+    private void ensureCanTransition(DeliveryStatus next) {
+        if (!deliveryStatus.canProgressTo(next)) {
+            throw new DeliveryStatusException(id, deliveryStatus, next);
         }
     }
 

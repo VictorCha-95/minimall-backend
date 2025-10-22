@@ -1,4 +1,4 @@
-package com.minimall.api.embeddable;
+package com.minimall.api.domain.embeddable;
 
 import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;

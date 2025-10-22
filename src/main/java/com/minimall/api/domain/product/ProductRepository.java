@@ -2,5 +2,17 @@ package com.minimall.api.domain.product;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 public interface ProductRepository extends JpaRepository<Product, Long> {
+
+    List<Product> findByName(String name);
+
+    List<Product> findByPriceLessThan(int price);
+
+    List<Product> findByPriceGreaterThan(int price);
+
+    List<Product> findByStockQuantityLessThan(int stockQuantity);
+
+    List<Product> findByStockQuantityGreaterThan(int stockQuantity);
 }

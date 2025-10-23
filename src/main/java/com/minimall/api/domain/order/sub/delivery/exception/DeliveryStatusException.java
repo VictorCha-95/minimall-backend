@@ -2,9 +2,9 @@ package com.minimall.api.domain.order.sub.delivery.exception;
 
 import com.minimall.api.domain.DomainType;
 import com.minimall.api.domain.order.sub.delivery.DeliveryStatus;
-import com.minimall.api.exception.CustomStatusException;
+import com.minimall.api.exception.DomainStatusException;
 
-public class DeliveryStatusException extends CustomStatusException {
+public class DeliveryStatusException extends DomainStatusException {
     public DeliveryStatusException(String message) {
         super(message);
     }

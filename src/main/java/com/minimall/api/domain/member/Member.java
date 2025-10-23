@@ -44,7 +44,8 @@ public class Member extends BaseEntity {
         grade = Grade.BRONZE;
     }
 
-    //==연관관계 편의 메서드==//
+
+    //== 연관관계 편의 메서드 ==//
     public void addOrder(Order order) {
         orders.add(order);
         if (order.getMember() != this) {
@@ -54,5 +55,21 @@ public class Member extends BaseEntity {
 
     public void removeOrder(Order order) {
         orders.remove(order);
+    }
+
+
+    //== 필드 수정용 메서드 ==//
+    public void update(String name, String email, Address addr) {
+        this.name = name;
+        this.email = email;
+        this.addr = addr;
+    }
+
+    public void changePassword(String newPassword) {
+        this.password = newPassword;
+    }
+
+    public void upgradeGrade(Grade newGrade) {
+        this.grade = newGrade;
     }
 }

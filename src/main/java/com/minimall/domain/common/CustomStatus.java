@@ -1,4 +1,4 @@
-package com.minimall.common;
+package com.minimall.domain.common;
 
 public interface CustomStatus {
     String name();

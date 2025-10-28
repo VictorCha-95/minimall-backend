@@ -8,6 +8,7 @@ import com.minimall.domain.member.dto.response.MemberDetailWithOrdersResponseDto
 import com.minimall.domain.member.dto.response.MemberSummaryResponseDto;
 import com.minimall.exception.DuplicateException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +36,7 @@ public class MemberService {
     //== 수정 ==//
     @Transactional
     public MemberDetailResponseDto update(Long memberId, MemberUpdateRequestDto request) {
-        validateDuplicateEmail(request.email());
+        validateDuplicateEmailForUpdate(memberId, request.email());
         //TODO 비밀번호 검증, 암호화 로직 추가
         Member member = findMemberById(memberId);
         member.update(request.password(), request.name(), request.email(), request.addr());
@@ -51,12 +52,10 @@ public class MemberService {
         memberRepository.deleteById(memberId);
     }
 
-
     //== 단건 조회 ==//
     public MemberSummaryResponseDto getSummary(Long memberId) {
         return memberMapper.toSummaryResponse(findMemberById(memberId));
     }
-
     public MemberDetailResponseDto getDetail(Long memberId) {
         return memberMapper.toDetailResponse(findMemberById(memberId));
     }
@@ -86,23 +85,28 @@ public class MemberService {
     //== 목록 조회==//
     public List<MemberSummaryResponseDto> getMembers() {
         //TODO searchDto를 인자로 받아 pageable 등 구현
-        return memberRepository.findAll().stream()
+        return memberRepository.findAll(Sort.by(Sort.Direction.ASC, "id"))
+                .stream()
                 .map(memberMapper::toSummaryResponse)
                 .toList();
     }
 
-
     //== 검증 로직 ==//
     private void validateDuplicateLoginId(String loginId) {
         if (memberRepository.existsByLoginId(loginId)) {
-            throw DuplicateException.ofField("loginId", loginId);
+            DuplicateException.validateField("loginId", loginId);
+        }
+    }
+    private void validateDuplicateEmail(String email) {
+        if (memberRepository.existsByEmail(email)) {
+            DuplicateException.validateField("email", email);
         }
     }
 
-    private void validateDuplicateEmail(String email) {
-        if (memberRepository.existsByEmail(email)) {
-            throw DuplicateException.ofField("email", email);
-        }
+    private void validateDuplicateEmailForUpdate(Long memberId, String email) {
+        memberRepository.findByEmail(email)
+                .filter(m -> !m.getId().equals(memberId))
+                .ifPresent(m -> DuplicateException.validateField("email", email));
     }
 
 

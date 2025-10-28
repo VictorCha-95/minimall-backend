@@ -1,4 +1,4 @@
-package com.minimall.domain.order.sub.discount.exception;
+package com.minimall.domain.order.sub.discount;
 
 public class DiscountException extends RuntimeException {
     public DiscountException(String message) {

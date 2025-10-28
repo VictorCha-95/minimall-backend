@@ -1,6 +1,6 @@
 package com.minimall.domain.member;
 
-import com.minimall.common.base.BaseEntity;
+import com.minimall.domain.common.base.BaseEntity;
 import com.minimall.domain.order.Order;
 import com.minimall.domain.embeddable.Address;
 import jakarta.persistence.*;

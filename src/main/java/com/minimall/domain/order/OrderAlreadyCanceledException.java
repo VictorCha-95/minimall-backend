@@ -1,4 +1,4 @@
-package com.minimall.domain.order.exception;
+package com.minimall.domain.order;
 
 public class OrderAlreadyCanceledException extends RuntimeException {
     public OrderAlreadyCanceledException(String message) {

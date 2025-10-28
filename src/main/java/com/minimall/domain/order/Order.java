@@ -1,8 +1,7 @@
 package com.minimall.domain.order;
 
-import com.minimall.common.base.BaseEntity;
+import com.minimall.domain.common.base.BaseEntity;
 import com.minimall.domain.member.Member;
-import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.sub.delivery.Delivery;
 import com.minimall.domain.order.sub.pay.Pay;
 import com.minimall.domain.embeddable.Address;

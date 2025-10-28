@@ -6,7 +6,6 @@ import com.minimall.domain.member.dto.MemberMapper;
 import com.minimall.domain.member.dto.request.MemberCreateRequestDto;
 import com.minimall.domain.member.dto.request.MemberUpdateRequestDto;
 import com.minimall.domain.member.dto.response.MemberDetailResponseDto;
-import com.minimall.domain.member.dto.response.MemberDetailWithOrdersResponseDto;
 import com.minimall.domain.member.dto.response.MemberSummaryResponseDto;
 import com.minimall.exception.DuplicateException;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +39,6 @@ class MemberServiceTest {
     private MemberCreateRequestDto createRequest;
     private MemberUpdateRequestDto updateRequest;
     private MemberDetailResponseDto detailResponse;
-    private MemberDetailWithOrdersResponseDto detailWithOrdersResponse;
     private MemberSummaryResponseDto summaryResponse;
 
 
@@ -70,8 +68,6 @@ class MemberServiceTest {
         summaryResponse = new MemberSummaryResponseDto(member.getId(), member.getLoginId(), member.getName());
 
         detailResponse = new MemberDetailResponseDto(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getGrade(), member.getAddr());
-
-        detailWithOrdersResponse = new MemberDetailWithOrdersResponseDto(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getGrade(), member.getAddr(), null);
     }
 
 

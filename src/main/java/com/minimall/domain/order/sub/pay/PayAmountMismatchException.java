@@ -1,4 +1,4 @@
-package com.minimall.domain.order.sub.pay.exception;
+package com.minimall.domain.order.sub.pay;
 
 public class PayAmountMismatchException extends RuntimeException {
     public PayAmountMismatchException(String message) {

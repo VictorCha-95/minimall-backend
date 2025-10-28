@@ -1,6 +1,6 @@
 package com.minimall.domain.order.sub.delivery;
 
-import com.minimall.common.CustomStatus;
+import com.minimall.domain.common.CustomStatus;
 
 import java.util.Map;
 import java.util.Set;

@@ -1,6 +1,6 @@
 package com.minimall.domain.order;
 
-import com.minimall.common.base.BaseEntity;
+import com.minimall.domain.common.base.BaseEntity;
 import com.minimall.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

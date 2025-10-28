@@ -1,8 +1,7 @@
 package com.minimall.domain.order.sub.delivery;
 
-import com.minimall.common.base.BaseEntity;
+import com.minimall.domain.common.base.BaseEntity;
 import com.minimall.domain.order.Order;
-import com.minimall.domain.order.sub.delivery.exception.DeliveryStatusException;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.embeddable.AddressException;
 import jakarta.persistence.*;

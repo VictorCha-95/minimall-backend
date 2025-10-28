@@ -1,9 +1,7 @@
 package com.minimall.domain.order.sub.pay;
 
-import com.minimall.common.base.BaseEntity;
+import com.minimall.domain.common.base.BaseEntity;
 import com.minimall.domain.order.Order;
-import com.minimall.domain.order.sub.pay.exception.PayAmountMismatchException;
-import com.minimall.domain.order.sub.pay.exception.PayStatusException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

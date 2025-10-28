@@ -1,6 +1,6 @@
 package com.minimall.domain.product;
 
-import com.minimall.common.base.BaseEntity;
+import com.minimall.domain.common.base.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

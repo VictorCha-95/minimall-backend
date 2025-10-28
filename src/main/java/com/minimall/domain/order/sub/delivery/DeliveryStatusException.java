@@ -1,7 +1,6 @@
-package com.minimall.domain.order.sub.delivery.exception;
+package com.minimall.domain.order.sub.delivery;
 
 import com.minimall.domain.DomainType;
-import com.minimall.domain.order.sub.delivery.DeliveryStatus;
 import com.minimall.exception.DomainStatusException;
 
 public class DeliveryStatusException extends DomainStatusException {

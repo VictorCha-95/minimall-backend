@@ -1,7 +1,6 @@
-package com.minimall.domain.order.sub.pay.exception;
+package com.minimall.domain.order.sub.pay;
 
 import com.minimall.domain.DomainType;
-import com.minimall.domain.order.sub.pay.PayStatus;
 import com.minimall.exception.DomainStatusException;
 
 public class PayStatusException extends DomainStatusException {

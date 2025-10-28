@@ -1,6 +1,6 @@
 package com.minimall.exception;
 
-import com.minimall.common.CustomStatus;
+import com.minimall.domain.common.CustomStatus;
 import com.minimall.domain.DomainType;
 
 public class DomainStatusException extends RuntimeException {

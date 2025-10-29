@@ -1,28 +1,27 @@
 package com.minimall.domain.embeddable;
 
 import jakarta.persistence.Embeddable;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Embeddable
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED, force = true)
+@RequiredArgsConstructor
 public class Address {
 
-    private String postcode;
-    private String state;
-    private String city;
-    private String street;
-    private String detail;
+    private final String postcode;
+    private final String state;
+    private final String city;
+    private final String street;
+    private final String detail;
 
-    @Builder
-    public Address(String postcode, String state, String city, String street, String detail) {
-        this.postcode = postcode;
-        this.state = state;
-        this.city = city;
-        this.street = street;
-        this.detail = detail;
+    public static Address createAddress(String postcode, String state, String city, String street, String detail) {
+        if (postcode == null || state == null || city == null || street == null) {
+            throw InvalidAddressException.missingRequiredFields();
+        }
+
+        return new Address(postcode, state, city, street, detail);
     }
+
+    //TODO 이메일 형식 검증 추가
 }

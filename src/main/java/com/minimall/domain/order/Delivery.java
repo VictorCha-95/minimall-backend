@@ -1,9 +1,9 @@
-package com.minimall.domain.order.sub.delivery;
+package com.minimall.domain.order;
 
 import com.minimall.domain.common.base.BaseEntity;
-import com.minimall.domain.order.Order;
 import com.minimall.domain.embeddable.Address;
-import com.minimall.domain.embeddable.AddressException;
+import com.minimall.domain.embeddable.InvalidAddressException;
+import com.minimall.domain.order.exception.DeliveryStatusException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -12,7 +12,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-import static com.minimall.domain.order.sub.delivery.DeliveryStatus.*;
+import static com.minimall.domain.order.DeliveryStatus.*;
 
 @Entity
 @Getter
@@ -46,26 +46,18 @@ public class Delivery extends BaseEntity {
     //==생성자==//
     public static Delivery readyDelivery(Order order, Address shipAddr) {
         validateShipAddr(shipAddr);
-        Delivery delivery = new Delivery(order, shipAddr);
-        order.setDelivery(delivery);
-        delivery.prepareToShip();
-        return delivery;
+        return new Delivery(order, shipAddr);
     }
 
     private Delivery(Order order, Address shipAddr) {
         this.order = order;
         this.shipAddr = shipAddr;
+        deliveryStatus = READY;
     }
 
-    //==연관관계 편의 메서드==//
-    public void setOrder(Order order) {
+    //==연관관계 메서드==//
+    void assignOrder(Order order) {
         this.order = order;
-        if (order.getDelivery() != this) {
-            order.setDelivery(this);
-        }
-    }
-    private void prepareToShip() {
-        deliveryStatus = READY;
     }
 
 
@@ -94,12 +86,7 @@ public class Delivery extends BaseEntity {
     }
 
     private static void validateShipAddr(Address shipAddr) {
-        if (shipAddr == null ||
-            shipAddr.getPostcode() == null ||
-            shipAddr.getState() == null ||
-            shipAddr.getCity() == null ||
-            shipAddr.getStreet() == null) {
-            throw new AddressException("배송 주소의 필수 항목이 누락되었습니다");
-        }
+        if (shipAddr == null) throw InvalidAddressException.empty();
     }
 }
+

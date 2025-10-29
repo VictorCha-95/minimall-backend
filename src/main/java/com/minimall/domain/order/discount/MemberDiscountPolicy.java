@@ -1,4 +1,4 @@
-package com.minimall.domain.order.sub.discount;
+package com.minimall.domain.order.discount;
 
 import com.minimall.domain.member.Member;
 

@@ -1,7 +1,8 @@
-package com.minimall.domain.order.sub.pay;
+package com.minimall.domain.order;
 
 import com.minimall.domain.common.base.BaseEntity;
-import com.minimall.domain.order.Order;
+import com.minimall.domain.order.exception.PayAmountMismatchException;
+import com.minimall.domain.order.exception.PayStatusException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -34,7 +35,7 @@ public class Pay extends BaseEntity {
 
 
     //==생성자==//
-    public Pay(PayMethod payMethod) {
+    public Pay(PayMethod payMethod, int payAmount) {
         this.payMethod = payMethod;
         payStatus = PayStatus.READY;
     }
@@ -42,19 +43,14 @@ public class Pay extends BaseEntity {
 
 
     //==연관관계 메서드==//
-    public void setOrder(Order order) {
+    void assignOrder(Order order) {
         this.order = order;
-        payAmount = order.getOrderAmount().getFinalAmount();
-        if (order.getPay() != this) {
-            order.setPay(this);
-        }
     }
 
 
     //==비즈니스 로직==//
-    public void completePayment(int orderAmount) {
+    public void complete() {
         ensureCanTransition(PayStatus.PAID);
-        validateAmount(orderAmount);
         payStatus = PayStatus.PAID;
         paidAt = LocalDateTime.now();
     }
@@ -62,6 +58,11 @@ public class Pay extends BaseEntity {
     public void cancel() {
         ensureCanTransition(PayStatus.CANCELED);
         payStatus = PayStatus.CANCELED;
+    }
+
+    public void fail() {
+        ensureCanTransition(PayStatus.FAILED);
+        payStatus = PayStatus.FAILED;
     }
 
 
@@ -72,10 +73,10 @@ public class Pay extends BaseEntity {
         }
     }
 
-    public void validateAmount(int orderAmount) {
-        if (payAmount != orderAmount) {
+    public void validateAmount(int expectedAmount) {
+        if (payAmount != expectedAmount) {
             payStatus = PayStatus.FAILED;
-            throw new PayAmountMismatchException(order.getId(), orderAmount, payAmount);
+            throw new PayAmountMismatchException(order.getId(), expectedAmount, payAmount);
         }
     }
 }

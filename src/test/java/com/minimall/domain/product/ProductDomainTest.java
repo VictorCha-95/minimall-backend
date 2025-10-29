@@ -47,11 +47,11 @@ public class ProductDomainTest {
         productRepository.save(product);
 
         //when
-        product.addStock(20);
+        product.increaseStock(20);
         Product findProduct = productRepository.findById(product.getId()).get();
 
         //then
         assertThat(findProduct.getStockQuantity()).isEqualTo(30);
-        assertThrows(IllegalArgumentException.class, () -> product.removeStock(10000)); // 재고 과다 감량 -> 오류 발생
+        assertThrows(IllegalArgumentException.class, () -> product.reduceStock(10000)); // 재고 과다 감량 -> 오류 발생
     }
 }

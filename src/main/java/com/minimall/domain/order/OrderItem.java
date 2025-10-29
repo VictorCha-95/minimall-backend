@@ -1,10 +1,10 @@
 package com.minimall.domain.order;
 
 import com.minimall.domain.common.base.BaseEntity;
+import com.minimall.domain.order.exception.InvalidOrderQuantityException;
 import com.minimall.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -33,31 +33,33 @@ public class OrderItem extends BaseEntity {
 
     //==생성자 메서드==//
     public static OrderItem createOrderItem(Product product, int orderQuantity) {
-        product.removeStock(orderQuantity);
-        return OrderItem.builder()
-                .product(product)
-                .productName(product.getName())
-                .orderPrice(product.getPrice())
-                .orderQuantity(orderQuantity)
-                .build();
+        if (orderQuantity <= 0) {
+            throw InvalidOrderQuantityException.mustBeGreaterThanZero(orderQuantity);
+        }
+
+        product.reduceStock(orderQuantity);
+
+        return new OrderItem(product, product.getName(), product.getPrice(), orderQuantity);
     }
 
 
-    @Builder(access = AccessLevel.PRIVATE)
-    public OrderItem(Order order, Product product, String productName, Integer orderPrice, Integer orderQuantity) {
-        this.order = order;
+    private OrderItem(Product product, String productName, Integer orderPrice, Integer orderQuantity) {
         this.product = product;
         this.productName = productName;
         this.orderPrice = orderPrice;
         this.orderQuantity = orderQuantity;
     }
 
-    //==연관관계 메서드==//
-    public void setOrder(Order order) {
+
+    //== 연관관계 메서드 ==//
+    void assignOrder(Order order) {
         this.order = order;
-        if (!order.getOrderItems().contains(this)) {
-            order.addOrderItem(this);
-        }
+    }
+
+
+    //== 비즈니스 로직 ==//
+    public int createTotalAmount() {
+        return orderPrice * orderQuantity;
     }
 
 }

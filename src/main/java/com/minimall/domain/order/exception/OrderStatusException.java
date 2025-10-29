@@ -1,6 +1,7 @@
-package com.minimall.domain.order;
+package com.minimall.domain.order.exception;
 
 import com.minimall.domain.DomainType;
+import com.minimall.domain.order.OrderStatus;
 import com.minimall.exception.DomainStatusException;
 
 public class OrderStatusException extends DomainStatusException {

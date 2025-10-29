@@ -5,10 +5,14 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Entity
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product extends BaseEntity {
 
     @Id @GeneratedValue
@@ -24,24 +28,60 @@ public class Product extends BaseEntity {
     private Integer stockQuantity;
 
 
-    //==생성자==//
+    //== 생성자 ==//
     public Product(String name, Integer price, Integer stockQuantity) {
+        validateFields(name, price, stockQuantity);
         this.name = name;
         this.price = price;
         this.stockQuantity = stockQuantity;
     }
 
-    //==비즈니스 로직==//
-    public void addStock(int quantity) {
+
+    //== 비즈니스 로직 ==//
+    public void changePrice(int price) {
+        if (price < 0) {
+            throw InvalidPriceException.priceCannotBeNegative(price);
+        }
+        this.price = price;
+    }
+
+    public void increaseStock(int quantity) {
         stockQuantity += quantity;
     }
 
-    public void removeStock(int quantity) {
+    public void reduceStock(int quantity) {
         int realQuantity = stockQuantity - quantity;
         if (realQuantity < 0) {
-            throw new IllegalArgumentException("재고가 부족하여 요청하신 재고만큼 차감할 수 없습니다. 현재 재고: " + stockQuantity +
-                    ", 요청한 재고 감량: " + quantity);
+            throw InsufficientStockException.ofStockQuantity(stockQuantity);
         }
         stockQuantity = realQuantity;
+    }
+
+    public void removeAllStock() {
+        stockQuantity = 0;
+    }
+
+
+    //== 검증 로직 ==//
+    private void validateFields(String name, Integer price, Integer stockQuantity) {
+        if (!StringUtils.hasText(name)) {
+            throw InvalidProductNameException.empty();
+        }
+
+        if (price == null) {
+            throw InvalidPriceException.priceCannotBeNull();
+        }
+
+        if (price < 0) {
+            throw InvalidPriceException.priceCannotBeNegative(price);
+        }
+
+        if (stockQuantity == null) {
+            throw InvalidStockQuantityException.cannotBeNull();
+        }
+
+        if (stockQuantity < 0) {
+            throw InvalidStockQuantityException.cannotBeNegative(stockQuantity);
+        }
     }
 }

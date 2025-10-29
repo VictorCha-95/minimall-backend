@@ -1,4 +1,4 @@
-package com.minimall.domain.order.sub.delivery;
+package com.minimall.domain.order;
 
 import com.minimall.domain.common.CustomStatus;
 

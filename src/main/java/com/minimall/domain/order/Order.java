@@ -2,13 +2,12 @@ package com.minimall.domain.order;
 
 import com.minimall.domain.common.base.BaseEntity;
 import com.minimall.domain.member.Member;
-import com.minimall.domain.order.sub.delivery.Delivery;
-import com.minimall.domain.order.sub.pay.Pay;
 import com.minimall.domain.embeddable.Address;
-import com.minimall.domain.embeddable.AddressException;
+import com.minimall.domain.embeddable.InvalidAddressException;
+import com.minimall.domain.order.exception.OrderStatusException;
+import com.minimall.domain.order.exception.PayAmountMismatchException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -42,13 +41,13 @@ public class Order extends BaseEntity {
     @Embedded
     private Address shipAddr;  // 역정규화(주문 시 배송지 입력 default member.getAddr() //TODO DB 컬럼 추가
 
-    @OneToOne(fetch = FetchType.LAZY, mappedBy = "order")
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private Delivery delivery;
 
-    @OneToOne(fetch = FetchType.LAZY, mappedBy = "order")
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private Pay pay;
 
-    @OneToMany(mappedBy = "order")
+    @OneToMany(mappedBy = "order", cascade = CascadeType.PERSIST, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
 
@@ -56,16 +55,12 @@ public class Order extends BaseEntity {
     public static Order createOrder(Member member, OrderItem... items) {
         //주문 항목 토탈 금액(할인 금액은 Pay 처리 과정에서 적용)
         int originalTotalAmount = Arrays.stream(items)
-                .mapToInt(oi -> oi.getOrderPrice() * oi.getOrderQuantity())
+                .mapToInt(OrderItem::createTotalAmount)
                 .sum();
 
         //order 생성
-        Order order = Order.builder()
-                .member(member)
-                .orderedAt(LocalDateTime.now())
-                .orderStatus(OrderStatus.ORDERED)
-                .orderAmount(new OrderAmount(originalTotalAmount))
-                .build();
+        Order order = new Order(member, LocalDateTime.now(), OrderStatus.ORDERED, new OrderAmount(originalTotalAmount));
+        order.setMember(member);
 
         for (OrderItem item : items) {
             order.addOrderItem(item);
@@ -74,7 +69,6 @@ public class Order extends BaseEntity {
         return order;
     }
 
-    @Builder(access = AccessLevel.PRIVATE)
     private Order(Member member, LocalDateTime orderedAt, OrderStatus orderStatus, OrderAmount orderAmount) {
         this.member = member;
         this.orderedAt = orderedAt;
@@ -84,32 +78,26 @@ public class Order extends BaseEntity {
 
 
     //==연관관계 메서드==//
-    public void setMember(Member member) {
+    private void setMember(Member member) {
         this.member = member;
         if (!member.getOrders().contains(this)) {
             member.getOrders().add(this);
         }
     }
 
-    public void addOrderItem(OrderItem orderItem) {
+    private void addOrderItem(OrderItem orderItem) {
         orderItems.add(orderItem);
-        if (orderItem.getOrder() != this) {
-            orderItem.setOrder(this);
-        }
+        orderItem.assignOrder(this);
     }
 
-    public void setDelivery(Delivery delivery) {
+    private void setDelivery(Delivery delivery) {
         this.delivery = delivery;
-        if (delivery.getOrder() != this) {
-            delivery.setOrder(this);
-        }
+        delivery.assignOrder(this);
     }
 
-    public void setPay(Pay pay) {
+    private void setPay(Pay pay) {
         this.pay = pay;
-        if (pay.getOrder() != this) {
-            pay.setOrder(this);
-        }
+        pay.assignOrder(this);
     }
 
 
@@ -117,19 +105,30 @@ public class Order extends BaseEntity {
     public void processPayment(Pay pay) {
         ensureCanTransition(OrderStatus.CONFIRMED);
         setPay(pay);
-        pay.completePayment(orderAmount.getFinalAmount());
+        completePay(pay);
         orderStatus = OrderStatus.CONFIRMED;
+    }
+
+    private void completePay(Pay pay) {
+        try {
+            pay.validateAmount(getOrderAmount().getFinalAmount());
+            pay.complete();
+        } catch (PayAmountMismatchException e) {
+            pay.fail();
+            throw e;
+        }
     }
 
     public void prepareDelivery(Address shipAddr) {
         ensureCanTransition(OrderStatus.SHIPPING);
 
-        if (shipAddr == null) {
-            throw new AddressException("배송 주소는 필수");
-        }
+        validateShipAddr(shipAddr);
 
-        Delivery.readyDelivery(this, shipAddr);
+        Delivery delivery = Delivery.readyDelivery(this, shipAddr);
+        setDelivery(delivery);
+        orderStatus = OrderStatus.SHIP_READY;
     }
+
 
     public void startDelivery() {
         delivery.startDelivery();
@@ -145,7 +144,7 @@ public class Order extends BaseEntity {
         ensureCanTransition(OrderStatus.CANCELED);
         if (pay != null) pay.cancel();
         if (delivery != null) delivery.cancel();
-        orderItems.forEach(oi -> oi.getProduct().addStock(oi.getOrderQuantity())); //주문 취소 후 재고 복원
+        orderItems.forEach(oi -> oi.getProduct().increaseStock(oi.getOrderQuantity())); //주문 취소 후 재고 복원
         orderStatus = OrderStatus.CANCELED;
     }
 
@@ -155,5 +154,10 @@ public class Order extends BaseEntity {
         if (!orderStatus.canProgressTo(next)) {
             throw new OrderStatusException(id, orderStatus, next);
         }
+    }
+    private void validateShipAddr(Address shipAddr) {
+        //TODO 이메일 형식 검증 추가
+        if (shipAddr == null) shipAddr = member.getAddr();
+        if (shipAddr == null) throw InvalidAddressException.empty();
     }
 }

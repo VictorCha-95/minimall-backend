@@ -3,15 +3,11 @@ package com.minimall.domain.order;
 import com.minimall.domain.member.Grade;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.domain.order.sub.delivery.Delivery;
-import com.minimall.domain.order.sub.delivery.DeliveryStatus;
-import com.minimall.domain.order.sub.delivery.DeliveryStatusException;
-import com.minimall.domain.order.sub.pay.Pay;
-import com.minimall.domain.order.sub.pay.PayMethod;
-import com.minimall.domain.order.sub.pay.PayStatus;
+import com.minimall.domain.order.exception.DeliveryStatusException;
+import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.embeddable.Address;
-import com.minimall.domain.embeddable.AddressException;
+import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.product.ProductRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -61,7 +57,7 @@ public class OrderWithSubDomainTest {
     void payBasicTest() {
         //given
         Order order = createOrder();
-        Pay pay = new Pay(PayMethod.CARD);
+        Pay pay = new Pay(PayMethod.CARD, 10000);
 
         //then
         assertThat(pay.getPayStatus()).isEqualTo(PayStatus.READY);
@@ -77,10 +73,10 @@ public class OrderWithSubDomainTest {
         //결제 되지 않은 주문은 배송 준비 불가
         assertThrows(OrderStatusException.class, () -> order.prepareDelivery(createAddress()));
 
-        order.processPayment(new Pay(PayMethod.CARD));
+        order.processPayment(new Pay(PayMethod.CARD, 10000));
 
         //주소 없이 배송 준비 불가
-        assertThrows(AddressException.class, () -> order.prepareDelivery(null));
+        assertThrows(InvalidAddressException.class, () -> order.prepareDelivery(null));
 
         order.prepareDelivery(createAddress());
         assertThat(order.getDelivery().getDeliveryStatus()).isEqualTo(DeliveryStatus.READY);
@@ -115,7 +111,7 @@ public class OrderWithSubDomainTest {
     void orderPay() {
         //given
         Order order = createOrder();
-        Pay pay = new Pay(PayMethod.BANK_TRANSFER);
+        Pay pay = new Pay(PayMethod.BANK_TRANSFER, 10000);
 
         //when
         order.processPayment(pay);
@@ -130,7 +126,7 @@ public class OrderWithSubDomainTest {
     void prepareDelivery_shouldFail_whenPayStatusIsNotPaid() {
         //given
         Order order = createOrder();
-        Pay pay = new Pay(PayMethod.MOBILE_PAY);
+        Pay pay = new Pay(PayMethod.MOBILE_PAY, 10000);
         order.processPayment(pay);
     }
 
@@ -151,7 +147,7 @@ public class OrderWithSubDomainTest {
     void orderAndPayCancel() {
         //given
         Order order = createOrder();
-        Pay pay = new Pay(PayMethod.CARD);
+        Pay pay = new Pay(PayMethod.CARD, 10000);
         order.processPayment(pay);
 
         //when
@@ -246,12 +242,7 @@ public class OrderWithSubDomainTest {
     }
 
     private Address createAddress() {
-        return Address.builder()
-                .postcode("62350")
-                .state("광주광역시")
-                .city("광산구")
-                .street("수등로76번길 10")
-                .detail("수완대방노블랜드아파트 123동 1540호")
-                .build();
+        return Address.createAddress
+                ("62350", "광주광역시", "광산구", "수등로76번길 10", "수완대방노블랜드아파트 123동 1540호");
     }
 }

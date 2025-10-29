@@ -1,11 +1,15 @@
 package com.minimall.domain.order;
 
 import com.minimall.domain.member.Member;
-import com.minimall.domain.order.sub.discount.MemberDiscountPolicy;
+import com.minimall.domain.order.discount.DiscountException;
+import com.minimall.domain.order.discount.MemberDiscountPolicy;
 import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.Arrays;
+import java.util.Optional;
 
 @Embeddable
 @Getter
@@ -17,7 +21,7 @@ public class OrderAmount {
     private Integer finalAmount;        // 할인 적용 후 금액
     private boolean isDiscounted = false;
 
-    //==생성자==//
+    //== 생성자 ==//
     public OrderAmount(int originalAmount) {
         this.originalAmount = originalAmount;
         discountAmount = 0;
@@ -25,52 +29,36 @@ public class OrderAmount {
     }
 
 
-    //==비즈니스 로직==//
-    public void applyDiscount(Member member, MemberDiscountPolicy discountPolicy, int extraDiscount) {
+    //== 비즈니스 로직 ==//
+    public void applyDiscount(Member member, MemberDiscountPolicy... policies) {
         checkAlreadyDiscounted();
-        applyMemberDiscount(member, discountPolicy);
-        applyAdditionalDiscount(extraDiscount);
+        applyMemberDiscount(member, policies);
         finalizeDiscount();
     }
 
-    public void applyDiscount(Member member, MemberDiscountPolicy discountPolicy) {
-        checkAlreadyDiscounted();
-        applyMemberDiscount(member, discountPolicy);
-        finalizeDiscount();
+    private void applyMemberDiscount(Member member, MemberDiscountPolicy[] policies) {
+        discountAmount = Arrays.stream(policies)
+                .mapToInt(p -> p.discount(member, originalAmount))
+                .sum();
     }
 
-    private void applyMemberDiscount(Member member, MemberDiscountPolicy discountPolicy) {
-        int discount = discountPolicy.discount(member, originalAmount);
-        discountAmount += discount;
-    }
-
-    private void applyAdditionalDiscount(int extraDiscount) {
-        if (extraDiscount < 0) {
-            throw new IllegalArgumentException("추가 할인 금액은 음수일 수 없습니다. 입력값: " + extraDiscount);
-        }
-        discountAmount += extraDiscount;
+    private void finalizeDiscount() {
+        finalAmount = originalAmount - discountAmount;
+        discountAmountValidate();
+        isDiscounted = true;
     }
 
 
-    //==예외 로직==//
+    //== 검증 로직 ==//
     private void discountAmountValidate() {
         if (finalAmount < 0) {
-            throw new IllegalArgumentException("할인 금액이 총 금액 보다 많습니다. " +
-                    "총 금액: " + originalAmount + ", 할인 금액: " + discountAmount);
+            throw DiscountException.discountAmountGreaterThanOrderAmount(originalAmount, discountAmount);
         }
     }
 
     private void checkAlreadyDiscounted() {
         if (isDiscounted) {
-            throw new IllegalStateException("이미 할인이 적용된 주문서입니다.");
+            throw DiscountException.alreadyDiscounted();
         }
-    }
-
-
-    //==공통 로직==//
-    private void finalizeDiscount() {
-        finalAmount = originalAmount - discountAmount;
-        discountAmountValidate();
-        isDiscounted = true;
     }
 }

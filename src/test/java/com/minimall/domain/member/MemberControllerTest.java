@@ -388,12 +388,6 @@ class MemberControllerTest {
     //== Helper Methods==//
     private MemberCreateRequestDto createRequestDto(String loginId, String name) {
         return new MemberCreateRequestDto(loginId, "12345", name, loginId + "@example.com",
-                Address.builder()
-                        .postcode("12345")
-                        .state("서울특별시")
-                        .city("강남구")
-                        .street("테헤란로 1")
-                        .detail("101동 202호")
-                        .build());
+                Address.createAddress("12345", "서울특별시", "강남구", "테헤란로 1", "101동 202호"));
     }
 }

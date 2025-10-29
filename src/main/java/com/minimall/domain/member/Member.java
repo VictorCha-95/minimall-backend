@@ -48,9 +48,6 @@ public class Member extends BaseEntity {
     //== 연관관계 편의 메서드 ==//
     public void addOrder(Order order) {
         orders.add(order);
-        if (order.getMember() != this) {
-            order.setMember(this);
-        }
     }
 
     public void removeOrder(Order order) {

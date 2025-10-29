@@ -2,7 +2,6 @@ package com.minimall.domain.order;
 
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.domain.order.sub.pay.PayRepository;
 import com.minimall.domain.product.Product;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,9 +21,6 @@ class OrderRepositoryTest {
 
     @Autowired
     OrderRepository orderRepository;
-
-    @Autowired
-    PayRepository payRepository;
 
     @BeforeEach
     void before() {

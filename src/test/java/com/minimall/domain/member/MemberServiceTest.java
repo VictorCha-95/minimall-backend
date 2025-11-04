@@ -1,13 +1,15 @@
 package com.minimall.domain.member;
 
-import com.minimall.domain.DomainType;
+import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.dto.MemberMapper;
 import com.minimall.domain.member.dto.request.MemberCreateRequestDto;
 import com.minimall.domain.member.dto.request.MemberUpdateRequestDto;
 import com.minimall.domain.member.dto.response.MemberDetailResponseDto;
 import com.minimall.domain.member.dto.response.MemberSummaryResponseDto;
-import com.minimall.exception.DuplicateException;
+import com.minimall.domain.exception.DuplicateException;
+import com.minimall.service.exception.MemberNotFoundException;
+import com.minimall.service.MemberService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

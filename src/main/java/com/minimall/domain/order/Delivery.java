@@ -3,7 +3,8 @@ package com.minimall.domain.order;
 import com.minimall.domain.common.base.BaseEntity;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.embeddable.InvalidAddressException;
-import com.minimall.domain.order.exception.DeliveryStatusException;
+import com.minimall.domain.order.delivery.DeliveryStatus;
+import com.minimall.domain.order.delivery.DeliveryStatusException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -12,14 +13,15 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-import static com.minimall.domain.order.DeliveryStatus.*;
+import static com.minimall.domain.order.delivery.DeliveryStatus.*;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Delivery extends BaseEntity {
 
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "delivery_id")
     private Long id;
 

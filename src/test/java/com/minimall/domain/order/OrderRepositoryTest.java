@@ -2,6 +2,7 @@ package com.minimall.domain.order;
 
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
+import com.minimall.domain.order.status.OrderStatus;
 import com.minimall.domain.product.Product;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

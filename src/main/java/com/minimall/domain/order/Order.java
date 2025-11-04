@@ -4,17 +4,18 @@ import com.minimall.domain.common.base.BaseEntity;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.embeddable.InvalidAddressException;
+import com.minimall.domain.order.exception.EmptyOrderItemException;
 import com.minimall.domain.order.exception.OrderStatusException;
-import com.minimall.domain.order.exception.PayAmountMismatchException;
+import com.minimall.domain.order.message.OrderMessage;
+import com.minimall.domain.order.pay.PayAmountMismatchException;
+import com.minimall.domain.order.status.OrderStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 @Entity
 @Table(name = "orders")
@@ -22,7 +23,8 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Order extends BaseEntity {
 
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_id")
     private Long id;
 
@@ -38,9 +40,6 @@ public class Order extends BaseEntity {
     @Embedded
     private OrderAmount orderAmount;
 
-    @Embedded
-    private Address shipAddr;  // 역정규화(주문 시 배송지 입력 default member.getAddr() //TODO DB 컬럼 추가
-
     @OneToOne(fetch = FetchType.LAZY, mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private Delivery delivery;
 
@@ -53,13 +52,13 @@ public class Order extends BaseEntity {
 
     //==생성자==//
     public static Order createOrder(Member member, OrderItem... items) {
-        //주문 항목 토탈 금액(할인 금액은 Pay 처리 과정에서 적용)
-        int originalTotalAmount = Arrays.stream(items)
-                .mapToInt(OrderItem::createTotalAmount)
-                .sum();
+        Objects.requireNonNull(member, OrderMessage.MEMBER_REQUIRED_FOR_ORDER_CREATION.text());
 
-        //order 생성
-        Order order = new Order(member, LocalDateTime.now(), OrderStatus.ORDERED, new OrderAmount(originalTotalAmount));
+        validateOrderItemsNotEmpty(items);
+
+        Order order = new Order(member, LocalDateTime.now(),
+                OrderStatus.ORDERED, new OrderAmount(getTotalAmount(items)));
+
         order.setMember(member);
 
         for (OrderItem item : items) {
@@ -74,6 +73,18 @@ public class Order extends BaseEntity {
         this.orderedAt = orderedAt;
         this.orderStatus = orderStatus;
         this.orderAmount = orderAmount;
+    }
+
+    private static void validateOrderItemsNotEmpty(OrderItem[] items) {
+        if (items == null || items.length == 0 || Arrays.stream(items).anyMatch(Objects::isNull)) {
+            throw new EmptyOrderItemException();
+        }
+    }
+
+    private static int getTotalAmount(OrderItem[] items) {
+        return Arrays.stream(items)
+                .mapToInt(OrderItem::createTotalAmount)
+                .sum();
     }
 
 
@@ -146,6 +157,10 @@ public class Order extends BaseEntity {
         if (delivery != null) delivery.cancel();
         orderItems.forEach(oi -> oi.getProduct().increaseStock(oi.getOrderQuantity())); //주문 취소 후 재고 복원
         orderStatus = OrderStatus.CANCELED;
+    }
+
+    public List<OrderItem> getOrderItems() {
+        return Collections.unmodifiableList(orderItems);
     }
 
 

@@ -1,11 +1,15 @@
 package com.minimall.domain.order.exception;
 
+import com.minimall.domain.order.message.OrderMessage;
+
 public class InvalidOrderQuantityException extends RuntimeException {
-    public InvalidOrderQuantityException(String message) {
+
+    public static InvalidOrderQuantityException mustBeGreaterThanZero(int orderQuantity) {
+        return new InvalidOrderQuantityException(OrderMessage.INVALID_ORDER_QUANTITY.text(orderQuantity));
+    }
+
+    private InvalidOrderQuantityException(String message) {
         super(message);
     }
 
-    public static InvalidOrderQuantityException mustBeGreaterThanZero(int orderQuantity) {
-        return new InvalidOrderQuantityException("주문 항목의 주문 수량은 0보다 커야 합니다. 요청하신 주문 수량: " + orderQuantity);
-    }
 }

@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 public class OrderItem extends BaseEntity {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_item_id")
     private Long id;
 
@@ -31,7 +31,7 @@ public class OrderItem extends BaseEntity {
     private Integer orderQuantity;
 
 
-    //==생성자 메서드==//
+    //== 생성자 메서드 ==//
     public static OrderItem createOrderItem(Product product, int orderQuantity) {
         if (orderQuantity <= 0) {
             throw InvalidOrderQuantityException.mustBeGreaterThanZero(orderQuantity);

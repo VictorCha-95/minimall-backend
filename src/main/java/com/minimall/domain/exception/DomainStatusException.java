@@ -2,14 +2,23 @@ package com.minimall.domain.exception;
 
 import com.minimall.domain.common.CustomStatus;
 import com.minimall.domain.common.DomainType;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
+@Getter
 public class DomainStatusException extends RuntimeException {
-    public DomainStatusException(String message) {
-        super(message);
-    }
 
-  public DomainStatusException(DomainType domain, Long id, CustomStatus currentStatus, CustomStatus targetStatus) {
-    super(String.format("[%s - id: %d] 상태 오류  Current Status: %s, Try Status: %s" ,
-            domain.name(), id, currentStatus, targetStatus));
-  }
+    private final DomainType domain;
+    private final Long id;
+    private final CustomStatus currentStatus;
+    private final CustomStatus targetStatus;
+
+
+    public DomainStatusException(DomainType domain, Long id, CustomStatus currentStatus, CustomStatus targetStatus) {
+        super(DomainExceptionMessage.STATUS_ERROR.text(domain.name(), id, currentStatus, targetStatus));
+        this.domain = domain;
+        this.id = id;
+        this.currentStatus = currentStatus;
+        this.targetStatus = targetStatus;
+    }
 }

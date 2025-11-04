@@ -8,9 +8,11 @@ public enum OrderMessage {
     MEMBER_REQUIRED_FOR_ORDER_CREATION("주문 생성 시 회원 정보는 필수입니다."),
 
     // 취소
-    ORDER_ALREADY_CANCELED("이미 취소된 주문 - orderId: %d, Current: CANCELED");
+    ORDER_ALREADY_CANCELED("이미 취소된 주문 - orderId: %d, Current: CANCELED"),
 
-    //
+    // 배송
+    PAYMENT_REQUIRED_FOR_DELIVERY_PREPARE("결제가 완료되지 않아 배송을 준비할 수 없습니다. orderId: %d"),
+    PAYMENT_REQUIRED_FOR_DELIVERY_PREPARE_WITH_STATUS("결제가 완료되지 않아 배송을 준비할 수 없습니다. orderId: %d, payStatus: %s");
 
 
     private final String template;

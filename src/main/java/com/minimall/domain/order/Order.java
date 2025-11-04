@@ -6,8 +6,10 @@ import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.order.exception.EmptyOrderItemException;
 import com.minimall.domain.order.exception.OrderStatusException;
+import com.minimall.domain.order.exception.PaymentRequiredException;
 import com.minimall.domain.order.message.OrderMessage;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
+import com.minimall.domain.order.pay.PayStatus;
 import com.minimall.domain.order.status.OrderStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -113,6 +115,14 @@ public class Order extends BaseEntity {
 
 
     //==비즈니스 로직==//
+    public void cancel() {   // 배송 시작 이전 단계에서만 취소 가능
+        ensureCanTransition(OrderStatus.CANCELED);
+        if (pay != null) pay.cancel();
+        if (delivery != null) delivery.cancel();
+        orderItems.forEach(oi -> oi.getProduct().increaseStock(oi.getOrderQuantity())); //주문 취소 후 재고 복원
+        orderStatus = OrderStatus.CANCELED;
+    }
+
     public void processPayment(Pay pay) {
         ensureCanTransition(OrderStatus.CONFIRMED);
         setPay(pay);
@@ -131,8 +141,8 @@ public class Order extends BaseEntity {
     }
 
     public void prepareDelivery(Address shipAddr) {
-        ensureCanTransition(OrderStatus.SHIPPING);
-
+        ensurePaidForDelivery();
+        ensureCanTransition(OrderStatus.SHIP_READY);
         validateShipAddr(shipAddr);
 
         Delivery delivery = Delivery.readyDelivery(this, shipAddr);
@@ -151,25 +161,27 @@ public class Order extends BaseEntity {
         orderStatus = OrderStatus.COMPLETED;
     }
 
-    public void cancel() {   // 배송 시작 이전 단계에서만 취소 가능
-        ensureCanTransition(OrderStatus.CANCELED);
-        if (pay != null) pay.cancel();
-        if (delivery != null) delivery.cancel();
-        orderItems.forEach(oi -> oi.getProduct().increaseStock(oi.getOrderQuantity())); //주문 취소 후 재고 복원
-        orderStatus = OrderStatus.CANCELED;
-    }
-
     public List<OrderItem> getOrderItems() {
         return Collections.unmodifiableList(orderItems);
     }
 
 
     //==검증 로직==//
+    private void ensurePaidForDelivery() {
+        if (pay == null) {
+            throw PaymentRequiredException.mustBePaidBeforeDelivery(id);
+        }
+        if (pay.getPayStatus() != PayStatus.PAID) {
+            throw PaymentRequiredException.mustBePaidBeforeDelivery(id, pay.getPayStatus());
+        }
+    }
+
     private void ensureCanTransition(OrderStatus next) {
         if (!orderStatus.canProgressTo(next)) {
             throw new OrderStatusException(id, orderStatus, next);
         }
     }
+
     private void validateShipAddr(Address shipAddr) {
         //TODO 이메일 형식 검증 추가
         if (shipAddr == null) shipAddr = member.getAddr();

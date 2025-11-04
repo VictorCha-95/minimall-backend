@@ -16,12 +16,13 @@ import static com.minimall.domain.order.message.OrderMessage.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+@DisplayName("Order.createOrder()")
 public class OrderCreateTest {
 
-    private Member member;
-    private List<OrderItem> orderItems = new ArrayList<>();
+    Member member;
 
-    //== Product & OrderItem Compose ==//
+    List<OrderItem> orderItems = new ArrayList<>();
+
     Product keyboard;
     Product mouse;
 

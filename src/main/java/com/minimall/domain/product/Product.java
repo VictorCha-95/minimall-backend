@@ -75,11 +75,11 @@ public class Product extends BaseEntity {
         }
 
         if (stockQuantity == null) {
-            throw InvalidStockQuantityException.cannotBeNull();
+            throw InvalidProductStockException.cannotBeNull();
         }
 
         if (stockQuantity < 0) {
-            throw InvalidStockQuantityException.cannotBeNegative(stockQuantity);
+            throw InvalidProductStockException.cannotBeNegative(stockQuantity);
         }
     }
 }

@@ -1,7 +1,8 @@
-package com.minimall.domain.member;
+package com.minimall.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.domain.embeddable.Address;
+import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.member.dto.request.MemberCreateRequestDto;
 import com.minimall.domain.member.dto.request.MemberUpdateRequestDto;
 import com.minimall.domain.member.dto.response.MemberSummaryResponseDto;

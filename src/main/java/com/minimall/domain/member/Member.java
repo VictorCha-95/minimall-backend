@@ -48,13 +48,10 @@ public class Member extends BaseEntity {
 
     //== 연관관계 편의 메서드 ==//
     public void addOrder(Order order) {
-        orders.add(order);
+        if (!orders.contains(order)) {
+            orders.add(order);
+        }
     }
-
-    public void removeOrder(Order order) {
-        orders.remove(order);
-    }
-
 
     //== 필드 수정용 메서드 ==//
     public void update(String password, String name, String email, Address addr) {

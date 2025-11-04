@@ -94,7 +94,7 @@ public class Order extends BaseEntity {
     private void setMember(Member member) {
         this.member = member;
         if (!member.getOrders().contains(this)) {
-            member.getOrders().add(this);
+            member.addOrder(this);
         }
     }
 

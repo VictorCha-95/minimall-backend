@@ -1,12 +1,12 @@
 package com.minimall.domain.member;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.dto.request.MemberCreateRequestDto;
 import com.minimall.domain.member.dto.request.MemberUpdateRequestDto;
 import com.minimall.domain.member.dto.response.MemberSummaryResponseDto;
-import org.junit.jupiter.api.Assertions;
+import com.minimall.service.exception.MemberNotFoundException;
+import com.minimall.service.MemberService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,13 +26,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
+@ActiveProfiles("integration-test")
 @AutoConfigureMockMvc
 @Testcontainers
 @Transactional
 class MemberControllerTest {
 
     @ServiceConnection
-    static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.4.4")
+    static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
             .withReuse(true);
 
     @Autowired

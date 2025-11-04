@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update   # 통합 테스트는 스키마 유지되는게 편함
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true
+
+  # Lazy 로딩 실패 방지 (선택)
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql.BasicBinder: trace
+

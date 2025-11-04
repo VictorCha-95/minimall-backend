@@ -1,8 +1,10 @@
 package com.minimall.domain.order;
 
 import com.minimall.domain.common.base.BaseEntity;
-import com.minimall.domain.order.exception.PayAmountMismatchException;
-import com.minimall.domain.order.exception.PayStatusException;
+import com.minimall.domain.order.pay.PayAmountMismatchException;
+import com.minimall.domain.order.pay.PayStatusException;
+import com.minimall.domain.order.pay.PayMethod;
+import com.minimall.domain.order.pay.PayStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -15,7 +17,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Pay extends BaseEntity {
 
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pay_id")
     private Long id;
 
@@ -34,21 +37,21 @@ public class Pay extends BaseEntity {
     private LocalDateTime paidAt;
 
 
-    //==생성자==//
+    //== 생성자 ==//
     public Pay(PayMethod payMethod, int payAmount) {
         this.payMethod = payMethod;
+        this.payAmount = payAmount;
         payStatus = PayStatus.READY;
     }
 
 
-
-    //==연관관계 메서드==//
+    //== 연관관계 메서드 ==//
     void assignOrder(Order order) {
         this.order = order;
     }
 
 
-    //==비즈니스 로직==//
+    //== 비즈니스 로직 ==//
     public void complete() {
         ensureCanTransition(PayStatus.PAID);
         payStatus = PayStatus.PAID;
@@ -66,7 +69,7 @@ public class Pay extends BaseEntity {
     }
 
 
-    //==검증 로직==//
+    //== 검증 로직 ==//
     private void ensureCanTransition(PayStatus next) {
         if (!payStatus.canProgressTo(next)) {
             throw new PayStatusException(id, payStatus, next);

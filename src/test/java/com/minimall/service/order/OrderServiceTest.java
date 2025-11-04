@@ -1,8 +1,11 @@
-package com.minimall.domain.order;
+package com.minimall.service.order;
 
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
+import com.minimall.domain.order.Order;
+import com.minimall.domain.order.OrderItem;
+import com.minimall.domain.order.OrderRepository;
 import com.minimall.domain.order.dto.OrderMapper;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;

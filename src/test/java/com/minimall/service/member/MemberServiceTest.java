@@ -1,7 +1,9 @@
-package com.minimall.domain.member;
+package com.minimall.service.member;
 
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
+import com.minimall.domain.member.Member;
+import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.member.dto.MemberMapper;
 import com.minimall.domain.member.dto.request.MemberCreateRequestDto;
 import com.minimall.domain.member.dto.request.MemberUpdateRequestDto;

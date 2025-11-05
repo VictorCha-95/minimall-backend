@@ -52,7 +52,7 @@ public class ProductTest {
                         .isInstanceOfSatisfying(InvalidProductNameException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidProductNameException.Reason.REQUIRED);
                             assertThat(e.getMessage())
-                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(paramMap.get("name")));
+                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(paramMap.get("name")));
                         });
             }
 
@@ -76,7 +76,7 @@ public class ProductTest {
                 assertThatThrownBy(() -> new Product(DEFAULT_NAME, null, DEFAULT_STOCK))
                         .isInstanceOfSatisfying(InvalidPriceException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidPriceException.Reason.REQUIRED);
-                            assertThat(e.getMessage()).isEqualTo(DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(paramMap.get("price")));
+                            assertThat(e.getMessage()).isEqualTo(DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(paramMap.get("price")));
                         });
             }
 
@@ -101,7 +101,7 @@ public class ProductTest {
                         .isInstanceOfSatisfying(InvalidProductStockException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidProductStockException.Reason.REQUIRED);
                             assertThat(e.getMessage())
-                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(paramMap.get("stock")));
+                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(paramMap.get("stock")));
                         });
             }
 
@@ -155,11 +155,13 @@ public class ProductTest {
 
     }
 
+
+
     @Nested
     class Stock {
         @Nested
         @DisplayName("addStock(int)")
-        class AddStock {
+        class Add {
             @Test
             @DisplayName("정상 -> 누적 증가")
             void success() {
@@ -176,7 +178,7 @@ public class ProductTest {
 
         @Nested
         @DisplayName("reduceStock(int)")
-        class ReduceStock{
+        class Reduce{
             @Test
             @DisplayName("정상 -> 차감")
             void success() {
@@ -221,6 +223,52 @@ public class ProductTest {
 
                 //then
                 assertThat(product.getStockQuantity()).isZero();
+            }
+        }
+    }
+
+    @Nested
+    class Name {
+        @Nested
+        @DisplayName("changeName(String)")
+        class Change{
+            @Test
+            @DisplayName("정상 -> 변경")
+            void success() {
+                //given
+                Product product = new Product(DEFAULT_NAME, DEFAULT_PRICE, DEFAULT_STOCK);
+
+                //when
+                product.changeName("바뀐 이름");
+
+                //then
+                assertThat(product.getName()).isEqualTo("바뀐 이름");
+            }
+
+            @Test
+            @DisplayName("null -> 예외")
+            void shouldFail_whenNameIsNull() {
+                //given
+                Product product = new Product(DEFAULT_NAME, DEFAULT_PRICE, DEFAULT_STOCK);
+
+                //then
+                assertThatThrownBy(() -> product.changeName(null))
+                        .isInstanceOfSatisfying(InvalidProductNameException.class, e -> {
+                            assertThat(e.getReason()).isEqualTo(InvalidProductNameException.Reason.REQUIRED);
+                        });
+            }
+
+            @Test
+            @DisplayName("blank -> 예외")
+            void shouldFail_whenNameIsBlank() {
+                //given
+                Product product = new Product(DEFAULT_NAME, DEFAULT_PRICE, DEFAULT_STOCK);
+
+                //then
+                assertThatThrownBy(() -> product.changeName("      "))
+                        .isInstanceOfSatisfying(InvalidProductNameException.class, e -> {
+                            assertThat(e.getReason()).isEqualTo(InvalidProductNameException.Reason.BLANK);
+                        });
             }
         }
     }

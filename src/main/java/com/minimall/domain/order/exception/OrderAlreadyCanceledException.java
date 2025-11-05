@@ -1,6 +1,6 @@
 package com.minimall.domain.order.exception;
 
-import com.minimall.domain.order.message.OrderMessage;
+import com.minimall.domain.order.OrderMessage;
 
 public class OrderAlreadyCanceledException extends RuntimeException {
 

@@ -2,17 +2,18 @@ package com.minimall.domain.order;
 
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
-import com.minimall.domain.order.exception.EmptyOrderItemException;
+import com.minimall.domain.order.exception.InvalidOrderItemException;
 import com.minimall.domain.order.status.OrderStatus;
 import com.minimall.domain.product.Product;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.minimall.domain.order.message.OrderMessage.*;
+import static com.minimall.domain.order.OrderMessage.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -34,6 +35,9 @@ public class OrderCreateTest {
     int mouseStock = 20;
     int mouseOrderQuantity = 10;
 
+    private int totalPrice() {
+        return (keyboardOrderQuantity * keyboardPrice) + (mouseOrderQuantity * mousePrice);
+    }
 
     @BeforeEach
     void setUp() {
@@ -56,26 +60,14 @@ public class OrderCreateTest {
     }
 
     @Test
-    @DisplayName("주문 생성 성공")
-    void createOrder_success() {
+    @DisplayName("정상 -> 생성")
+    void success() {
         //when
         Order order = Order.createOrder(member, orderItems.toArray(OrderItem[]::new));
 
         //then: 연관관계 검증
-        assertThat(order.getMember()).isEqualTo(member);
-        assertThat(member.getOrders()).containsExactly(order);
-        assertThat(order.getOrderItems()).allSatisfy(oi -> assertThat(oi.getOrder()).isEqualTo(order));
-        assertThat(order.getOrderItems())
-                .extracting(OrderItem::getOrderQuantity)
-                .containsExactlyInAnyOrder(keyboardOrderQuantity, mouseOrderQuantity);
-        assertThat(order.getOrderItems())
-                .extracting(OrderItem::getProductName)
-                .containsExactlyInAnyOrder("키보드", "마우스");
         assertThat(order.getPay()).isNull();
         assertThat(order.getDelivery()).isNull();
-
-        //then: 주문 항목 불변 검증
-        assertThrows(UnsupportedOperationException.class, () -> order.getOrderItems().add(orderItems.getFirst()));
 
         //then: 기본 정보 검증
         assertThat(order.getOrderedAt()).isNotNull();
@@ -83,39 +75,95 @@ public class OrderCreateTest {
 
         //then: orderItem 합산 가격 검증(주문 가격 검증)
         assertThat(order.getOrderAmount().getOriginalAmount())
-                .isEqualTo((keyboardOrderQuantity * keyboardPrice) + (mouseOrderQuantity * mousePrice));
+                .isEqualTo(totalPrice());
         assertThat(order.getOrderAmount().getFinalAmount())
-                .isEqualTo((keyboardOrderQuantity * keyboardPrice) + (mouseOrderQuantity * mousePrice));
+                .isEqualTo(totalPrice());
     }
 
-    @Test
-    @DisplayName("주문 항목 생성 시 상품 재고 차감")
-    void shouldReduceStock_whenCreateOrderItem() {
-        //then
-        assertThat(keyboard.getStockQuantity()).isEqualTo(keyboardStock - keyboardOrderQuantity);
-        assertThat(mouse.getStockQuantity()).isEqualTo(mouseStock - mouseOrderQuantity);
+    @Nested
+    class MemberArg {
+        @Test
+        @DisplayName("정상 -> 연관관계 추가")
+        void success() {
+            //when
+            Order order = Order.createOrder(member, orderItems.toArray(OrderItem[]::new));
+
+            //then
+            assertThat(order.getMember()).isEqualTo(member);
+            assertThat(member.getOrders()).containsExactly(order);
+        }
+
+        @Test
+        @DisplayName("null -> 예외")
+        void shouldFail_whenMemberIsNull() {
+            NullPointerException ex = assertThrows(NullPointerException.class, () -> Order.createOrder(null, orderItems.toArray(OrderItem[]::new)));
+            assertThat(ex.getMessage()).isEqualTo(MEMBER_REQUIRED_FOR_ORDER_CREATION.text());
+        }
     }
 
-    @Test
-    @DisplayName("회원 정보 없이 주문 생성 시도하면 예외 발생")
-    void shouldThrowNullPointerException_whenMemberIsNull() {
-        //when, then
-        NullPointerException ex = assertThrows(NullPointerException.class, () -> Order.createOrder(null, orderItems.toArray(OrderItem[]::new)));
-        assertThat(ex.getMessage()).isEqualTo(MEMBER_REQUIRED_FOR_ORDER_CREATION.text());
-    }
+    @Nested
+    class OrderItemArg {
+        @Test
+        @DisplayName("정상 -> 연관관계 추가, 주문 항목 불변")
+        void success() {
+            //when
+            Order order = Order.createOrder(member, orderItems.toArray(OrderItem[]::new));
 
-    @Test
-    @DisplayName("주문 항목 중 하나라도 값이 비어 있으면 예외 발생")
-    void shouldThrowEmptyOrderItemException_whenOrderItemIsNull() {
-        //when, then
-        EmptyOrderItemException ex = assertThrows(EmptyOrderItemException.class,
-                () -> Order.createOrder(member));
-        assertThrows(EmptyOrderItemException.class,
-                () -> Order.createOrder(member, new OrderItem[]{}));
-        assertThrows(EmptyOrderItemException.class,
-                () -> Order.createOrder(member, new OrderItem[3]));
-        assertThrows(EmptyOrderItemException.class,
-                () -> Order.createOrder(member, new OrderItem[]{orderItems.getFirst(), null}));
-        assertThat(ex.getMessage()).isEqualTo(EMPTY_ORDER_ITEM.text());
+            //then
+            assertThat(order.getOrderItems()).allSatisfy(oi -> assertThat(oi.getOrder()).isEqualTo(order));
+            assertThat(order.getOrderItems())
+                    .extracting(OrderItem::getOrderQuantity)
+                    .containsExactlyInAnyOrder(keyboardOrderQuantity, mouseOrderQuantity);
+            assertThat(order.getOrderItems())
+                    .extracting(OrderItem::getProductName)
+                    .containsExactlyInAnyOrder("키보드", "마우스");
+            assertThrows(UnsupportedOperationException.class, () -> order.getOrderItems().add(orderItems.getFirst()));
+        }
+
+        @Test
+        @DisplayName("null -> 예외")
+        void shouldFail_whenOrderItemIsNull() {
+            assertThatThrownBy(() -> Order.createOrder(member))
+                    .isInstanceOfSatisfying(InvalidOrderItemException.class, e -> {
+                        assertThat(e.getReason()).isEqualTo(InvalidOrderItemException.Reason.REQUIRE_ITEM);
+                        assertThat(e.getMessage())
+                                .isEqualTo(OrderMessage.REQUIRE_ORDER_ITEM.text());
+                    });
+
+            //when, then
+            assertThrows(InvalidOrderItemException.class,
+                    () -> Order.createOrder(member, new OrderItem[3]));
+            assertThrows(InvalidOrderItemException.class,
+                    () -> Order.createOrder(member, new OrderItem[]{orderItems.getFirst(), null}));
+        }
+
+        @Test
+        @DisplayName("길이 0 배열 -> 예외")
+        void shouldFail_whenArrayLengthIsZero() {
+            assertThatThrownBy(() -> Order.createOrder(member, new OrderItem[]{}))
+                    .isInstanceOfSatisfying(InvalidOrderItemException.class, e -> {
+                        assertThat(e.getReason()).isEqualTo(InvalidOrderItemException.Reason.REQUIRE_ITEM);
+                    });
+        }
+
+        @Test
+        @DisplayName("빈 배열 -> 예외")
+        void shouldFail_whenArrayIsEmpty() {
+            assertThatThrownBy(() -> Order.createOrder(member, new OrderItem[3]))
+                    .isInstanceOfSatisfying(InvalidOrderItemException.class, e -> {
+                        assertThat(e.getReason()).isEqualTo(InvalidOrderItemException.Reason.CONTAIN_NULL_ITEM);
+                        assertThat(e.getIndex()).isEqualTo(0);
+                    });
+        }
+
+        @Test
+        @DisplayName("null 포함 -> 예외")
+        void shouldFail_whenContainNull() {
+            assertThatThrownBy(() -> Order.createOrder(member, new OrderItem[]{orderItems.getFirst(), null}))
+                    .isInstanceOfSatisfying(InvalidOrderItemException.class, e -> {
+                        assertThat(e.getReason()).isEqualTo(InvalidOrderItemException.Reason.CONTAIN_NULL_ITEM);
+                        assertThat(e.getIndex()).isEqualTo(1);
+                    });
+        }
     }
 }

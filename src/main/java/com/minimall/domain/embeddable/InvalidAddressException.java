@@ -23,7 +23,7 @@ public class InvalidAddressException extends RuntimeException {
     public static InvalidAddressException required() {
         return new InvalidAddressException(
                 Reason.REQUIRED,
-                DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(PARAM_NAME));
+                DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(PARAM_NAME));
     }
 
     public static InvalidAddressException missingRequiredFields() {

@@ -24,7 +24,7 @@ public class InvalidProductNameException extends RuntimeException {
     public static InvalidProductNameException required() {
         return new InvalidProductNameException(
                 Reason.REQUIRED,
-                DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(PARAM_NAME));
+                DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(PARAM_NAME));
     }
 
     public static InvalidProductNameException blank() {

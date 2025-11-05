@@ -64,7 +64,7 @@ public class MemberTest {
                         .isInstanceOfSatisfying(InvalidLoginIdException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidLoginIdException.Reason.REQUIRED);
                             assertThat(e.getMessage())
-                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(Fields.MEMBER_LOGIN_ID));
+                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(Fields.MEMBER_LOGIN_ID));
                         });
             }
 
@@ -102,7 +102,7 @@ public class MemberTest {
                         .isInstanceOfSatisfying(InvalidPasswordException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidPasswordException.Reason.REQUIRED);
                             assertThat(e.getMessage())
-                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(Fields.MEMBER_PASSWORD));
+                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(Fields.MEMBER_PASSWORD));
                         });
             }
 
@@ -139,7 +139,7 @@ public class MemberTest {
                         .isInstanceOfSatisfying(InvalidMemberNameException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidMemberNameException.Reason.REQUIRED);
                             assertThat(e.getMessage())
-                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(Fields.MEMBER_NAME));
+                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(Fields.MEMBER_NAME));
                         });
             }
 
@@ -176,7 +176,7 @@ public class MemberTest {
                         .isInstanceOfSatisfying(InvalidEmailException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidEmailException.Reason.REQUIRED);
                             assertThat(e.getMessage())
-                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(Fields.MEMBER_EMAIL));
+                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(Fields.MEMBER_EMAIL));
                         });
             }
 
@@ -213,7 +213,7 @@ public class MemberTest {
                         .isInstanceOfSatisfying(InvalidAddressException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidAddressException.Reason.REQUIRED);
                             assertThat(e.getMessage())
-                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(Fields.MEMBER_ADDR));
+                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(Fields.MEMBER_ADDR));
                         });
             }
         }

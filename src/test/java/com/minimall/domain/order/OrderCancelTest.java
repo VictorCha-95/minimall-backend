@@ -87,7 +87,7 @@
 
             @Test
             @DisplayName("취소 성공 -> 주문 상태 변경, 재고 복원")
-            void cancel_success_changeOrderStatus_restoreStock() {
+            void success_changeOrderStatus_restoreStock() {
                 //when
                 order.cancel();
 
@@ -108,7 +108,7 @@
         class After_Payment_Before_Delivery {
             @Test
             @DisplayName("취소 성공 -> 결제/주문 상태 변경, 재고 복원")
-            void cancel_success_changePayAndOrderStatus_restoreStock() {
+            void success_changePayAndOrderStatus_restoreStock() {
                 //when
                 Pay pay = new Pay(PayMethod.MOBILE_PAY, total());
                 order.processPayment(pay);
@@ -131,7 +131,7 @@
         class After_Payment_Preparing_Delivery{
             @Test
             @DisplayName("취소 성공 -> 배송/결제/주문 상태 변경, 재고 복원")
-            void cancel_success_changeDeliveryAndPayAndOrderStatus_restoreStock() {
+            void success_changeDeliveryAndPayAndOrderStatus_restoreStock() {
                 //given
                 Pay pay = new Pay(PayMethod.MOBILE_PAY, total());
                 order.processPayment(pay);
@@ -156,8 +156,8 @@
         @DisplayName("배송 중")
         class Shipping_In_Progress{
             @Test
-            @DisplayName("취소 불가 -> 상태 예외 발생(타입+메시지)")
-            void cancel_shouldFail() {
+            @DisplayName("취소 불가 -> 예외")
+            void shouldFail() {
                 //given
                 pay();
                 prepareDelivery();
@@ -177,8 +177,8 @@
         @DisplayName("배송 완료")
         class Shipping_Complete{
             @Test
-            @DisplayName("취소 불가 -> 상태 예외 발생")
-            void cancel_shouldFail() {
+            @DisplayName("취소 불가 -> 예외")
+            void shouldFail() {
                 //given
                 pay();
                 prepareDelivery();
@@ -199,7 +199,7 @@
         @DisplayName("이미 취소된 주문")
         class Already_Canceled {
             @Test
-            @DisplayName("재취소 불가 -> 상태 예외 발생")
+            @DisplayName("재취소 불가 -> 예외")
             void cancel_shouldFail() {
                 //given
                 order.cancel();

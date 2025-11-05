@@ -32,7 +32,7 @@ public class InvalidPriceException extends RuntimeException {
     public static InvalidPriceException required() {
         return new InvalidPriceException(
                 Reason.REQUIRED,
-                DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(PARAM_NAME),
+                DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(PARAM_NAME),
                 null);
     }
 }

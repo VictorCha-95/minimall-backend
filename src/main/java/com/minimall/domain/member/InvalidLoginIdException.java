@@ -24,7 +24,7 @@ public class InvalidLoginIdException extends RuntimeException {
     public static InvalidLoginIdException required() {
         return new InvalidLoginIdException(
                 Reason.REQUIRED,
-                DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(PARAM_NAME),
+                DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(PARAM_NAME),
                 null, null
         );
     }

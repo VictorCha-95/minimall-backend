@@ -9,7 +9,7 @@ public enum DomainExceptionMessage {
     DUPLICATE_PARAM("'%s'는(은) 이미 사용 중입니다. (값: '%s')"),
 
     // 필수/공백
-    PARAM_REQUIRED_NOT_NULL("'%s'는(은) 필수입니다."),
+    PARAM_REQUIRE_NOT_NULL("'%s'는(은) 필수입니다."),
     PARAM_REQUIRE_NOT_BLANK("'%s'는(은) 공백일 수 없습니다."),
 
     // 음수/양수

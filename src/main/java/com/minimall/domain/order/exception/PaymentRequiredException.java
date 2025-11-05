@@ -1,6 +1,6 @@
 package com.minimall.domain.order.exception;
 
-import com.minimall.domain.order.message.OrderMessage;
+import com.minimall.domain.order.OrderMessage;
 import com.minimall.domain.order.pay.PayStatus;
 
 public class PaymentRequiredException extends RuntimeException {

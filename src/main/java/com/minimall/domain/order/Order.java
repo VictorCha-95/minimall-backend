@@ -12,7 +12,6 @@ import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayStatus;
 import com.minimall.domain.order.status.OrderStatus;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -193,6 +192,6 @@ public class Order extends BaseEntity {
     private void validateShipAddr(Address shipAddr) {
         //TODO 이메일 형식 검증 추가
         if (shipAddr == null) shipAddr = member.getAddr();
-        if (shipAddr == null) throw InvalidAddressException.empty();
+        if (shipAddr == null) throw InvalidAddressException.required();
     }
 }

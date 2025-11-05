@@ -82,7 +82,7 @@ public class Member extends BaseEntity {
         this.password = newPassword;
     }
 
-    public void upgradeGrade(Grade newGrade) {
+    public void changeGrade(Grade newGrade) {
         this.grade = newGrade;
     }
 

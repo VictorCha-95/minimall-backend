@@ -12,7 +12,7 @@ public class InvalidAddressException extends RuntimeException {
     }
 
     private final Reason reason;
-    private static final String PARAM_NAME = "address";
+    private static final String PARAM_NAME = "addr";
 
 
     private InvalidAddressException(Reason reason, String message) {

@@ -78,7 +78,6 @@ public class Pay extends BaseEntity {
 
     public void validateAmount(int expectedAmount) {
         if (payAmount != expectedAmount) {
-            payStatus = PayStatus.FAILED;
             throw new PayAmountMismatchException(order.getId(), expectedAmount, payAmount);
         }
     }

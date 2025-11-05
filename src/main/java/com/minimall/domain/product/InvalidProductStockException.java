@@ -35,7 +35,7 @@
             );
         }
 
-        public static InvalidProductStockException empty() {
+        public static InvalidProductStockException required() {
             return new InvalidProductStockException(
                     Reason.REQUIRED,
                     DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(PARAM_NAME),

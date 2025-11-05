@@ -88,7 +88,7 @@ public class Delivery extends BaseEntity {
     }
 
     private static void validateShipAddr(Address shipAddr) {
-        if (shipAddr == null) throw InvalidAddressException.empty();
+        if (shipAddr == null) throw InvalidAddressException.required();
     }
 }
 

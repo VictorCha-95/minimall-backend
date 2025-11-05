@@ -1,6 +1,8 @@
 package com.minimall.domain.member;
 
 import com.minimall.domain.common.base.BaseEntity;
+import com.minimall.domain.embeddable.InvalidAddressException;
+import com.minimall.domain.exception.Guards;
 import com.minimall.domain.order.Order;
 import com.minimall.domain.embeddable.Address;
 import jakarta.persistence.*;
@@ -19,30 +21,44 @@ public class Member extends BaseEntity {
     @Column(name = "member_id")
     private Long id;
 
+    @Column(nullable = false)
     private String loginId;
+
+    @Column(nullable = false)
     private String password;
 
-    @Column(name = "member_name")
+    @Column(name = "member_name", nullable = false)
     private String name;
 
+    @Column(nullable = false)
     private String email;
-
-    private Grade grade; //TODO 할인등급 적용(DB 추가)
 
     @Embedded
     private Address addr;
 
+    @Column(nullable = false)
+    private Grade grade; //TODO 할인등급 적용(DB 추가)
+
     @OneToMany(mappedBy = "member")
     private List<Order> orders = new ArrayList<>();
 
-    @Builder
-    public Member(String loginId, String password, String name, String email, Address addr) {
+    //== 생성자 ==//
+    private Member(String loginId, String password, String name, String email, Address addr, Grade grade) {
         this.loginId = loginId;
         this.password = password;
         this.name = name;
         this.email = email;
         this.addr = addr;
-        grade = Grade.BRONZE;
+        this.grade = grade;
+    }
+
+    @Builder
+    public static Member create(String loginId, String password, String name, String email, Address addr) {
+        validateCreate(loginId, password, name, email, addr);
+
+        Grade defaultGrade = Grade.BRONZE;
+
+        return new Member(loginId, password, name, email, addr, defaultGrade);
     }
 
 
@@ -68,5 +84,26 @@ public class Member extends BaseEntity {
 
     public void upgradeGrade(Grade newGrade) {
         this.grade = newGrade;
+    }
+
+    //== 검증 메서드 ==//
+    private static void validateCreate(String loginId, String password, String name, String email, Address addr) {
+        Guards.requireNotNullAndNotBlank(loginId,
+                InvalidLoginIdException::required,
+                InvalidLoginIdException::blank);
+
+        Guards.requireNotNullAndNotBlank(password,
+                InvalidPasswordException::required,
+                InvalidPasswordException::blank);
+
+        Guards.requireNotNullAndNotBlank(name,
+                InvalidMemberNameException::required,
+                InvalidMemberNameException::blank);
+
+        Guards.requireNotNullAndNotBlank(email,
+                InvalidEmailException::required,
+                InvalidEmailException::blank);
+
+        Guards.requireNotNull(addr, InvalidAddressException::required);
     }
 }

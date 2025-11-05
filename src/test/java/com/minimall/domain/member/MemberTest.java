@@ -91,6 +91,8 @@ public class MemberTest {
             //then
             assertThat(member.getOrders()).containsExactly(order);
             assertThat(order.getMember()).isEqualTo(member);
+
+
         }
     }
 

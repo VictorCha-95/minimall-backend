@@ -66,15 +66,15 @@ public class Product extends BaseEntity {
     //== 검증 로직 ==//
     private void validateCreateParam(String name, Integer price, Integer stockQuantity) {
         Guards.requireNotNullAndNotBlank(name,
-                InvalidProductNameException::empty,
+                InvalidProductNameException::required,
                 InvalidProductNameException::blank);
 
         Guards.requireNotNullAndNonNegative(price,
-                InvalidPriceException::empty,
+                InvalidPriceException::required,
                 () -> InvalidPriceException.negative(price));
 
         Guards.requireNotNullAndNonNegative(stockQuantity,
-                InvalidProductStockException::empty,
+                InvalidProductStockException::required,
                 () -> InvalidProductStockException.negative(stockQuantity));
     }
 }

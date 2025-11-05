@@ -1,6 +1,8 @@
 package com.minimall.domain.order;
 
 import com.minimall.domain.common.base.BaseEntity;
+import com.minimall.domain.exception.DomainExceptionMessage;
+import com.minimall.domain.exception.Guards;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.embeddable.InvalidAddressException;
@@ -137,6 +139,10 @@ public class Order extends BaseEntity {
     }
 
     public void processPayment(Pay pay) {
+        if (pay == null) {
+            throw new IllegalArgumentException(
+                    DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text("pay"));
+        }
         ensureCanTransition(OrderStatus.CONFIRMED);
         setPay(pay);
         completePay(pay);

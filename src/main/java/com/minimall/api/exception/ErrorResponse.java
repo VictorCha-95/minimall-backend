@@ -11,7 +11,7 @@ public record ErrorResponse(
         String message,
         LocalDateTime timestamp
 ) {
-    public static ResponseEntity<ErrorResponse> toResponse(HttpStatus status, ErrorCode errorCode, Exception ex) {
+    public static ResponseEntity<ErrorResponse> toResponse(HttpStatus status, ApiErrorCode errorCode, Exception ex) {
         return ResponseEntity
                 .status(status)
                 .body(new ErrorResponse(status.value(), errorCode.getCode(), ex.getMessage(), LocalDateTime.now()));

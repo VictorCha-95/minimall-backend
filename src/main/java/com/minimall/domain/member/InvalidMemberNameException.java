@@ -1,6 +1,5 @@
 package com.minimall.domain.member;
 
-import com.minimall.domain.common.DomainType;
 import com.minimall.domain.exception.DomainExceptionMessage;
 import lombok.Getter;
 
@@ -25,7 +24,7 @@ public class InvalidMemberNameException extends RuntimeException {
     public static InvalidMemberNameException required() {
         return new InvalidMemberNameException(
                 Reason.REQUIRED,
-                DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(PARAM_NAME),
+                DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(PARAM_NAME),
                 null, null
         );
     }

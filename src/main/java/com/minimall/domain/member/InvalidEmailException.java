@@ -22,7 +22,7 @@ public class InvalidEmailException extends RuntimeException {
     public static InvalidEmailException required() {
         return new InvalidEmailException(
                 Reason.REQUIRED,
-                DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(PARAM_NAME),
+                DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(PARAM_NAME),
                 null
         );
     }

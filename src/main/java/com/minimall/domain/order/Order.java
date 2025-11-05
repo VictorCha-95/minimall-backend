@@ -4,10 +4,9 @@ import com.minimall.domain.common.base.BaseEntity;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.embeddable.InvalidAddressException;
-import com.minimall.domain.order.exception.EmptyOrderItemException;
+import com.minimall.domain.order.exception.InvalidOrderItemException;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.exception.PaymentRequiredException;
-import com.minimall.domain.order.message.OrderMessage;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayStatus;
 import com.minimall.domain.order.status.OrderStatus;
@@ -63,7 +62,7 @@ public class Order extends BaseEntity {
     public static Order createOrder(Member member, OrderItem... items) {
         Objects.requireNonNull(member, OrderMessage.MEMBER_REQUIRED_FOR_ORDER_CREATION.text());
 
-        validateOrderItemsNotEmpty(items);
+        validateOrderItems(items);
 
         Order order = new Order(member, LocalDateTime.now(),
                 OrderStatus.ORDERED, new OrderAmount(getTotalAmount(items)));
@@ -84,15 +83,22 @@ public class Order extends BaseEntity {
         this.orderAmount = orderAmount;
     }
 
-    private static void validateOrderItemsNotEmpty(OrderItem[] items) {
-        if (items == null || items.length == 0 || Arrays.stream(items).anyMatch(Objects::isNull)) {
-            throw new EmptyOrderItemException();
+    private static void validateOrderItems(OrderItem[] items) {
+        if (items == null || items.length == 0) {
+            throw InvalidOrderItemException.require();
+        }
+
+        for (int i = 0; i < items.length; i++) {
+            OrderItem item = items[i];
+            if (item == null) {
+                throw InvalidOrderItemException.nullItemAt(i);
+            }
         }
     }
 
     private static int getTotalAmount(OrderItem[] items) {
         return Arrays.stream(items)
-                .mapToInt(OrderItem::createTotalAmount)
+                .mapToInt(OrderItem::getTotalAmount)
                 .sum();
     }
 

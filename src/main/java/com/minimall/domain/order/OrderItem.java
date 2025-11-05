@@ -1,12 +1,15 @@
 package com.minimall.domain.order;
 
 import com.minimall.domain.common.base.BaseEntity;
-import com.minimall.domain.order.exception.InvalidOrderQuantityException;
+import com.minimall.domain.exception.DomainExceptionMessage;
+import com.minimall.domain.order.exception.InvalidOrderItemException;
 import com.minimall.domain.product.Product;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.Objects;
 
 @Entity
 @Getter
@@ -33,8 +36,10 @@ public class OrderItem extends BaseEntity {
 
     //== 생성자 메서드 ==//
     public static OrderItem createOrderItem(Product product, int orderQuantity) {
+        Objects.requireNonNull(product, DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text("product"));
+
         if (orderQuantity <= 0) {
-            throw InvalidOrderQuantityException.mustBeGreaterThanZero(orderQuantity);
+            throw InvalidOrderItemException.quantityMustBePositive(orderQuantity);
         }
 
         product.reduceStock(orderQuantity);
@@ -58,7 +63,7 @@ public class OrderItem extends BaseEntity {
 
 
     //== 비즈니스 로직 ==//
-    public int createTotalAmount() {
+    public int getTotalAmount() {
         return orderPrice * orderQuantity;
     }
 

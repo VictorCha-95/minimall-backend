@@ -37,6 +37,13 @@ public class Product extends BaseEntity {
 
 
     //== 비즈니스 로직 ==//
+    public void changeName(String name) {
+        Guards.requireNotNullAndNotBlank(name,
+                InvalidProductNameException::required,
+                InvalidProductNameException::blank);
+        this.name = name;
+    }
+
     public void changePrice(int price) {
         Guards.requireNonNegative(price, () -> InvalidPriceException.negative(price));
         this.price = price;

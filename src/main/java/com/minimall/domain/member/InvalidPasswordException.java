@@ -24,7 +24,7 @@ public class InvalidPasswordException extends RuntimeException {
     public static InvalidPasswordException required() {
         return new InvalidPasswordException(
                 Reason.REQUIRED,
-                DomainExceptionMessage.PARAM_REQUIRED_NOT_NULL.text(PARAM_NAME),
+                DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(PARAM_NAME),
                 null, null
         );
     }

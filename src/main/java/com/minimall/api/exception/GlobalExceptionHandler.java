@@ -16,36 +16,36 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MemberNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleMemberNotFound(MemberNotFoundException ex) {
-        logWarn(ErrorCode.NOT_FOUND_MEMBER, ex);
-        return ErrorResponse.toResponse(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND_MEMBER, ex);
+        logWarn(ApiErrorCode.NOT_FOUND_MEMBER, ex);
+        return ErrorResponse.toResponse(HttpStatus.NOT_FOUND, ApiErrorCode.NOT_FOUND_MEMBER, ex);
     }
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
-        logWarn(ErrorCode.NOT_FOUND, ex);
-        return ErrorResponse.toResponse(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, ex);
+        logWarn(ApiErrorCode.NOT_FOUND, ex);
+        return ErrorResponse.toResponse(HttpStatus.NOT_FOUND, ApiErrorCode.NOT_FOUND, ex);
     }
 
     @ExceptionHandler(DuplicateException.class)
     public ResponseEntity<ErrorResponse> handleDuplicate(DuplicateException ex) {
-        logWarn(ErrorCode.DUPLICATE_VALUE, ex);
-        return ErrorResponse.toResponse(HttpStatus.BAD_REQUEST, ErrorCode.DUPLICATE_VALUE, ex);
+        logWarn(ApiErrorCode.DUPLICATE_VALUE, ex);
+        return ErrorResponse.toResponse(HttpStatus.BAD_REQUEST, ApiErrorCode.DUPLICATE_VALUE, ex);
     }
 
     @ExceptionHandler(DomainStatusException.class)
     public ResponseEntity<ErrorResponse> handleDomainStatus(DomainStatusException ex) {
-        logWarn(ErrorCode.DOMAIN_STATUS_ERROR, ex);
-        return ErrorResponse.toResponse(HttpStatus.BAD_REQUEST, ErrorCode.DOMAIN_STATUS_ERROR, ex);
+        logWarn(ApiErrorCode.DOMAIN_STATUS_ERROR, ex);
+        return ErrorResponse.toResponse(HttpStatus.BAD_REQUEST, ApiErrorCode.DOMAIN_STATUS_ERROR, ex);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handle(Exception ex) {
-        log.error("[{}] Unexpected exception", ErrorCode.INTERNAL_SERVER_ERROR, ex);
-        return ErrorResponse.toResponse(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_SERVER_ERROR, ex);
+        log.error("[{}] Unexpected exception", ApiErrorCode.INTERNAL_SERVER_ERROR, ex);
+        return ErrorResponse.toResponse(HttpStatus.INTERNAL_SERVER_ERROR, ApiErrorCode.INTERNAL_SERVER_ERROR, ex);
     }
 
     //== 공통 로그 메서드 ==//
-    private static void logWarn(ErrorCode errorCode, Exception ex) {
+    private static void logWarn(ApiErrorCode errorCode, Exception ex) {
         log.warn("[{}] {}", errorCode, ex.getMessage());
     }
 }

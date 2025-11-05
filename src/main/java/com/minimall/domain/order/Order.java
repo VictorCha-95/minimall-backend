@@ -12,6 +12,7 @@ import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayStatus;
 import com.minimall.domain.order.status.OrderStatus;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -31,15 +32,22 @@ public class Order extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
+    @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
+    @Column(nullable = false)
     private LocalDateTime orderedAt;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private OrderStatus orderStatus;
 
     @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "originalAmount", column = @Column(name = "original_amount", nullable = false)),
+            @AttributeOverride(name = "discountAmount", column = @Column(name = "discount_amount", nullable = false)),
+            @AttributeOverride(name = "finalAmount",    column = @Column(name = "final_amount", nullable = false))
+    })
     private OrderAmount orderAmount;
 
     @OneToOne(fetch = FetchType.LAZY, mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -119,7 +127,7 @@ public class Order extends BaseEntity {
         ensureCanTransition(OrderStatus.CANCELED);
         if (pay != null) pay.cancel();
         if (delivery != null) delivery.cancel();
-        orderItems.forEach(oi -> oi.getProduct().increaseStock(oi.getOrderQuantity())); //주문 취소 후 재고 복원
+        orderItems.forEach(oi -> oi.getProduct().addStock(oi.getOrderQuantity())); //주문 취소 후 재고 복원
         orderStatus = OrderStatus.CANCELED;
     }
 

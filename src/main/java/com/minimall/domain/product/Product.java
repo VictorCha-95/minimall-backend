@@ -1,11 +1,11 @@
 package com.minimall.domain.product;
 
 import com.minimall.domain.common.base.BaseEntity;
+import com.minimall.domain.exception.Guards;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.util.StringUtils;
 
 @Entity
 @Getter
@@ -17,18 +17,19 @@ public class Product extends BaseEntity {
     @Column(name = "product_id")
     private Long id;
 
-    @Column(name = "product_name")
+    @Column(name = "product_name", nullable = false)
     private String name;
 
-    @Column(name = "product_price")
+    @Column(name = "product_price", nullable = false)
     private Integer price;
 
+    @Column(nullable = false)
     private Integer stockQuantity;
 
 
     //== 생성자 ==//
     public Product(String name, Integer price, Integer stockQuantity) {
-        validateFields(name, price, stockQuantity);
+        validateCreateParam(name, price, stockQuantity);
         this.name = name;
         this.price = price;
         this.stockQuantity = stockQuantity;
@@ -37,21 +38,23 @@ public class Product extends BaseEntity {
 
     //== 비즈니스 로직 ==//
     public void changePrice(int price) {
-        if (price < 0) {
-            throw InvalidPriceException.priceCannotBeNegative(price);
-        }
+        Guards.requireNonNegative(price, () -> InvalidPriceException.negative(price));
         this.price = price;
     }
 
-    public void increaseStock(int quantity) {
-        stockQuantity += quantity;
+    public void addStock(int requestedQuantity) {
+        Guards.requirePositive(requestedQuantity,
+                () -> InvalidProductStockException.requirePositive(requestedQuantity));
+        stockQuantity += requestedQuantity;
     }
 
-    public void reduceStock(int quantity) {
-        int realQuantity = stockQuantity - quantity;
-        if (realQuantity < 0) {
-            throw InsufficientStockException.ofStockQuantity(stockQuantity);
-        }
+    public void reduceStock(int requestedQuantity) {
+        Guards.requirePositive(requestedQuantity,
+                () -> InvalidProductStockException.requirePositive(requestedQuantity));
+
+        int realQuantity = stockQuantity - requestedQuantity;
+        Guards.requireNonNegative(realQuantity,
+                () -> InvalidProductStockException.insufficient(requestedQuantity, stockQuantity));
         stockQuantity = realQuantity;
     }
 
@@ -61,25 +64,17 @@ public class Product extends BaseEntity {
 
 
     //== 검증 로직 ==//
-    private void validateFields(String name, Integer price, Integer stockQuantity) {
-        if (!StringUtils.hasText(name)) {
-            throw InvalidProductNameException.empty();
-        }
+    private void validateCreateParam(String name, Integer price, Integer stockQuantity) {
+        Guards.requireNotNullAndNotBlank(name,
+                InvalidProductNameException::empty,
+                InvalidProductNameException::blank);
 
-        if (price == null) {
-            throw InvalidPriceException.priceCannotBeNull();
-        }
+        Guards.requireNotNullAndNonNegative(price,
+                InvalidPriceException::empty,
+                () -> InvalidPriceException.negative(price));
 
-        if (price < 0) {
-            throw InvalidPriceException.priceCannotBeNegative(price);
-        }
-
-        if (stockQuantity == null) {
-            throw InvalidProductStockException.cannotBeNull();
-        }
-
-        if (stockQuantity < 0) {
-            throw InvalidProductStockException.cannotBeNegative(stockQuantity);
-        }
+        Guards.requireNotNullAndNonNegative(stockQuantity,
+                InvalidProductStockException::empty,
+                () -> InvalidProductStockException.negative(stockQuantity));
     }
 }

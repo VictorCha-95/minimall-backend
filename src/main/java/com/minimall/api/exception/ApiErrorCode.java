@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
-public enum ErrorCode {
+public enum ApiErrorCode {
     NOT_FOUND_MEMBER("NOT_FOUND_MEMBER"),
     NOT_FOUND("NOT_FOUND"),
     DUPLICATE_VALUE("DUPLICATE_VALUE"),

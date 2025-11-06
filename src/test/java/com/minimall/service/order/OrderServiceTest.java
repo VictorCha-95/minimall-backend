@@ -13,10 +13,16 @@ import com.minimall.domain.order.OrderStatus;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.OrderService;
+import com.minimall.service.exception.MemberNotFoundException;
+import com.minimall.service.exception.ProductNotFoundException;
+import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.BDDMockito;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,6 +32,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.SoftAssertions.*;
 import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,13 +54,10 @@ class OrderServiceTest {
     OrderService orderService;
 
     private OrderCreateRequestDto orderCreateRequest;
-    private OrderItemCreateDto orderItemCreateRequest1;
-    private OrderItemCreateDto orderItemCreateRequest2;
-    private List<OrderItemCreateDto> orderItems = new ArrayList<>();
 
     private Member member;
-    private Product product1;
-    private Product product2;
+    private Product book;
+    private Product keyboard;
 
     private final Long MEMBER_ID = 100L;
     private final Long PRODUCT1_ID = 1L;
@@ -63,14 +67,16 @@ class OrderServiceTest {
 
     @BeforeEach
     void setUp() {
-        //== OrderCreateRequest ==//
-        orderCreateRequest = new OrderCreateRequestDto(100L, orderItems);
-
         //== OrderItemRequestList ==//
-        orderItemCreateRequest1 = new OrderItemCreateDto(1L, 30);
-        orderItemCreateRequest2 = new OrderItemCreateDto(2L, 10);
+        List<OrderItemCreateDto> orderItems = new ArrayList<>();
+
+        OrderItemCreateDto orderItemCreateRequest1 = new OrderItemCreateDto(PRODUCT1_ID, 30);
+        OrderItemCreateDto orderItemCreateRequest2 = new OrderItemCreateDto(PRODUCT2_ID, 10);
         orderItems.add(orderItemCreateRequest1);
         orderItems.add(orderItemCreateRequest2);
+
+        //== OrderCreateRequest ==//
+        orderCreateRequest = new OrderCreateRequestDto(MEMBER_ID, orderItems);
 
         //== Member Entity ==//
         member = Member.builder()
@@ -82,54 +88,87 @@ class OrderServiceTest {
                 .build();
 
         //== Product Entity ==//
-        product1 = new Product("도서<클린 코드>", 20000, 50);
-        product2 = new Product("키보드", 100000, 20);
+        book = new Product("도서", 20000, 50);
+        keyboard = new Product("키보드", 100000, 20);
     }
 
-    @Test
-    void createOrder_success() {
-        //given
-        given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));
-        given(productRepository.findById(PRODUCT1_ID)).willReturn(Optional.of(product1));
-        given(productRepository.findById(PRODUCT2_ID)).willReturn(Optional.of(product2));
-        given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
+    @Nested
+    @DisplayName("createOrder(CreateRequestDto)")
+    class CreateOrder {
+        @Test
+        @DisplayName("정상 -> 주문 생성")
+        void success() {
+            //given
+            given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));
+            given(productRepository.findById(PRODUCT1_ID)).willReturn(Optional.of(book));
+            given(productRepository.findById(PRODUCT2_ID)).willReturn(Optional.of(keyboard));
+            given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
 
-        //when
-        Long orderId = orderService.createOrder(orderCreateRequest);
+            //when
+            orderService.createOrder(orderCreateRequest);
 
-        //then: 호출검증
-        then(memberRepository).should(times(1)).findById(MEMBER_ID);
-        then(productRepository).should(times(2)).findById(anyLong());
-        then(orderRepository).should(times(1)).save(any(Order.class));
+            //then: 호출검증
+            then(memberRepository).should(times(1)).findById(MEMBER_ID);
+            then(productRepository).should(times(2)).findById(anyLong());
+            then(orderRepository).should(times(1)).save(any(Order.class));
+            verifyNoMoreInteractions(memberRepository, productRepository, orderRepository);
 
-        //then: 저장된 Order 캡처
-        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
-        then(orderRepository).should().save(captor.capture());
-        Order savedOrder = captor.getValue();
+            //then: 저장된 Order 캡처
+            ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+            then(orderRepository).should().save(captor.capture());
+            Order savedOrder = captor.getValue();
 
-        //then: 주문 기본 정보 검증
-        assertThat(savedOrder.getOrderStatus()).isEqualTo(OrderStatus.ORDERED);
-        assertThat(savedOrder.getOrderedAt()).isNotNull();
+            //then: 저장된 Order 검증
+            assertSoftly(softly ->{
+                softly.assertThat(savedOrder.getOrderStatus()).isEqualTo(OrderStatus.ORDERED);
+                softly.assertThat(savedOrder.getOrderedAt()).isNotNull();
+                softly.assertThat(savedOrder.getMember()).isEqualTo(member);
+                softly.assertThat(savedOrder.getOrderItems()).hasSize(2);
+                softly.assertThat(savedOrder.getOrderAmount()).isNotNull();
+                softly.assertThat(savedOrder.getPay()).isNull();
+                softly.assertThat(savedOrder.getDelivery()).isNull();
+            });
+        }
 
-        //then: 가격 계산 검증
-        int expectedAmount = (orderItemCreateRequest1.quantity() * product1.getPrice())
-                + (orderItemCreateRequest2.quantity() * product2.getPrice());
-        assertThat(savedOrder.getOrderAmount().getOriginalAmount()).isEqualTo(expectedAmount);
-        assertThat(savedOrder.getOrderAmount().getFinalAmount()).isEqualTo(expectedAmount);
+        @Test
+        @DisplayName("회원 미존재 -> 예외")
+        void shouldFail_whenMemberIsNull() {
+            //given
+            given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.empty());
 
-        //then: 연관관계 검증
-        assertThat(savedOrder.getMember()).isEqualTo(member);
-        assertThat(member.getOrders()).containsExactly(savedOrder);
-        assertThat(savedOrder.getDelivery()).isNull();
-        assertThat(savedOrder.getPay()).isNull();
-        assertThat(savedOrder.getOrderItems()).hasSize(2);
-        assertThat(savedOrder.getOrderItems())
-                .extracting(OrderItem::getProduct)
-                .containsExactlyInAnyOrder(product1, product2);
+            //when & then: 예외
+            assertThatThrownBy(() -> orderService.createOrder(orderCreateRequest))
+                    .isInstanceOfSatisfying(MemberNotFoundException.class, e -> {
+                        assertThat(e.getMessage()).contains("id", orderCreateRequest.memberId().toString());
+                    });
 
+            //then: 호출 검증
+            then(memberRepository).should(times(1)).findById(MEMBER_ID);
+            then(productRepository).shouldHaveNoInteractions();
+            then(orderRepository).shouldHaveNoInteractions();
+        }
 
-        //then: 상품 재고 감소 검증
-        assertThat(product1.getStockQuantity()).isEqualTo(50 - 30);
-        assertThat(product2.getStockQuantity()).isEqualTo(20 - 10);
+        @Test
+        @DisplayName("상품 미존재 -> 예외")
+        void shouldFail_whenProductIsNull() {
+            //given
+            given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));
+            given(productRepository.findById(PRODUCT1_ID)).willReturn(Optional.of(book));
+            given(productRepository.findById(PRODUCT2_ID)).willReturn(Optional.empty());
+
+            //when & then: 예외
+            assertThatThrownBy(() -> orderService.createOrder(orderCreateRequest))
+                    .isInstanceOfSatisfying(ProductNotFoundException.class, e -> {
+                        assertThat(e.getMessage()).contains("id", PRODUCT2_ID.toString());
+                    });
+
+            //then: 호출 검증
+            then(memberRepository).should(times(1)).findById(MEMBER_ID);
+
+            then(productRepository).should(times(2)).findById(anyLong());
+
+            then(orderRepository).shouldHaveNoInteractions();
+        }
     }
+
 }

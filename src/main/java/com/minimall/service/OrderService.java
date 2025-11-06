@@ -8,6 +8,7 @@ import com.minimall.domain.order.OrderRepository;
 import com.minimall.domain.order.dto.OrderMapper;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;
+import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.exception.MemberNotFoundException;
@@ -28,25 +29,23 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final OrderMapper orderMapper;
 
-    public Long createOrder(OrderCreateRequestDto request) {
+    //== 비즈니스 로직 ==//
+    public OrderCreateResponseDto createOrder(OrderCreateRequestDto request) {
 
-        // 1. Member 조회
         Member member = getMember(request);
 
-        // 2. OrderItem 생성
         List<OrderItem> orderItems = request.items().stream()
                 .map(this::toOrderItem)
                 .toList();
 
-        // 3. Order 생성
         Order order = Order.createOrder(member, orderItems.toArray(OrderItem[]::new));
-
-        // 4. 저장
         orderRepository.save(order);
 
-        return order.getId();
+        return orderMapper.toCreateResponse(order);
     }
 
+
+    //== 헬퍼 메서드 ==//
     private Member getMember(OrderCreateRequestDto request) {
         return memberRepository.findById(request.memberId())
                 .orElseThrow(() -> new MemberNotFoundException("id", request.memberId()));

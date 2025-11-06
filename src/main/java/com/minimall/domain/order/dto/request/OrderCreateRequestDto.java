@@ -1,10 +1,11 @@
 package com.minimall.domain.order.dto.request;
 
 import com.minimall.domain.order.OrderItem;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
 public record OrderCreateRequestDto(
-        Long memberId,
-        List<OrderItemCreateDto> items
+        @NotNull Long memberId,
+        @NotNull List<OrderItemCreateDto> items
 ) {}

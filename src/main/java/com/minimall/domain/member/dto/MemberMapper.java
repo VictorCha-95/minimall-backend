@@ -10,10 +10,11 @@ import com.minimall.domain.order.dto.OrderMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
+import org.mapstruct.ReportingPolicy;
+
 import java.util.List;
 
-@Mapper(componentModel = "spring", uses = OrderMapper.class)
+@Mapper(componentModel = "spring", uses = OrderMapper.class, unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface MemberMapper {
 
     //== Create ==//

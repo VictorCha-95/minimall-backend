@@ -1,6 +1,6 @@
 package com.minimall.domain.order.delivery;
 
-import com.minimall.domain.order.status.OrderStatus;
+import com.minimall.domain.order.OrderStatus;
 
 public class NotPrepareDeliveryOrderException extends RuntimeException {
     public NotPrepareDeliveryOrderException(String message) {

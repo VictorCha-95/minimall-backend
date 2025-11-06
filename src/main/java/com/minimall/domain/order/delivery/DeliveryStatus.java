@@ -16,7 +16,7 @@ public enum DeliveryStatus implements CustomStatus {
             READY, Set.of(SHIPPING, FAILED, CANCELED),
             SHIPPING, Set.of(COMPLETED, FAILED),
             COMPLETED, Set.of(),
-            FAILED, Set.of(READY),
+            FAILED, Set.of(),
             CANCELED, Set.of()
     );
 

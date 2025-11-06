@@ -2,20 +2,19 @@ package com.minimall.domain.order;
 
 import com.minimall.domain.common.base.BaseEntity;
 import com.minimall.domain.exception.DomainExceptionMessage;
-import com.minimall.domain.exception.Guards;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.embeddable.Address;
-import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.order.exception.InvalidOrderItemException;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.exception.PaymentRequiredException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayStatus;
-import com.minimall.domain.order.status.OrderStatus;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -69,8 +68,6 @@ public class Order extends BaseEntity {
         Order order = new Order(member, LocalDateTime.now(),
                 OrderStatus.ORDERED, new OrderAmount(getTotalAmount(items)));
 
-        order.setMember(member);
-
         for (OrderItem item : items) {
             order.addOrderItem(item);
         }
@@ -79,23 +76,10 @@ public class Order extends BaseEntity {
     }
 
     private Order(Member member, LocalDateTime orderedAt, OrderStatus orderStatus, OrderAmount orderAmount) {
-        this.member = member;
+        setMember(member);
         this.orderedAt = orderedAt;
         this.orderStatus = orderStatus;
         this.orderAmount = orderAmount;
-    }
-
-    private static void validateOrderItems(OrderItem[] items) {
-        if (items == null || items.length == 0) {
-            throw InvalidOrderItemException.require();
-        }
-
-        for (int i = 0; i < items.length; i++) {
-            OrderItem item = items[i];
-            if (item == null) {
-                throw InvalidOrderItemException.nullItemAt(i);
-            }
-        }
     }
 
     private static int getTotalAmount(OrderItem[] items) {
@@ -106,7 +90,7 @@ public class Order extends BaseEntity {
 
 
     //==연관관계 메서드==//
-    private void setMember(Member member) {
+    private void setMember(@NotNull Member member) {
         this.member = member;
         if (!member.getOrders().contains(this)) {
             member.addOrder(this);
@@ -120,10 +104,9 @@ public class Order extends BaseEntity {
 
     private void setDelivery(Delivery delivery) {
         this.delivery = delivery;
-        delivery.assignOrder(this);
     }
 
-    private void setPay(Pay pay) {
+    private void setPay(@NotNull Pay pay) {
         this.pay = pay;
         pay.assignOrder(this);
     }
@@ -158,24 +141,28 @@ public class Order extends BaseEntity {
             throw e;
         }
     }
-
-    public void prepareDelivery(Address shipAddr) {
-        ensurePaidForDelivery();
-        ensureCanTransition(OrderStatus.SHIP_READY);
-        validateShipAddr(shipAddr);
-
-        Delivery delivery = Delivery.readyDelivery(this, shipAddr);
-        setDelivery(delivery);
-        orderStatus = OrderStatus.SHIP_READY;
+    
+    public void prepareDelivery() {
+        prepareDelivery(null);
     }
 
+    /**
+     * @param shipAddr
+     * 배송 주소 없을 시 회원 주소로 배송(회원 주소도 없으면 예외 발생)
+     */
+    public void prepareDelivery(@Nullable Address shipAddr) {
+        ensurePaidForDelivery();
+        Delivery delivery = Delivery.readyDelivery(this, shipAddr);
+        setDelivery(delivery);
+    }
 
     public void startDelivery() {
+        ensurePreparedDelivery();
         delivery.startDelivery();
-        orderStatus = OrderStatus.SHIPPING;
     }
 
     public void completeDelivery() {
+        ensurePreparedDelivery();
         delivery.completeDelivery();
         orderStatus = OrderStatus.COMPLETED;
     }
@@ -186,12 +173,16 @@ public class Order extends BaseEntity {
 
 
     //==검증 로직==//
-    private void ensurePaidForDelivery() {
-        if (pay == null) {
-            throw PaymentRequiredException.mustBePaidBeforeDelivery(id);
+    private static void validateOrderItems(OrderItem[] items) {
+        if (items == null || items.length == 0) {
+            throw InvalidOrderItemException.require();
         }
-        if (pay.getPayStatus() != PayStatus.PAID) {
-            throw PaymentRequiredException.mustBePaidBeforeDelivery(id, pay.getPayStatus());
+
+        for (int i = 0; i < items.length; i++) {
+            OrderItem item = items[i];
+            if (item == null) {
+                throw InvalidOrderItemException.nullItemAt(i);
+            }
         }
     }
 
@@ -201,9 +192,18 @@ public class Order extends BaseEntity {
         }
     }
 
-    private void validateShipAddr(Address shipAddr) {
-        //TODO 이메일 형식 검증 추가
-        if (shipAddr == null) shipAddr = member.getAddr();
-        if (shipAddr == null) throw InvalidAddressException.required();
+    private void ensurePaidForDelivery() {
+        if (pay == null) {
+            throw PaymentRequiredException.mustBePaidBeforeDelivery(id);
+        }
+        if (pay.getPayStatus() != PayStatus.PAID) {
+            throw PaymentRequiredException.mustBePaidBeforeDelivery(id, pay.getPayStatus());
+        }
+    }
+
+    private void ensurePreparedDelivery() {
+        if (delivery == null) {
+            throw new IllegalStateException("Delivery must be prepared first");
+        }
     }
 }

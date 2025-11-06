@@ -52,18 +52,18 @@ public class Pay extends BaseEntity {
 
 
     //== 비즈니스 로직 ==//
-    public void complete() {
+    void complete() {
         ensureCanTransition(PayStatus.PAID);
         payStatus = PayStatus.PAID;
         paidAt = LocalDateTime.now();
     }
 
-    public void cancel() {
+    void cancel() {
         ensureCanTransition(PayStatus.CANCELED);
         payStatus = PayStatus.CANCELED;
     }
 
-    public void fail() {
+    void fail() {
         ensureCanTransition(PayStatus.FAILED);
         payStatus = PayStatus.FAILED;
     }

@@ -54,7 +54,7 @@ public class Member extends BaseEntity {
 
     @Builder
     public static Member create(String loginId, String password, String name, String email, Address addr) {
-        validateCreate(loginId, password, name, email, addr);
+        validateCreate(loginId, password, name, email);
 
         Grade defaultGrade = Grade.BRONZE;
 
@@ -87,7 +87,7 @@ public class Member extends BaseEntity {
     }
 
     //== 검증 메서드 ==//
-    private static void validateCreate(String loginId, String password, String name, String email, Address addr) {
+    private static void validateCreate(String loginId, String password, String name, String email) {
         Guards.requireNotNullAndNotBlank(loginId,
                 InvalidLoginIdException::required,
                 InvalidLoginIdException::blank);
@@ -103,7 +103,5 @@ public class Member extends BaseEntity {
         Guards.requireNotNullAndNotBlank(email,
                 InvalidEmailException::required,
                 InvalidEmailException::blank);
-
-        Guards.requireNotNull(addr, InvalidAddressException::required);
     }
 }

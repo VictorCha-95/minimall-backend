@@ -8,7 +8,6 @@ import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
 import com.minimall.domain.order.pay.PayStatus;
-import com.minimall.domain.order.status.OrderStatus;
 import com.minimall.domain.product.Product;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

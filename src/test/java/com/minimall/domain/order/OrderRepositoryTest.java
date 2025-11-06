@@ -2,7 +2,6 @@ package com.minimall.domain.order;
 
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.domain.order.status.OrderStatus;
 import com.minimall.domain.product.Product;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,7 +51,7 @@ class OrderRepositoryTest {
 
         //when
         List<Order> foundOrder = orderRepository.findByMemberAndOrderStatus(foundMember, OrderStatus.ORDERED);
-        List<Order> notFoundOrder = orderRepository.findByMemberAndOrderStatus(foundMember, OrderStatus.SHIPPING);
+        List<Order> notFoundOrder = orderRepository.findByMemberAndOrderStatus(foundMember, OrderStatus.CONFIRMED);
 
         //then
         assertThat(foundOrder)

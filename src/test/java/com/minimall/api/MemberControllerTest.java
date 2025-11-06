@@ -1,4 +1,4 @@
-package com.minimall.controller;
+package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.domain.embeddable.Address;
@@ -9,6 +9,8 @@ import com.minimall.domain.member.dto.response.MemberSummaryResponseDto;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.MemberService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -54,93 +56,149 @@ class MemberControllerTest {
         memberRepository.deleteAll();
     }
 
-    @Test
-    void getAll_success() throws Exception {
-        //given
-        memberService.create(createRequestDto("member1", "손흥민"));
-        memberService.create(createRequestDto("member2", "박지성"));
-        MemberSummaryResponseDto member1 = memberService.getSummaryByLoginId("member1");
-        MemberSummaryResponseDto member2 = memberService.getSummaryByLoginId("member2");
+    @Nested
+    @DisplayName("getAll()")
+    class GetAll {
+        @Test
+        @DisplayName("정상 -> 회원 전체 조회")
+        void success() throws Exception {
+            //given
+            memberService.create(createRequestDto("member1", "손흥민"));
+            memberService.create(createRequestDto("member2", "박지성"));
+            MemberSummaryResponseDto member1 = memberService.getSummaryByLoginId("member1");
+            MemberSummaryResponseDto member2 = memberService.getSummaryByLoginId("member2");
 
-        //when
-        ResultActions result = mockMvc.perform(get("/members"));
+            //when
+            ResultActions result = mockMvc.perform(get("/members"));
 
-        //then
-        result.andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value(member1.id()))
-                .andExpect(jsonPath("$[0].loginId").value(member1.loginId()))
-                .andExpect(jsonPath("$[0].name").value(member1.name()))
-                .andExpect(jsonPath("$[1].id").value(member2.id()))
-                .andExpect(jsonPath("$[1].loginId").value(member2.loginId()))
-                .andExpect(jsonPath("$[1].name").value(member2.name()));
+            //then
+            result.andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].id").value(member1.id()))
+                    .andExpect(jsonPath("$[0].loginId").value(member1.loginId()))
+                    .andExpect(jsonPath("$[0].name").value(member1.name()))
+                    .andExpect(jsonPath("$[1].id").value(member2.id()))
+                    .andExpect(jsonPath("$[1].loginId").value(member2.loginId()))
+                    .andExpect(jsonPath("$[1].name").value(member2.name()));
+        }
+
+        @Test
+        @DisplayName("저장된 회원 없음 -> 빈 회원 리스트 반환")
+        void success_empty() throws Exception {
+            mockMvc.perform(get("/members"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
+        }
+
+        @Test
+        @DisplayName("서버 에러 -> 예외")
+        void failure_serverError() throws Exception {
+            mockMvc.perform(get("/members/error"))
+                    .andExpect(status().isInternalServerError())
+                    .andExpect(jsonPath("$.errorCode").value("INTERNAL_SERVER_ERROR"));
+        }
     }
 
-    @Test
-    void getAll_success_empty() throws Exception {
-        mockMvc.perform(get("/members"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+    @Nested
+    @DisplayName("getDetail(Long)")
+    class GetDetail {
+        @Test
+        @DisplayName("정상 -> 회원 단건 상세 조회")
+        void success() throws Exception {
+            //given
+            MemberSummaryResponseDto createdMember = memberService.create(createRequestDto("member123", "손흥민"));
+
+            //when
+            ResultActions result = mockMvc.perform(get("/members/" + createdMember.id()));
+
+            //then
+            assertMemberDetail(createdMember, result);
+        }
+
+        @Test
+        @DisplayName("회원 ID 없음 -> 예외")
+        void failure_notFoundMember() throws Exception {
+            //given
+            long invalidId = 999L;
+
+            //when
+            ResultActions result = mockMvc.perform(get("/members/" + invalidId));
+
+            //then
+            assertNotFoundMemberError(result, "id", invalidId);
+        }
+
     }
 
-    @Test
-    void getAll_failure_serverError() throws Exception {
-        mockMvc.perform(get("/members/error"))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.errorCode").value("INTERNAL_SERVER_ERROR"));
+    @Nested
+    @DisplayName("getSummary(Long)")
+    class GetSummary{
+        @Test
+        @DisplayName("성공 -> 회원 단건 요약 조회")
+        void success() throws Exception {
+            //given
+            MemberSummaryResponseDto createdMember = memberService.create(createRequestDto("member123", "손흥민"));
+
+            //when
+            ResultActions result = mockMvc.perform(get("/members/" + createdMember.id() + "/summary"));
+
+            //then
+            assertMemberSummary(createdMember, result);
+        }
+
+        @Test
+        @DisplayName("회원 ID 없음 -> 예외")
+        void failure_notFoundMember() throws Exception {
+            //given
+            long invalidId = 999L;
+
+            //when
+            ResultActions result = mockMvc.perform(get("/members/" + invalidId + "/summary"));
+
+            //then
+            assertNotFoundMemberError(result, "id", invalidId);
+        }
     }
 
-    @Test
-    void getDetail_success() throws Exception {
-        //given
-        MemberSummaryResponseDto createdMember = memberService.create(createRequestDto("member123", "손흥민"));
-
-        //when
-        ResultActions result = mockMvc.perform(get("/members/" + createdMember.id()));
-
-        //then
-        assertMemberDetail(createdMember, result);
+    @Nested
+    @DisplayName("getDetailWithOrders(Long)")
+    class GetDetailWithOrders {
+        @Test
+        void getDetailWithOrders() {
+            //TODO order 개발 후 테스트
+        }
     }
 
-    @Test
-    void getDetail_failure_notFoundMember() throws Exception {
-        //given
-        long invalidId = 999L;
+    @Nested
+    @DisplayName("getDetailByEmail(String)")
+    class GetDetailByEmail {
+        @Test
+        @DisplayName("정상 -> 회원 상세 조회")
+        void success() throws Exception {
+            //given
+            MemberSummaryResponseDto createdMember = memberService.create(createRequestDto("member123", "손흥민"));
 
-        //when
-        ResultActions result = mockMvc.perform(get("/members/" + invalidId));
+            //when
+            ResultActions result = mockMvc.perform(get("/members/by-email")
+                    .param("email", createdMember.loginId() + "@example.com"));
 
-        //then
-        assertNotFoundMemberError(result, "id", invalidId);
-    }
+            //then
+            assertMemberDetail(createdMember, result);
+        }
 
-    @Test
-    void getSummary_success() throws Exception {
-        //given
-        MemberSummaryResponseDto createdMember = memberService.create(createRequestDto("member123", "손흥민"));
+        @Test
+        @DisplayName("회원 없음 -> 예외")
+        void failure_notFoundMember() throws Exception {
+            //given
+            String invalidEmail = "invalid@invalid.com";
 
-        //when
-        ResultActions result = mockMvc.perform(get("/members/" + createdMember.id() + "/summary"));
+            //when
+            ResultActions result = mockMvc.perform(get("/members/by-email")
+                    .param("email", invalidEmail));
 
-        //then
-        assertMemberSummary(createdMember, result);
-    }
-
-    @Test
-    void getSummary_failure_notFoundMember() throws Exception {
-        //given
-        long invalidId = 999L;
-
-        //when
-        ResultActions result = mockMvc.perform(get("/members/" + invalidId + "/summary"));
-
-        //then
-        assertNotFoundMemberError(result, "id", invalidId);
-    }
-
-    @Test
-    void getDetailWithOrders() {
-        //TODO order 개발 후 테스트
+            //then
+            assertNotFoundMemberError(result, "email", invalidEmail);
+        }
     }
 
     @Test

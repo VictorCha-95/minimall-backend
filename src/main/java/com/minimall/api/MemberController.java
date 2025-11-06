@@ -8,6 +8,7 @@ import com.minimall.domain.member.dto.response.MemberDetailWithOrdersResponseDto
 import com.minimall.domain.member.dto.response.MemberSummaryResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/members")
+@RequestMapping(value = "/members", produces = "application/json")
 @Tag(name = "Member API", description = "회원 관련 API")
 public class MemberController {
 
@@ -71,16 +72,17 @@ public class MemberController {
     }
 
     //== 생성 ==//
-    @Operation(summary = "회원 생성", description = "새로운 회원 생성")
+    @Operation(summary = "회원 생성")
     @PostMapping
-    public MemberSummaryResponseDto create(@RequestBody MemberCreateRequestDto request) {
+    public MemberSummaryResponseDto create(@Valid @RequestBody MemberCreateRequestDto request) {
         return memberService.create(request);
     }
 
     //== 수정 ==//
     @Operation(summary = "회원 수정", description = "기존 회원 정보 수정")
     @PatchMapping("/{id}")
-    public MemberDetailResponseDto update(@PathVariable Long id, @RequestBody MemberUpdateRequestDto request) {
+    public MemberDetailResponseDto update(@PathVariable Long id,
+                                          @Valid @RequestBody MemberUpdateRequestDto request) {
         return memberService.update(id, request);
     }
 

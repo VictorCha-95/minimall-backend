@@ -1,7 +1,6 @@
 package com.minimall.domain.order;
 
 import com.minimall.domain.member.Member;
-import com.minimall.domain.order.status.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

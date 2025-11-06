@@ -9,7 +9,7 @@ import com.minimall.domain.order.OrderRepository;
 import com.minimall.domain.order.dto.OrderMapper;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;
-import com.minimall.domain.order.status.OrderStatus;
+import com.minimall.domain.order.OrderStatus;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.OrderService;

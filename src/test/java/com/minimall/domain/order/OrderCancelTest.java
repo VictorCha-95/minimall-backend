@@ -4,6 +4,7 @@
     import com.minimall.domain.embeddable.Address;
     import com.minimall.domain.member.Member;
     import com.minimall.domain.order.delivery.DeliveryStatus;
+    import com.minimall.domain.order.delivery.DeliveryStatusException;
     import com.minimall.domain.order.exception.OrderStatusException;
     import com.minimall.domain.order.pay.PayMethod;
     import com.minimall.domain.order.pay.PayStatus;
@@ -13,7 +14,7 @@
     import java.util.ArrayList;
     import java.util.List;
 
-    import static com.minimall.domain.order.status.OrderStatus.*;
+    import static com.minimall.domain.order.OrderStatus.*;
     import static org.assertj.core.api.Assertions.assertThat;
     import static org.assertj.core.api.Assertions.assertThatThrownBy;
     import static org.assertj.core.api.SoftAssertions.*;
@@ -165,10 +166,10 @@
 
                 //when, then
                 assertThatThrownBy(order::cancel)
-                        .isInstanceOfSatisfying(OrderStatusException.class, e -> {
-                            assertThat(e.getDomain()).isEqualTo(DomainType.ORDER);
-                            assertThat(e.getCurrentStatus()).isEqualTo(SHIPPING);
-                            assertThat(e.getTargetStatus()).isEqualTo(CANCELED);
+                        .isInstanceOfSatisfying(DeliveryStatusException.class, e -> {
+                            assertThat(e.getDomain()).isEqualTo(DomainType.DELIVERY);
+                            assertThat(e.getCurrentStatus()).isEqualTo(DeliveryStatus.SHIPPING);
+                            assertThat(e.getTargetStatus()).isEqualTo(DeliveryStatus.CANCELED);
                         });
             }
         }

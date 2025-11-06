@@ -3,15 +3,19 @@ package com.minimall.domain.order;
 import com.minimall.domain.common.base.BaseEntity;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.embeddable.InvalidAddressException;
+import com.minimall.domain.member.Member;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static com.minimall.domain.order.delivery.DeliveryStatus.*;
 
@@ -47,8 +51,12 @@ public class Delivery extends BaseEntity {
 
     //==생성자==//
     public static Delivery readyDelivery(Order order, Address shipAddr) {
-        validateShipAddr(shipAddr);
-        return new Delivery(order, shipAddr);
+        //TODO Order:Delivery -> 1:N 생각(배송 취소, 실패 시 새로운 배송 추가)
+        if (order.getDelivery() != null) {
+            Delivery delivery = order.getDelivery();
+            throw new DeliveryStatusException(delivery.getId(), delivery.getDeliveryStatus(), READY);
+        }
+        return new Delivery(order, resolveShipAddr(order, shipAddr));
     }
 
     private Delivery(Order order, Address shipAddr) {
@@ -57,38 +65,45 @@ public class Delivery extends BaseEntity {
         deliveryStatus = READY;
     }
 
-    //==연관관계 메서드==//
+    private static @NotNull Address resolveShipAddr(Order order, @Nullable Address shipAddr) {
+        Member member = order.getMember();
+        if (shipAddr != null) {
+            return shipAddr;
+        } else if (member.getAddr() == null){
+            throw InvalidAddressException.required();
+        } else {
+            return member.getAddr();
+        }
+    }
+
+    //== 연관관계 메서드 ==//
     void assignOrder(Order order) {
         this.order = order;
     }
 
-
-    //==비즈니스 로직==//
-    public void startDelivery() {
+    //== 비즈니스 로직 ==//
+    void startDelivery() {
         ensureCanTransition(SHIPPING);
         deliveryStatus = SHIPPING;
         shippedAt = LocalDateTime.now();
     }
-    public void completeDelivery() {
+
+    void completeDelivery() {
         ensureCanTransition(COMPLETED);
         deliveryStatus = COMPLETED;
         arrivedAt = LocalDateTime.now();
     }
 
-    public void cancel() {
+    void cancel() {
         ensureCanTransition(CANCELED);
         deliveryStatus = CANCELED;
     }
 
-    //==검증 로직==//
+    //== 검증 로직 ==//
     private void ensureCanTransition(DeliveryStatus next) {
         if (!deliveryStatus.canProgressTo(next)) {
             throw new DeliveryStatusException(id, deliveryStatus, next);
         }
-    }
-
-    private static void validateShipAddr(Address shipAddr) {
-        if (shipAddr == null) throw InvalidAddressException.required();
     }
 }
 

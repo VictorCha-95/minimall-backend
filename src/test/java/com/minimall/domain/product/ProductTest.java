@@ -74,8 +74,8 @@ public class ProductTest {
             @DisplayName("null -> 예외")
             void shouldFail_whenPriceIsNull() {
                 assertThatThrownBy(() -> new Product(DEFAULT_NAME, null, DEFAULT_STOCK))
-                        .isInstanceOfSatisfying(InvalidPriceException.class, e -> {
-                            assertThat(e.getReason()).isEqualTo(InvalidPriceException.Reason.REQUIRED);
+                        .isInstanceOfSatisfying(InvalidProductPriceException.class, e -> {
+                            assertThat(e.getReason()).isEqualTo(InvalidProductPriceException.Reason.REQUIRED);
                             assertThat(e.getMessage()).isEqualTo(DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(paramMap.get("price")));
                         });
             }
@@ -84,8 +84,8 @@ public class ProductTest {
             @DisplayName("음수 -> 예외")
             void shouldFail_whenPriceIsNegative() {
                 assertThatThrownBy(() -> new Product(DEFAULT_NAME, DEFAULT_NEGATIVE, DEFAULT_STOCK))
-                        .isInstanceOfSatisfying(InvalidPriceException.class, e -> {
-                            assertThat(e.getReason()).isEqualTo(InvalidPriceException.Reason.NEGATIVE);
+                        .isInstanceOfSatisfying(InvalidProductPriceException.class, e -> {
+                            assertThat(e.getReason()).isEqualTo(InvalidProductPriceException.Reason.NEGATIVE);
                             assertThat(e.getMessage())
                                     .isEqualTo(DomainExceptionMessage.PARAM_CANNOT_BE_NEGATIVE.text(paramMap.get("price"), DEFAULT_NEGATIVE));
                         });
@@ -145,8 +145,8 @@ public class ProductTest {
 
                 //when, then
                 assertThatThrownBy(() -> product.changePrice(DEFAULT_NEGATIVE))
-                        .isInstanceOfSatisfying(InvalidPriceException.class, e -> {
-                            assertThat(e.getReason()).isEqualTo(InvalidPriceException.Reason.NEGATIVE);
+                        .isInstanceOfSatisfying(InvalidProductPriceException.class, e -> {
+                            assertThat(e.getReason()).isEqualTo(InvalidProductPriceException.Reason.NEGATIVE);
                             assertThat(e.getMessage())
                                     .isEqualTo(DomainExceptionMessage.PARAM_CANNOT_BE_NEGATIVE.text(paramMap.get("price"), DEFAULT_NEGATIVE));
                         });

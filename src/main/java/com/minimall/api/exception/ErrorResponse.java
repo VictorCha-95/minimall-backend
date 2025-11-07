@@ -9,11 +9,28 @@ public record ErrorResponse(
         int status,
         String errorCode,
         String message,
+        String path,
         LocalDateTime timestamp
 ) {
-    public static ResponseEntity<ErrorResponse> toResponse(HttpStatus status, ApiErrorCode errorCode, Exception ex) {
+    public static ResponseEntity<ErrorResponse> of(HttpStatus status, ApiErrorCode errorCode, Exception ex, String path) {
         return ResponseEntity
                 .status(status)
-                .body(new ErrorResponse(status.value(), errorCode.getCode(), ex.getMessage(), LocalDateTime.now()));
+                .body(new ErrorResponse(
+                        status.value(),
+                        errorCode.name(),
+                        ex.getMessage(),
+                        path,
+                        LocalDateTime.now()));
+    }
+
+    public static ResponseEntity<ErrorResponse> of(HttpStatus status, ApiErrorCode errorCode, String message, String path) {
+        return ResponseEntity
+                .status(status)
+                .body(new ErrorResponse(
+                        status.value(),
+                        errorCode.name(),
+                        message,
+                        path,
+                        LocalDateTime.now()));
     }
 }

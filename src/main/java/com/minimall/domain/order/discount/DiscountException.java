@@ -1,6 +1,8 @@
 package com.minimall.domain.order.discount;
 
-public class DiscountException extends RuntimeException {
+import com.minimall.domain.exception.DomainRuleException;
+
+public class DiscountException extends DomainRuleException {
     public DiscountException(String message) {
         super(message);
     }

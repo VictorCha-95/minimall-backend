@@ -45,7 +45,7 @@ public class Product extends BaseEntity {
     }
 
     public void changePrice(int price) {
-        Guards.requireNonNegative(price, () -> InvalidPriceException.negative(price));
+        Guards.requireNonNegative(price, () -> InvalidProductPriceException.negative(price));
         this.price = price;
     }
 
@@ -77,8 +77,8 @@ public class Product extends BaseEntity {
                 InvalidProductNameException::blank);
 
         Guards.requireNotNullAndNonNegative(price,
-                InvalidPriceException::required,
-                () -> InvalidPriceException.negative(price));
+                InvalidProductPriceException::required,
+                () -> InvalidProductPriceException.negative(price));
 
         Guards.requireNotNullAndNonNegative(stockQuantity,
                 InvalidProductStockException::required,

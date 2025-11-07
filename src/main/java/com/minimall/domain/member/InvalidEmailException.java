@@ -1,10 +1,11 @@
 package com.minimall.domain.member;
 
 import com.minimall.domain.exception.DomainExceptionMessage;
+import com.minimall.domain.exception.DomainRuleException;
 import lombok.Getter;
 
 @Getter
-public class InvalidEmailException extends RuntimeException {
+public class InvalidEmailException extends DomainRuleException {
 
     public enum Reason { REQUIRED, BLANK, FORMAT }
 

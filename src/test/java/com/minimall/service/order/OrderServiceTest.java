@@ -96,7 +96,7 @@ class OrderServiceTest {
     @DisplayName("createOrder(CreateRequestDto)")
     class CreateOrder {
         @Test
-        @DisplayName("정상 -> 주문 생성")
+        @DisplayName("주문 생성 - 주문 기본 정보 및 연관관계 검증")
         void success() {
             //given
             given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));

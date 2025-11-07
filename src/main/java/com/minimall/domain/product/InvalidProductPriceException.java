@@ -1,10 +1,11 @@
 package com.minimall.domain.product;
 
 import com.minimall.domain.exception.DomainExceptionMessage;
+import com.minimall.domain.exception.DomainRuleException;
 import lombok.Getter;
 
 @Getter
-public class InvalidPriceException extends RuntimeException {
+public class InvalidProductPriceException extends DomainRuleException {
 
     public enum Reason {
         NEGATIVE,
@@ -15,22 +16,22 @@ public class InvalidPriceException extends RuntimeException {
     private final Reason reason;
     private final Integer requested;
 
-    private InvalidPriceException(Reason reason, String message, Integer requested) {
+    private InvalidProductPriceException(Reason reason, String message, Integer requested) {
         super(message);
         this.reason = reason;
         this.requested = requested;
     }
 
     //== Static Factory Methods ==//
-    public static InvalidPriceException negative(int requested) {
-        return new InvalidPriceException(
+    public static InvalidProductPriceException negative(int requested) {
+        return new InvalidProductPriceException(
                 Reason.NEGATIVE,
                 DomainExceptionMessage.PARAM_CANNOT_BE_NEGATIVE.text(PARAM_NAME, requested),
                 requested);
     }
 
-    public static InvalidPriceException required() {
-        return new InvalidPriceException(
+    public static InvalidProductPriceException required() {
+        return new InvalidProductPriceException(
                 Reason.REQUIRED,
                 DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(PARAM_NAME),
                 null);

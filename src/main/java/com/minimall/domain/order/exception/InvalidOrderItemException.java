@@ -1,10 +1,11 @@
 package com.minimall.domain.order.exception;
 
+import com.minimall.domain.exception.DomainRuleException;
 import com.minimall.domain.order.OrderMessage;
 import lombok.Getter;
 
 @Getter
-public class InvalidOrderItemException extends RuntimeException {
+public class InvalidOrderItemException extends DomainRuleException {
 
     public enum Reason {
         REQUIRE_ITEM,       // 주문 항목이 비어있음

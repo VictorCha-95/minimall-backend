@@ -1,10 +1,11 @@
 package com.minimall.domain.product;
 
 import com.minimall.domain.exception.DomainExceptionMessage;
+import com.minimall.domain.exception.DomainRuleException;
 import lombok.Getter;
 
 @Getter
-public class InvalidProductNameException extends RuntimeException {
+public class InvalidProductNameException extends DomainRuleException {
 
     public enum Reason {
         REQUIRED,

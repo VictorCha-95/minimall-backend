@@ -1,10 +1,11 @@
     package com.minimall.domain.product;
 
     import com.minimall.domain.exception.DomainExceptionMessage;
+    import com.minimall.domain.exception.DomainRuleException;
     import lombok.Getter;
 
     @Getter
-    public class InvalidProductStockException extends RuntimeException {
+    public class InvalidProductStockException extends DomainRuleException {
 
         public enum Reason {
             NEGATIVE,      //파라미터가 음수

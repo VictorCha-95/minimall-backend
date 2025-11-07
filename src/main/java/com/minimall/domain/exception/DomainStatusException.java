@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @Getter
-public class DomainStatusException extends RuntimeException {
+public class DomainStatusException extends DomainRuleException {
 
     private final DomainType domain;
     private final Long id;

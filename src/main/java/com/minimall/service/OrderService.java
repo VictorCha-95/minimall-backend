@@ -9,9 +9,12 @@ import com.minimall.domain.order.dto.OrderMapper;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;
 import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
+import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
+import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.exception.MemberNotFoundException;
+import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,15 +31,13 @@ public class OrderService {
     private final MemberRepository memberRepository;
     private final ProductRepository productRepository;
     private final OrderMapper orderMapper;
-
-    //== 비즈니스 로직 ==//
+    
+    //== 주문 생성 ==//
     public OrderCreateResponseDto createOrder(OrderCreateRequestDto request) {
 
-        Member member = getMember(request);
+        Member member = findMember(request);
 
-        List<OrderItem> orderItems = request.items().stream()
-                .map(this::toOrderItem)
-                .toList();
+        List<OrderItem> orderItems = createOrderItems(request);
 
         Order order = Order.createOrder(member, orderItems.toArray(OrderItem[]::new));
         orderRepository.save(order);
@@ -44,11 +45,38 @@ public class OrderService {
         return orderMapper.toCreateResponse(order);
     }
 
+    //== 주문 조회 ==//
+    public OrderDetailResponseDto getOrderDetail(Long id) {
+        Order order = findOrder(id);
+        return orderMapper.toOrderDetailResponse(order);
+    }
+
+    public List<OrderSummaryResponseDto> getOrderSummaries(Long memberId) {
+        Member member = findMember(memberId);
+        List<Order> orders = orderRepository.findByMember(member);
+        return orderMapper.toOrderSummaryResponse(orders);
+    }
 
     //== 헬퍼 메서드 ==//
-    private Member getMember(OrderCreateRequestDto request) {
+    private Order findOrder(Long orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException("id", orderId));
+    }
+
+    private Member findMember(OrderCreateRequestDto request) {
         return memberRepository.findById(request.memberId())
                 .orElseThrow(() -> new MemberNotFoundException("id", request.memberId()));
+    }
+
+    private Member findMember(Long memberId) {
+        return memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberNotFoundException("id", memberId));
+    }
+
+    private List<OrderItem> createOrderItems(OrderCreateRequestDto request) {
+        return request.items().stream()
+                .map(this::toOrderItem)
+                .toList();
     }
 
     private OrderItem toOrderItem(OrderItemCreateDto item) {

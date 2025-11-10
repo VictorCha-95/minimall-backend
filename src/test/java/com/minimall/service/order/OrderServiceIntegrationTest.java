@@ -1,5 +1,6 @@
 package com.minimall.service.order;
 
+import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
@@ -9,10 +10,13 @@ import com.minimall.domain.order.OrderStatus;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;
 import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
+import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
+import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
+import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +37,9 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.SoftAssertions.*;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
 
 @SpringBootTest
 @ActiveProfiles("integration-test")
@@ -59,12 +66,11 @@ public class OrderServiceIntegrationTest {
     @Autowired
     EntityManager em;
 
-    @Autowired
-    TransactionTemplate tx;
-
     private Member member;
     private Product book;
     private Product keyboard;
+    private OrderCreateRequestDto request1;
+    private OrderCreateRequestDto request2;
 
     static final int ORDER_QUANTITY = 10;
     static final long NOT_EXISTS_ID = 999_999_999_999_999L;
@@ -84,6 +90,20 @@ public class OrderServiceIntegrationTest {
         //== Product Entity ==//
         keyboard = new Product("키보드", 100000, 20);
         book = new Product("도서", 20000, 50);
+
+        //== OrderCreateRequest ==//
+        Member savedMember = memberRepository.save(member);
+        Product savedKeyboard = productRepository.save(keyboard);
+        Product savedBook = productRepository.save(book);
+        request1 = new OrderCreateRequestDto(
+                savedMember.getId(),
+                List.of(new OrderItemCreateDto(savedKeyboard.getId(), ORDER_QUANTITY),
+                        new OrderItemCreateDto(savedBook.getId(), ORDER_QUANTITY)));
+
+        request2 = new OrderCreateRequestDto(
+                savedMember.getId(),
+                List.of(new OrderItemCreateDto(savedKeyboard.getId(), 5),
+                        new OrderItemCreateDto(savedBook.getId(), 5)));
     }
 
     void flushClear() {
@@ -97,18 +117,8 @@ public class OrderServiceIntegrationTest {
         @Test
         @DisplayName("주문 생성 - DB 반영 및 기타 검증")
         void success() {
-            //given
-            Member savedMember = memberRepository.save(member);
-            Product savedKeyboard = productRepository.save(keyboard);
-            Product savedBook = productRepository.save(book);
-
-            OrderCreateRequestDto request = new OrderCreateRequestDto(
-                    savedMember.getId(),
-                    List.of(new OrderItemCreateDto(savedKeyboard.getId(), ORDER_QUANTITY),
-                            new OrderItemCreateDto(savedBook.getId(), ORDER_QUANTITY)));
-
             //when
-            OrderCreateResponseDto order = orderService.createOrder(request);
+            OrderCreateResponseDto order = orderService.createOrder(request1);
             flushClear();
 
             //then: DB 조회해서 검증
@@ -119,7 +129,7 @@ public class OrderServiceIntegrationTest {
                 softly.assertThat(found.getId()).isEqualTo(order.id());
                 softly.assertThat(found.getOrderStatus()).isEqualTo(OrderStatus.ORDERED);
                 softly.assertThat(found.getOrderedAt()).isNotNull();
-                softly.assertThat(found.getMember().getId()).isEqualTo(savedMember.getId());
+                softly.assertThat(found.getMember().getId()).isEqualTo(member.getId());
                 softly.assertThat(found.getOrderItems()).hasSize(2);
                 softly.assertThat(found.getPay()).isNull();
                 softly.assertThat(found.getDelivery()).isNull();
@@ -156,8 +166,6 @@ public class OrderServiceIntegrationTest {
                     NOT_EXISTS_ID,
                     List.of(new OrderItemCreateDto(product.getId(), ORDER_QUANTITY)));
 
-
-
             //when
             assertThatThrownBy(() -> orderService.createOrder(request))
                     .isInstanceOf(MemberNotFoundException.class);
@@ -177,13 +185,12 @@ public class OrderServiceIntegrationTest {
         @Transactional(propagation = Propagation.NOT_SUPPORTED)
         void shouldRollBack_whenProductNotFound() {
             //given
-            Member m = memberRepository.save(member);
             Product exists = productRepository.save(new Product("p", 10_000, 50));
             long beforeOrderCount = orderRepository.count();
             Integer beforeStock = exists.getStockQuantity();
 
             OrderCreateRequestDto request = new OrderCreateRequestDto(
-                    m.getId(),
+                    member.getId(),
                     List.of(new OrderItemCreateDto(exists.getId(), ORDER_QUANTITY),
                             new OrderItemCreateDto(NOT_EXISTS_ID, ORDER_QUANTITY)));
 
@@ -198,8 +205,80 @@ public class OrderServiceIntegrationTest {
                         .isEqualTo(beforeStock);
             });
         }
+    }
 
+    @Nested
+    @DisplayName("getOrderDetail(Long)")
+    class GetOrderDetail{
+        @Test
+        @DisplayName("주문 상세 단건 조회: 식별자, 일시, 상태, 총금액, 주문 항목, 결제, 배송 응답")
+        void success() {
+            //given
+            OrderCreateResponseDto order = orderService.createOrder(request1);
 
+            //when
+            OrderDetailResponseDto result = orderService.getOrderDetail(order.id());
+
+            //then
+            assertSoftly(softly -> {
+                softly.assertThat(result.id()).isNotNull();
+                softly.assertThat(result.orderedAt()).isNotNull();
+                softly.assertThat(result.orderStatus()).isEqualTo(OrderStatus.ORDERED);
+                softly.assertThat(result.orderItems()).hasSize(2);
+            });
+        }
+
+        @Test
+        @DisplayName("주문 없음: OrderNotFoundException")
+        void shouldFail_whenOrderNotFound() {
+            //given
+            Long invalidId = 999_999_999L;
+
+            //then
+            assertThatThrownBy(() -> orderService.getOrderDetail(invalidId))
+                    .isInstanceOfSatisfying(OrderNotFoundException.class, e ->
+                            assertThat(e.getMessage()).contains("id", String.valueOf(invalidId), DomainType.ORDER.getDisPlayName())
+                    );
+        }
+    }
+
+    @Nested
+    @DisplayName("getOrderSummaries(Long)")
+    class GetOrderSummaries {
+        @Test
+        @DisplayName("주문 목록 요약 조회: ")
+        void success() {
+            //given
+            orderService.createOrder(request1);
+            orderService.createOrder(request2);
+
+            //when
+            List<OrderSummaryResponseDto> result = orderService.getOrderSummaries(member.getId());
+
+            //then
+            assertSoftly(softly -> {
+                softly.assertThat(result).hasSize(2);
+                softly.assertThat(result.getFirst().id()).isNotNull();
+                softly.assertThat(result.getFirst().orderedAt()).isNotNull();
+                softly.assertThat(result.getFirst().orderStatus()).isEqualTo(OrderStatus.ORDERED);
+                softly.assertThat(result.getFirst().itemCount()).isEqualTo(2);
+                softly.assertThat(result.getFirst().finalAmount()).isNotNull();
+            });
+        }
+
+        @Test
+        @DisplayName("회원 주문 없음: 빈 리스트 반환")
+        void returnEmpty_whenOrderIsEmpty() {
+            //given
+            Member member = Member.create("user12345", "12345", "박지성", "ex@ex.com", null);
+            Member savedMember = memberRepository.save(member);
+
+            //when
+            List<OrderSummaryResponseDto> result = orderService.getOrderSummaries(savedMember.getId());
+
+            //then
+            assertThat(result).isEmpty();
+        }
     }
 
 }

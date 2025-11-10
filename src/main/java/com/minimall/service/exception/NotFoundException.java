@@ -2,7 +2,7 @@ package com.minimall.service.exception;
 
 import com.minimall.domain.common.DomainType;
 
-public class NotFoundException extends RuntimeException {
+public abstract class NotFoundException extends RuntimeException {
     public NotFoundException(String message) {
         super(message);
     }

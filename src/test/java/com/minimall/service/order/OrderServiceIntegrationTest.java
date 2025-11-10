@@ -15,7 +15,6 @@ import com.minimall.service.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
 import jakarta.persistence.EntityManager;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

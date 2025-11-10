@@ -1,5 +1,6 @@
 package com.minimall.service.order;
 
+import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
@@ -10,23 +11,27 @@ import com.minimall.domain.order.dto.OrderMapper;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;
 import com.minimall.domain.order.OrderStatus;
+import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
+import com.minimall.domain.order.dto.response.OrderItemResponseDto;
+import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
+import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
-import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.BDDMockito;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.swing.text.html.Option;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -54,6 +59,7 @@ class OrderServiceTest {
     OrderService orderService;
 
     private OrderCreateRequestDto orderCreateRequest;
+    private List<OrderItemResponseDto> orderItemResponses;
 
     private Member member;
     private Product book;
@@ -77,6 +83,13 @@ class OrderServiceTest {
 
         //== OrderCreateRequest ==//
         orderCreateRequest = new OrderCreateRequestDto(MEMBER_ID, orderItems);
+
+        //== OrderItemResponse ==//
+        orderItemResponses = List.of(
+                new OrderItemResponseDto(PRODUCT1_ID, "도서", 20000, 30, 600000),
+                new OrderItemResponseDto(PRODUCT2_ID, "키보드", 100_000, 10, 1_000_000)
+        );
+
 
         //== Member Entity ==//
         member = Member.builder()
@@ -168,6 +181,122 @@ class OrderServiceTest {
             then(productRepository).should(times(2)).findById(anyLong());
 
             then(orderRepository).shouldHaveNoInteractions();
+        }
+    }
+
+    @Nested
+    @DisplayName("getOrderDetail(Long)")
+    class GetOrderDetail{
+        @Test
+        @DisplayName("주문 상세 단건 조회: 리포지토리 조회 -> 매버 변환 -> dto 반환")
+        void success() {
+            //given
+            Long orderId = 1L;
+
+            Order order = mock(Order.class);
+
+            LocalDateTime localDateTime = LocalDateTime.of(2025, 11, 10, 15, 25, 0);
+            OrderDetailResponseDto dto = new OrderDetailResponseDto(orderId,
+                    localDateTime,
+                    OrderStatus.ORDERED,
+                    1_100_000,
+                    List.of(), null, null);
+
+            given(orderRepository.findById(orderId)).willReturn(Optional.of(order));
+            given(orderMapper.toOrderDetailResponse(order)).willReturn(dto);
+
+            //when
+            OrderDetailResponseDto result = orderService.getOrderDetail(orderId);
+
+            //then
+            assertThat(result).isEqualTo(dto);
+            then(orderRepository).should(times(1)).findById(orderId);
+            then(orderMapper).should(times(1)).toOrderDetailResponse(order);
+            verifyNoInteractions(memberRepository, productRepository);
+        }
+
+        @Test
+        @DisplayName("주문 없음: OrderNotFoundException")
+        void shouldFail_whenOrderNotFound() {
+            //given
+            Long invalidId = 999L;
+
+            given(orderRepository.findById(invalidId)).willReturn(Optional.empty());
+
+            //then
+            assertThatThrownBy(() -> orderService.getOrderDetail(invalidId))
+                    .isInstanceOfSatisfying(OrderNotFoundException.class, e ->
+                        assertThat(e.getMessage()).contains("id", String.valueOf(invalidId), DomainType.ORDER.getDisPlayName())
+                    );
+
+            then(orderRepository).should(times(1)).findById(invalidId);
+            then(orderMapper).shouldHaveNoInteractions();
+        }
+    }
+
+    @Nested
+    @DisplayName("getOrderSummaries(Long)")
+    class GetOrderSummaries {
+        @Test
+        @DisplayName("주문 목록 요약 조회: 회원 리포지토리 조회 -> 주문 리포지토리 조회 -> 매퍼 dto 변환")
+        void success() {
+            //given
+            Order order1 = mock(Order.class);
+            Order order2 = mock(Order.class);
+            List<Order> orders = List.of(order1, order2);
+
+            Long orderId = 1L;
+            LocalDateTime localDateTime = LocalDateTime.of(2025, 11, 10, 15, 25, 0);
+
+            List<OrderSummaryResponseDto> dtoList = List.of(new OrderSummaryResponseDto(
+                    orderId,
+                    localDateTime,
+                    OrderStatus.ORDERED,
+                    2,
+                    1_100_000), new OrderSummaryResponseDto(
+                    orderId,
+                    localDateTime,
+                    OrderStatus.ORDERED,
+                    5,
+                    5_500_000
+            ));
+
+            given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));
+            given(orderRepository.findByMember(member)).willReturn(orders);
+            given(orderMapper.toOrderSummaryResponse(orders)).willReturn(dtoList);
+
+            //when
+            List<OrderSummaryResponseDto> result = orderService.getOrderSummaries(MEMBER_ID);
+
+            //then
+            assertThat(result).isEqualTo(dtoList);
+            then(memberRepository).should(times(1)).findById(MEMBER_ID);
+            then(orderRepository).should(times(1)).findByMember(member);
+            then(orderMapper).should(times(1)).toOrderSummaryResponse(orders);
+            verifyNoInteractions(productRepository);
+        }
+
+        @Test
+        @DisplayName("회원 주문 없음: 빈 리스트 반환")
+        void returnEmpty_whenOrderIsEmpty() {
+            //given
+            List<Order> emptyOrder = List.of();
+
+            List<OrderSummaryResponseDto> dtoEmptyList = List.of();
+
+            given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));
+            given(orderRepository.findByMember(member)).willReturn(emptyOrder);
+            given(orderMapper.toOrderSummaryResponse(emptyOrder)).willReturn(dtoEmptyList);
+
+            //when
+            List<OrderSummaryResponseDto> result = orderService.getOrderSummaries(MEMBER_ID);
+
+            //then
+            assertThat(result).isEqualTo(dtoEmptyList);
+            then(memberRepository).should(times(1)).findById(MEMBER_ID);
+            then(orderRepository).should(times(1)).findByMember(member);
+            then(orderMapper).should(times(1)).toOrderSummaryResponse(emptyOrder);
+            verifyNoInteractions(productRepository);
         }
     }
 

@@ -1,4 +1,4 @@
-package com.minimall.domain.order.pay;
+package com.minimall.domain.order.pay.dto;
 
 import com.minimall.domain.order.Pay;
 import org.mapstruct.Mapper;
@@ -7,4 +7,6 @@ import org.mapstruct.Mapper;
 public interface PayMapper {
 
     PaySummaryDto toPaySummary(Pay pay);
+
+    Pay toEntity(PayRequestDto requestDto);
 }

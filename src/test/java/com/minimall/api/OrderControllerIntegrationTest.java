@@ -11,6 +11,8 @@ import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.OrderService;
+import com.minimall.service.exception.OrderNotFoundException;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,6 +34,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -161,6 +165,42 @@ class OrderControllerIntegrationTest {
                     .andExpect(jsonPath("$.path").value("/orders"))
                     .andExpect(jsonPath("$.message").exists())
                     .andExpect(header().doesNotExist("Location"));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /orders/{id}")
+    class GetOrderDetail {
+        @Test
+        @DisplayName("주문 단건 상세 조회 -> 200 + JSON 검증")
+        void return200_whenSuccess() throws Exception {
+            //given
+            OrderCreateResponseDto order = orderService.createOrder(createRequest);
+
+            //when
+            ResultActions result = mockMvc.perform(get("/orders/" + order.id()));
+
+            //then
+            result.andExpect(status().isOk())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.id").value(order.id()));
+        }
+
+        @Test
+        @DisplayName("주문 없음 -> 404 Not Found")
+        void return404_whenOrderNotFound() throws Exception {
+            //when
+            ResultActions result = mockMvc.perform(get("/orders/" + NOT_EXIST_ID));
+
+            //then
+            result.andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.status").value(404))
+                    .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
+                    .andExpect(jsonPath("$.path").value("/orders/" + NOT_EXIST_ID))
+                    .andExpect(jsonPath("$.message", Matchers.containsString("주문")))
+                    .andExpect(jsonPath("$.message", Matchers.containsString("id")))
+                    .andExpect(jsonPath("$.message", Matchers.containsString(String.valueOf(NOT_EXIST_ID))))
+                    .andExpect(jsonPath("$.timestamp").exists());
         }
     }
 }

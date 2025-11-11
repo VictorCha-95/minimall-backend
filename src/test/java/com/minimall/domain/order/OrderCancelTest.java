@@ -11,6 +11,7 @@
     import com.minimall.domain.product.Product;
     import org.junit.jupiter.api.*;
 
+    import java.time.LocalDateTime;
     import java.util.ArrayList;
     import java.util.List;
 
@@ -38,6 +39,11 @@
         final int mousePrice = 20_000;
         final int mouseStock = 20;
         final int mouseOrderQuantity = 10;
+
+        final String trackingNo = "12345678";
+        final LocalDateTime shippedAt = LocalDateTime.of(2025, 11, 10, 12, 30);
+        final LocalDateTime arrivedAt = LocalDateTime.of(2025, 11, 20, 12, 30);
+
 
 
         @BeforeEach
@@ -74,11 +80,11 @@
         }
 
         private void startDelivery() {
-            order.startDelivery();
+            order.startDelivery(trackingNo, shippedAt);
         }
 
         private void completeDelivery() {
-            order.completeDelivery();
+            order.completeDelivery(arrivedAt);
         }
 
         //== Test Groups ==//

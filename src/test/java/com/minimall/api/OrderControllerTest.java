@@ -1,12 +1,18 @@
 package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minimall.domain.order.OrderItem;
 import com.minimall.domain.order.OrderStatus;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;
 import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
+import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
+import com.minimall.domain.order.dto.response.OrderItemResponseDto;
+import com.minimall.domain.product.Product;
 import com.minimall.service.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
+import com.minimall.service.exception.NotFoundException;
+import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +25,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,9 +48,9 @@ public class OrderControllerTest {
     OrderService orderService;
 
     private OrderCreateRequestDto createRequest;
+    private OrderDetailResponseDto detailResponse;
 
     private static final long NOT_EXIST_ID = 999_999_999L;
-
 
     @BeforeEach
     void setUp() {
@@ -51,6 +58,19 @@ public class OrderControllerTest {
                 1L,
                 List.of(new OrderItemCreateDto(1L, 10),
                         new OrderItemCreateDto(2L, 20)));
+
+        detailResponse = new OrderDetailResponseDto(
+                1L,
+                LocalDateTime.of(2025, 11, 11, 12, 30),
+                OrderStatus.ORDERED,
+                100_000,
+                List.of(new OrderItemResponseDto(
+                        1L,
+                        "도서",
+                        10_000,
+                        10,
+                        100_000)),
+                null, null);
     }
 
     @Nested
@@ -79,6 +99,30 @@ public class OrderControllerTest {
                     .andExpect(jsonPath("$.orderStatus").value("ORDERED"))
                     .andExpect(jsonPath("$.itemCount").value(2));
         }
+
+        @Test
+        @DisplayName("요청 형식 오류 -> 400 Bad Request")
+        void return400_whenInvalidPayload() throws Exception {
+            //given: memberId 누락 + quantity 0
+            String invalidJson = """
+                    { "items": [ { "productId": 1, "quantity": 0 } ] } 
+                    """;
+
+            //when
+            ResultActions result = mockMvc.perform(post("/orders")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(invalidJson));
+
+            //then
+            result.andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.status").value(400))
+                    .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                    .andExpect(jsonPath("$.path").value("/orders"))
+                    .andExpect(jsonPath("$.message").exists());
+
+            verifyNoInteractions(orderService);
+        }
+
 
         @Test
         @DisplayName("회원 미존재 -> 404 Not Found")
@@ -123,5 +167,47 @@ public class OrderControllerTest {
                     .andExpect(jsonPath("$.message", Matchers.containsString(String.valueOf(NOT_EXIST_ID))))
                     .andExpect(jsonPath("$.timestamp").exists());
         }
+    }
+
+    @Nested
+    @DisplayName("GET /orders/{id}")
+    class GetOrderDetail {
+        @Test
+        @DisplayName("주문 단건 상세 조회 -> 200 + JSON 검증")
+        void return200_whenSuccess() throws Exception {
+            //given
+            given(orderService.getOrderDetail(1L)).willReturn(detailResponse);
+
+            //when
+            ResultActions result = mockMvc.perform(get("/orders/1"));
+
+            //then
+            result.andExpect(status().isOk())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.id").value(1L));
+        }
+
+        @Test
+        @DisplayName("주문 없음 -> 404 Not Found")
+        void return404_whenOrderNotFound() throws Exception {
+            //given
+            willThrow(new OrderNotFoundException("id", NOT_EXIST_ID))
+                    .given(orderService).getOrderDetail(NOT_EXIST_ID);
+
+            //when
+            ResultActions result = mockMvc.perform(get("/orders/" + NOT_EXIST_ID));
+
+            //then
+            result.andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.status").value(404))
+                    .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
+                    .andExpect(jsonPath("$.path").value("/orders/" + NOT_EXIST_ID))
+                    .andExpect(jsonPath("$.message", Matchers.containsString("주문")))
+                    .andExpect(jsonPath("$.message", Matchers.containsString("id")))
+                    .andExpect(jsonPath("$.message", Matchers.containsString(String.valueOf(NOT_EXIST_ID))))
+                    .andExpect(jsonPath("$.timestamp").exists());
+        }
+
+
     }
 }

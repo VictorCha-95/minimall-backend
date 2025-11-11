@@ -15,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +33,9 @@ public class OrderDeliveryTest {
     Pay pay;
 
     Address shipAddr;
+    final String trackingNo = "12345678";
+    final LocalDateTime shippedAt = LocalDateTime.of(2025, 11, 10, 12, 30);
+    final LocalDateTime arrivedAt = LocalDateTime.of(2025, 11, 20, 12, 30);
 
 
     @BeforeEach
@@ -91,7 +95,7 @@ public class OrderDeliveryTest {
             order.processPayment(pay);
 
             //when
-            order.prepareDelivery();
+            order.prepareDelivery(member.getAddr());
 
             //then
             assertSoftly(softly -> {
@@ -117,11 +121,12 @@ public class OrderDeliveryTest {
             newOrder.processPayment(pay);
 
             //then
-            assertThatThrownBy(newOrder::prepareDelivery)
+            assertThatThrownBy(() -> newOrder.prepareDelivery(null))
                     .isInstanceOfSatisfying(InvalidAddressException.class, e -> {
                         assertThat(e.getReason()).isEqualTo(InvalidAddressException.Reason.REQUIRED);
                         assertThat(e.getMessage()).contains("addr", "필수");
                     });
+
         }
 
         @Test
@@ -142,9 +147,8 @@ public class OrderDeliveryTest {
 
             //then
             assertThatThrownBy(() -> order.prepareDelivery(shipAddr))
-                    .isInstanceOfSatisfying(PaymentRequiredException.class, e -> {
-                        assertThat(pay.getPayStatus()).isNotEqualByComparingTo(PayStatus.PAID);
-                    });
+                    .isInstanceOfSatisfying(PaymentRequiredException.class, e ->
+                            assertThat(pay.getPayStatus()).isNotEqualByComparingTo(PayStatus.PAID));
         }
 
         @Test
@@ -152,14 +156,14 @@ public class OrderDeliveryTest {
         void shouldFail_whenCompleted() {
             //given
             order.processPayment(pay);
-            order.prepareDelivery();
-            order.startDelivery();
+            order.prepareDelivery(member.getAddr());
+            order.startDelivery(trackingNo, shippedAt);
 
             //when
-            order.completeDelivery();
+            order.completeDelivery(arrivedAt);
 
             //then
-            assertThatThrownBy(order::prepareDelivery)
+            assertThatThrownBy(() -> order.prepareDelivery(member.getAddr()))
                     .isInstanceOfSatisfying(DeliveryStatusException.class, e -> {
                         assertThat(e.getDomain()).isEqualTo(DomainType.DELIVERY);
                         assertThat(e.getCurrentStatus()).isEqualTo(DeliveryStatus.COMPLETED);
@@ -177,10 +181,10 @@ public class OrderDeliveryTest {
         void success() {
             //given
             order.processPayment(pay);
-            order.prepareDelivery();
+            order.prepareDelivery(member.getAddr());
 
             //when
-            order.startDelivery();
+            order.startDelivery(trackingNo, shippedAt);
 
             //then
             assertSoftly(softly -> {
@@ -194,7 +198,7 @@ public class OrderDeliveryTest {
         @Test
         @DisplayName("결제 전 -> 예외")
         void shouldFail_whenNotPaid() {
-            assertThatThrownBy(order::startDelivery)
+            assertThatThrownBy(() -> order.startDelivery(trackingNo, shippedAt))
                     .isInstanceOfSatisfying(IllegalStateException.class, e -> {
                         assertThat(e.getMessage()).contains("Delivery", "prepared", "first");
                     });
@@ -207,7 +211,7 @@ public class OrderDeliveryTest {
             order.processPayment(pay);
 
             //then
-            assertThatThrownBy(order::startDelivery)
+            assertThatThrownBy(() -> order.startDelivery(trackingNo,shippedAt))
                     .isInstanceOfSatisfying(IllegalStateException.class, e -> {
                         assertThat(e.getMessage()).contains("Delivery", "prepared", "first");
                     });
@@ -219,13 +223,13 @@ public class OrderDeliveryTest {
         void shouldFail_whenCanceled() {
             //given
             order.processPayment(pay);
-            order.prepareDelivery();
+            order.prepareDelivery(member.getAddr());
 
             //when
             order.cancel();
 
             //then
-            assertThatThrownBy(order::startDelivery)
+            assertThatThrownBy(() -> order.startDelivery(trackingNo,shippedAt))
                     .isInstanceOfSatisfying(DeliveryStatusException.class, e -> {
                         assertThat(e.getDomain()).isEqualTo(DomainType.DELIVERY);
                         assertThat(e.getCurrentStatus()).isEqualTo(DeliveryStatus.CANCELED);
@@ -238,14 +242,14 @@ public class OrderDeliveryTest {
         void shouldFail_whenCompleted() {
             //given
             order.processPayment(pay);
-            order.prepareDelivery();
-            order.startDelivery();
+            order.prepareDelivery(member.getAddr());
+            order.startDelivery(trackingNo, shippedAt);
 
             //when
-            order.completeDelivery();
+            order.completeDelivery(arrivedAt);
 
             //then
-            assertThatThrownBy(order::startDelivery)
+            assertThatThrownBy(() -> order.startDelivery(trackingNo,shippedAt))
                     .isInstanceOfSatisfying(DeliveryStatusException.class, e -> {
                         assertThat(e.getDomain()).isEqualTo(DomainType.DELIVERY);
                         assertThat(e.getCurrentStatus()).isEqualTo(DeliveryStatus.COMPLETED);
@@ -263,11 +267,11 @@ public class OrderDeliveryTest {
         void success() {
             //given
             order.processPayment(pay);
-            order.prepareDelivery();
-            order.startDelivery();
+            order.prepareDelivery(member.getAddr());
+            order.startDelivery(trackingNo, shippedAt);
 
             //when
-            order.completeDelivery();
+            order.completeDelivery(arrivedAt);
 
             //then
             assertSoftly(softly -> {
@@ -280,7 +284,7 @@ public class OrderDeliveryTest {
         @Test
         @DisplayName("결제 전 -> 예외")
         void shouldFail_whenNotPaid() {
-            assertThatThrownBy(order::completeDelivery)
+            assertThatThrownBy(() -> order.completeDelivery(shippedAt))
                     .isInstanceOfSatisfying(IllegalStateException.class, e -> {
                         assertThat(e.getMessage()).contains("Delivery", "prepared", "first");
                     });
@@ -294,7 +298,7 @@ public class OrderDeliveryTest {
 
             //then
             assertThat(order.getPay().getPayStatus()).isEqualTo(PayStatus.PAID);
-            assertThatThrownBy(order::completeDelivery)
+            assertThatThrownBy(() -> order.completeDelivery(shippedAt))
                     .isInstanceOfSatisfying(IllegalStateException.class, e -> {
                         assertThat(e.getMessage()).contains("Delivery", "prepared", "first");
                     });
@@ -306,13 +310,13 @@ public class OrderDeliveryTest {
         void shouldFail_whenCanceled() {
             //given
             order.processPayment(pay);
-            order.prepareDelivery();
+            order.prepareDelivery(member.getAddr());
 
             //when
             order.cancel();
 
             //then
-            assertThatThrownBy(order::completeDelivery)
+            assertThatThrownBy(() -> order.completeDelivery(shippedAt))
                     .isInstanceOfSatisfying(DeliveryStatusException.class, e -> {
                         assertThat(e.getDomain()).isEqualTo(DomainType.DELIVERY);
                         assertThat(e.getCurrentStatus()).isEqualTo(DeliveryStatus.CANCELED);
@@ -325,14 +329,14 @@ public class OrderDeliveryTest {
         void shouldFail_whenCompleted() {
             //given
             order.processPayment(pay);
-            order.prepareDelivery();
-            order.startDelivery();
+            order.prepareDelivery(member.getAddr());
+            order.startDelivery(trackingNo, shippedAt);
 
             //when
-            order.completeDelivery();
+            order.completeDelivery(arrivedAt);
 
             //then
-            assertThatThrownBy(order::completeDelivery)
+            assertThatThrownBy(() -> order.completeDelivery(shippedAt))
                     .isInstanceOfSatisfying(DeliveryStatusException.class, e -> {
                         assertThat(e.getDomain()).isEqualTo(DomainType.DELIVERY);
                         assertThat(e.getCurrentStatus()).isEqualTo(DeliveryStatus.COMPLETED);

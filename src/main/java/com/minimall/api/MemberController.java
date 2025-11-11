@@ -1,15 +1,20 @@
 package com.minimall.api;
 
+import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
 import com.minimall.service.MemberService;
 import com.minimall.domain.member.dto.request.MemberCreateRequestDto;
 import com.minimall.domain.member.dto.request.MemberUpdateRequestDto;
 import com.minimall.domain.member.dto.response.MemberDetailResponseDto;
 import com.minimall.domain.member.dto.response.MemberDetailWithOrdersResponseDto;
 import com.minimall.domain.member.dto.response.MemberSummaryResponseDto;
+import com.minimall.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,8 +26,9 @@ import java.util.List;
 public class MemberController {
 
     private final MemberService memberService;
+    private final OrderService orderService;
 
-    //== 조회 ==//
+    //== 회원 조회 ==//
     @Operation(summary = "회원 전체 조회", description = "모든 회원 요약 조회")
     @GetMapping
     public List<MemberSummaryResponseDto> getAll() {
@@ -71,14 +77,26 @@ public class MemberController {
         return memberService.getSummaryByLoginId(loginId);
     }
 
-    //== 생성 ==//
+    //== 주문 조회 ==//
+    @Operation(summary = "주문 요약 목록 조회")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "400", description = "요청 검증 오류"),
+    })
+    @GetMapping("/{id}/orders")
+    public ResponseEntity<List<OrderSummaryResponseDto>> getOrdersByMember(@PathVariable Long id) {
+        List<OrderSummaryResponseDto> response = orderService.getOrderSummaries(id);
+        return ResponseEntity.ok(response);
+    }
+
+    //== 회원 생성 ==//
     @Operation(summary = "회원 생성")
     @PostMapping
     public MemberSummaryResponseDto create(@Valid @RequestBody MemberCreateRequestDto request) {
         return memberService.create(request);
     }
 
-    //== 수정 ==//
+    //== 회원 수정 ==//
     @Operation(summary = "회원 수정", description = "기존 회원 정보 수정")
     @PatchMapping("/{id}")
     public MemberDetailResponseDto update(@PathVariable Long id,
@@ -86,7 +104,7 @@ public class MemberController {
         return memberService.update(id, request);
     }
 
-    //== 삭제 ==//
+    //== 회원 삭제 ==//
     @Operation(summary = "회원 삭제", description = "기존 회원 삭제")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {

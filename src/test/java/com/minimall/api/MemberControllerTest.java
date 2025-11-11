@@ -2,12 +2,24 @@ package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.domain.embeddable.Address;
+import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.member.dto.request.MemberCreateRequestDto;
 import com.minimall.domain.member.dto.request.MemberUpdateRequestDto;
 import com.minimall.domain.member.dto.response.MemberSummaryResponseDto;
+import com.minimall.domain.order.Order;
+import com.minimall.domain.order.OrderItem;
+import com.minimall.domain.order.OrderRepository;
+import com.minimall.domain.order.OrderStatus;
+import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
+import com.minimall.domain.order.dto.request.OrderItemCreateDto;
+import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
+import com.minimall.domain.product.Product;
+import com.minimall.service.OrderService;
+import com.minimall.service.ProductService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.MemberService;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -24,6 +36,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -49,7 +65,17 @@ class MemberControllerTest {
     MemberRepository memberRepository;
 
     @Autowired
+    OrderRepository orderRepository;
+
+    @Autowired
     MemberService memberService;
+
+    @Autowired
+    OrderService orderService;
+
+    @Autowired
+    ProductService productService;
+
 
     @BeforeEach
     void setUp() {
@@ -91,11 +117,12 @@ class MemberControllerTest {
         }
 
         @Test
-        @DisplayName("서버 에러 -> 예외")
+        @DisplayName("알 수 없는 오류 -> 500 Internal Error")
         void failure_serverError() throws Exception {
             mockMvc.perform(get("/members/error"))
                     .andExpect(status().isInternalServerError())
-                    .andExpect(jsonPath("$.errorCode").value("INTERNAL_SERVER_ERROR"));
+                    .andExpect(jsonPath("$.status").value(500))
+                    .andExpect(jsonPath("$.errorCode").value("INTERNAL_ERROR"));
         }
     }
 
@@ -116,7 +143,7 @@ class MemberControllerTest {
         }
 
         @Test
-        @DisplayName("회원 ID 없음 -> 예외")
+        @DisplayName("회원 미존재 -> 404 Not Found")
         void failure_notFoundMember() throws Exception {
             //given
             long invalidId = 999L;
@@ -147,7 +174,7 @@ class MemberControllerTest {
         }
 
         @Test
-        @DisplayName("회원 ID 없음 -> 예외")
+        @DisplayName("회원 미존재 -> 404 Not Found")
         void failure_notFoundMember() throws Exception {
             //given
             long invalidId = 999L;
@@ -338,9 +365,11 @@ class MemberControllerTest {
                 .content(objectMapper.writeValueAsString(request2)));
 
         //then
-        result.andExpect(status().is4xxClientError())
+        result.andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.errorCode").value("DUPLICATE_VALUE"))
-                .andExpect(jsonPath("$.message").value("중복되는 loginId는(은) 사용할 수 없습니다. (이미 존재하는 값: new123)"));
+                .andExpect(jsonPath("$.message", Matchers.containsString("loginId")))
+                .andExpect(jsonPath("$.message", Matchers.containsString("사용 중")));
     }
 
     @Test
@@ -386,10 +415,9 @@ class MemberControllerTest {
                 .content(objectMapper.writeValueAsString(updateRequest)));
 
         //then
-        result.andExpect(status().isBadRequest())
+        result.andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errorCode").value("DUPLICATE_VALUE"))
-                .andExpect(jsonPath("$.message")
-                        .value("중복되는 email는(은) 사용할 수 없습니다. (이미 존재하는 값: original123@example.com)"));
+                .andExpect(jsonPath("$.message", Matchers.containsString("email")));
     }
 
 
@@ -419,6 +447,53 @@ class MemberControllerTest {
         assertNotFoundMemberError(result, "id", invalidId);
     }
 
+    @Nested
+    @DisplayName("GET /members/{id}/orders")
+    class GetOrderSummaries {
+        @Test
+        @DisplayName("주문 목록 요약 조회 -> 200 + JSON 검증")
+        void success() throws Exception {
+            //given
+            Product book = productService.register(new Product("도서", 10_000, 20));
+            Product mouse = productService.register(new Product("마우스", 20_000, 50));
+
+            MemberSummaryResponseDto member =
+                    memberService.create(new MemberCreateRequestDto("loginId123", "12345", "박지성", "ex@ex.com", null));
+            Member foundMember = memberRepository.findById(member.id()).get();
+
+            orderService.createOrder(new OrderCreateRequestDto(foundMember.getId(),
+                    List.of(new OrderItemCreateDto(book.getId(), 10))));
+            orderService.createOrder(new OrderCreateRequestDto(foundMember.getId(),
+                    List.of(new OrderItemCreateDto(mouse.getId(), 10))));
+
+            //when
+            ResultActions result = mockMvc.perform(get("/members/" + foundMember.getId() + "/orders"));
+
+            //then
+            result.andExpect(status().isOk())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.length()").value(2));
+
+        }
+
+        @Test
+        @DisplayName("회원 주문 없음: 빈 리스트 반환")
+        void returnEmpty_whenOrderIsEmpty() throws Exception {
+            //given
+            MemberSummaryResponseDto member = memberService.create(new MemberCreateRequestDto("loginId123", "12345", "박지성", "ex@ex.com", null));
+            Member foundMember = memberRepository.findById(member.id()).get();
+
+            //when
+            ResultActions result = mockMvc.perform(get("/members/" + foundMember.getId() + "/orders"));
+
+            //then
+            result.andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
+        }
+    }
+
+
+
 
     //== Validate Methods ==//
     private void assertMemberDetail(MemberSummaryResponseDto member, ResultActions result) throws Exception {
@@ -441,7 +516,7 @@ class MemberControllerTest {
 
     private static void assertNotFoundMemberError(ResultActions result, String fieldName, Object fieldValue) throws Exception {
         result.andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.errorCode").value("NOT_FOUND_MEMBER"))
+                .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value(String.format("회원을(를) 찾을 수 없습니다. (%s: %s)", fieldName, fieldValue)));
     }
 

@@ -1,4 +1,4 @@
-package com.minimall.domain.order.delivery;
+package com.minimall.domain.order.delivery.dto;
 
 import com.minimall.domain.embeddable.AddressMapper;
 import com.minimall.domain.order.Delivery;
@@ -9,4 +9,6 @@ uses = {AddressMapper.class})
 public interface DeliveryMapper {
 
     DeliverySummaryDto toDeliverySummary(Delivery delivery);
+
+
 }

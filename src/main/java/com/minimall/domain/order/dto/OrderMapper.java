@@ -1,11 +1,11 @@
 package com.minimall.domain.order.dto;
 
 import com.minimall.domain.order.Order;
-import com.minimall.domain.order.delivery.DeliveryMapper;
+import com.minimall.domain.order.delivery.dto.DeliveryMapper;
 import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
 import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
 import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
-import com.minimall.domain.order.pay.PayMapper;
+import com.minimall.domain.order.pay.dto.PayMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.NullValueMappingStrategy;

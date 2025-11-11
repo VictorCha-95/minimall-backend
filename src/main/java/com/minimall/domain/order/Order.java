@@ -141,10 +141,6 @@ public class Order extends BaseEntity {
             throw e;
         }
     }
-    
-    public void prepareDelivery() {
-        prepareDelivery(null);
-    }
 
     /**
      * @param shipAddr
@@ -156,14 +152,14 @@ public class Order extends BaseEntity {
         setDelivery(delivery);
     }
 
-    public void startDelivery() {
+    public void startDelivery(String trackingNo, LocalDateTime shippedAt) {
         ensurePreparedDelivery();
-        delivery.startDelivery();
+        delivery.startDelivery(trackingNo, shippedAt);
     }
 
-    public void completeDelivery() {
+    public void completeDelivery(LocalDateTime arrivedAt) {
         ensurePreparedDelivery();
-        delivery.completeDelivery();
+        delivery.completeDelivery(arrivedAt);
         orderStatus = OrderStatus.COMPLETED;
     }
 

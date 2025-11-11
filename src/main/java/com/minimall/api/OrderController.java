@@ -2,6 +2,8 @@ package com.minimall.api;
 
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
+import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
+import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
 import com.minimall.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -10,10 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 
@@ -35,5 +34,16 @@ public class OrderController {
     public ResponseEntity<OrderCreateResponseDto> create(@Valid @RequestBody OrderCreateRequestDto request) {
         OrderCreateResponseDto response = orderService.createOrder(request);
         return ResponseEntity.created(URI.create("/orders/" + response.id())).body(response);
+    }
+
+    @Operation(summary = "주문 단건 상세 조회")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "주문 미존재")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<OrderDetailResponseDto> getOrder(@PathVariable Long id) {
+        OrderDetailResponseDto response = orderService.getOrderDetail(id);
+        return ResponseEntity.ok(response);
     }
 }

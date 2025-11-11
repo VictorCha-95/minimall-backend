@@ -1,6 +1,7 @@
-package com.minimall.domain.order.delivery;
+package com.minimall.domain.order.delivery.dto;
 
 import com.minimall.domain.embeddable.AddressDto;
+import com.minimall.domain.order.delivery.DeliveryStatus;
 
 import java.time.LocalDateTime;
 

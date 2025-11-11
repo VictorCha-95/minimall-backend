@@ -82,16 +82,17 @@ public class Delivery extends BaseEntity {
     }
 
     //== 비즈니스 로직 ==//
-    void startDelivery() {
+    void startDelivery(String trackingNo, LocalDateTime shippedAt) {
         ensureCanTransition(SHIPPING);
         deliveryStatus = SHIPPING;
-        shippedAt = LocalDateTime.now();
+        this.trackingNo = trackingNo;
+        this.shippedAt = shippedAt;
     }
 
-    void completeDelivery() {
+    void completeDelivery(LocalDateTime arrivedAt) {
         ensureCanTransition(COMPLETED);
         deliveryStatus = COMPLETED;
-        arrivedAt = LocalDateTime.now();
+        this.arrivedAt = arrivedAt;
     }
 
     void cancel() {

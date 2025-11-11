@@ -4,22 +4,28 @@ import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.domain.order.Order;
-import com.minimall.domain.order.OrderItem;
-import com.minimall.domain.order.OrderRepository;
+import com.minimall.domain.order.*;
 import com.minimall.domain.order.dto.OrderMapper;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;
-import com.minimall.domain.order.OrderStatus;
+import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
 import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
 import com.minimall.domain.order.dto.response.OrderItemResponseDto;
 import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
+import com.minimall.domain.order.exception.OrderStatusException;
+import com.minimall.domain.order.pay.PayAmountMismatchException;
+import com.minimall.domain.order.pay.PayMethod;
+import com.minimall.domain.order.pay.PayStatus;
+import com.minimall.domain.order.pay.dto.PayMapper;
+import com.minimall.domain.order.pay.dto.PayRequestDto;
+import com.minimall.domain.order.pay.dto.PaySummaryDto;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -54,6 +60,9 @@ class OrderServiceTest {
 
     @Mock
     OrderMapper orderMapper;
+
+    @Mock
+    PayMapper payMapper;
 
     @InjectMocks
     OrderService orderService;
@@ -298,6 +307,119 @@ class OrderServiceTest {
             then(orderMapper).should(times(1)).toOrderSummaryResponse(emptyOrder);
             verifyNoInteractions(productRepository);
         }
+    }
+
+    @Nested
+    @DisplayName("processPayment(Long, PayRequestDto)")
+    class ProcessPayment {
+        @Test
+        @DisplayName("결제: 주문 조회 -> 결제 -> 매퍼 dto 변환")
+        void success() {
+            //given
+            Order order = createSampleOrder();
+            given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+            Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            PayRequestDto request = new PayRequestDto(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+
+            given(payMapper.toEntity(request)).willReturn(pay);
+
+            given(payMapper.toPaySummary(any(Pay.class))).willAnswer(inv -> {
+                Pay p = inv.getArgument(0, Pay.class);
+                return new PaySummaryDto(
+                        1L,
+                        p.getPayMethod(),
+                        p.getPayAmount(),
+                        p.getPayStatus(),
+                        p.getPaidAt()
+                );
+            });
+
+            //when
+            PaySummaryDto result = orderService.processPayment(1L, request);
+
+            //then
+            assertSoftly(softly -> {
+                softly.assertThat(result.id()).isNotNull();
+                softly.assertThat(result.payAmount()).isEqualTo(order.getOrderAmount().getFinalAmount());
+            });
+
+            then(orderRepository).should(times(1)).findById(1L);
+            then(payMapper).should(times(1)).toEntity(request);
+            then(payMapper).should(times(1)).toPaySummary(pay);
+        }
+
+        @Test
+        @DisplayName("중복 결제 -> 예외")
+        void shouldFail_whenDuplicatedPay() {
+            //given
+            Order order = createSampleOrder();
+            given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+            Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            PayRequestDto request = new PayRequestDto(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+
+            given(payMapper.toEntity(request)).willReturn(pay);
+
+            given(payMapper.toPaySummary(any(Pay.class))).willAnswer(inv -> {
+                Pay p = inv.getArgument(0, Pay.class);
+                return new PaySummaryDto(
+                        1L,
+                        p.getPayMethod(),
+                        p.getPayAmount(),
+                        p.getPayStatus(),
+                        p.getPaidAt()
+                );
+            });
+
+            orderService.processPayment(1L, request); // 첫 번째 결제
+
+            //then
+            assertThatThrownBy(() -> orderService.processPayment(1L, request))
+                    .isInstanceOfSatisfying(OrderStatusException.class, e -> {
+                        assertThat(e.getMessage()).contains(DomainType.ORDER.toString());
+                        assertThat(e.getMessage()).contains("상태 오류");
+                        assertThat(e.getMessage()).contains(OrderStatus.CONFIRMED.name().toUpperCase());
+                    });
+
+            then(orderRepository).should(times(2)).findById(1L);
+            then(payMapper).should(times(2)).toEntity(request);
+            then(payMapper).should(times(1)).toPaySummary(pay);
+        }
+
+        @Test
+        @DisplayName("주문 금액, 결제 금액 불일치 -> 예외")
+        void shouldFail_whenMismatchAmount() {
+            //given
+            Order order = createSampleOrder();
+            given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+            int invalidAmount = 999_999;
+
+            Pay pay = new Pay(PayMethod.CARD, invalidAmount);
+            PayRequestDto request = new PayRequestDto(PayMethod.CARD, invalidAmount);
+
+            given(payMapper.toEntity(request)).willReturn(pay);
+
+            //then
+            assertThatThrownBy(() -> orderService.processPayment(1L, request))
+                    .isInstanceOfSatisfying(PayAmountMismatchException.class, e -> {
+                        assertThat(e.getMessage()).contains("결제 금액");
+                        assertThat(e.getMessage()).contains(String.valueOf(invalidAmount));
+                        assertThat(e.getMessage()).contains(String.valueOf(order.getOrderAmount().getFinalAmount()));
+                    });
+
+            then(orderRepository).should(times(1)).findById(1L);
+            then(payMapper).should(times(1)).toEntity(request);
+        }
+
+
+    }
+
+    private @NotNull Order createSampleOrder() {
+        return Order.createOrder(member,
+                OrderItem.createOrderItem(book, 10),
+                OrderItem.createOrderItem(keyboard, 10));
     }
 
 }

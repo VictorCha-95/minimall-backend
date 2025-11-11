@@ -76,6 +76,7 @@ public class OrderService {
     public PaySummaryDto processPayment(Long id, PayRequestDto request) {
         Order order = findOrderById(id);
         order.processPayment(payMapper.toEntity(request));
+        orderRepository.flush();
         return payMapper.toPaySummary(order.getPay());
     }
 

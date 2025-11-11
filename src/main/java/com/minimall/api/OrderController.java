@@ -4,6 +4,8 @@ import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
 import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
 import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
+import com.minimall.domain.order.pay.dto.PayRequestDto;
+import com.minimall.domain.order.pay.dto.PaySummaryDto;
 import com.minimall.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -45,5 +47,17 @@ public class OrderController {
     public ResponseEntity<OrderDetailResponseDto> getOrder(@PathVariable Long id) {
         OrderDetailResponseDto response = orderService.getOrderDetail(id);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "주문 결제 처리")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "결제 성공"),
+            @ApiResponse(responseCode = "422", description = "주문 혹은 결제 상태 오류 / 주문 금액, 결제 금액 불일치")
+    })
+    @PostMapping("/{id}/payments")
+    public ResponseEntity<PaySummaryDto> processPayment(@PathVariable Long id, @RequestBody PayRequestDto request) {
+        PaySummaryDto response = orderService.processPayment(id, request);
+        URI location = URI.create("/orders/" + id + "/payments/" + response.id());
+        return ResponseEntity.created(location).body(response);
     }
 }

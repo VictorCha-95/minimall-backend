@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 public record PaySummaryDto(
         Long id,
         PayMethod payMethod,
+        int payAmount,
         PayStatus payStatus,
         LocalDateTime paidAt
 ) {

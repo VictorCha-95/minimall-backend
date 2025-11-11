@@ -4,14 +4,18 @@ import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.domain.order.Order;
-import com.minimall.domain.order.OrderRepository;
-import com.minimall.domain.order.OrderStatus;
+import com.minimall.domain.order.*;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;
 import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
 import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
 import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
+import com.minimall.domain.order.exception.OrderStatusException;
+import com.minimall.domain.order.pay.PayAmountMismatchException;
+import com.minimall.domain.order.pay.PayMethod;
+import com.minimall.domain.order.pay.PayStatus;
+import com.minimall.domain.order.pay.dto.PayRequestDto;
+import com.minimall.domain.order.pay.dto.PaySummaryDto;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.OrderService;
@@ -19,6 +23,7 @@ import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
 import jakarta.persistence.EntityManager;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -29,14 +34,15 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.SoftAssertions.*;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.times;
@@ -281,4 +287,61 @@ public class OrderServiceIntegrationTest {
         }
     }
 
+    @Nested
+    @DisplayName("processPayment(Long, PayRequestDto)")
+    class ProcessPayment {
+        @Test
+        @DisplayName("결제: 주문 조회 -> 결제 -> 매퍼 dto 변환")
+        void success() {
+            //given
+            OrderCreateResponseDto order = orderService.createOrder(request1);
+            PayRequestDto request = new PayRequestDto(PayMethod.CARD, order.finalAmount());
+
+            //when
+            PaySummaryDto result = orderService.processPayment(order.id(), request);
+
+            //then
+            assertSoftly(softly -> {
+                softly.assertThat(result.id()).isNotNull();
+                softly.assertThat(result.payAmount()).isEqualTo(order.finalAmount());
+            });
+        }
+
+        @Test
+        @DisplayName("중복 결제 -> 예외 발생 + 기존 결제/주문 상태 유지")
+        void shouldFail_whenDuplicatedPay() {
+            //given
+            OrderCreateResponseDto order = orderService.createOrder(request1);
+            PayRequestDto request = new PayRequestDto(PayMethod.CARD, order.finalAmount());
+            orderService.processPayment(order.id(), request);
+
+            //then
+            assertThatThrownBy(() -> orderService.processPayment(order.id(), request))
+                    .isInstanceOf(OrderStatusException.class);
+
+            Order foundOrder = orderRepository.findById(order.id()).get();
+            assertThat(foundOrder.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
+            assertThat(foundOrder.getPay().getPayStatus()).isEqualTo(PayStatus.PAID);
+        }
+
+        @Test
+        @DisplayName("주문 금액, 결제 금액 불일치 -> 예외 발생 + 주문 상태는 ORDERED 유지")
+        void shouldFail_whenMismatchAmount() {
+            //given
+            OrderCreateResponseDto order = orderService.createOrder(request1);
+
+            int invalidAmount = 999_999;
+            PayRequestDto request = new PayRequestDto(PayMethod.CARD, invalidAmount);
+
+            //then
+            assertThatThrownBy(() -> orderService.processPayment(order.id(), request))
+                    .isInstanceOf(PayAmountMismatchException.class);
+
+            Order foundOrder = orderRepository.findById(order.id()).get();
+            assertThat(foundOrder.getPay().getPayStatus()).isEqualTo(PayStatus.FAILED);
+            assertThat(foundOrder.getOrderStatus()).isEqualTo(OrderStatus.ORDERED);
+        }
+
+
+    }
 }

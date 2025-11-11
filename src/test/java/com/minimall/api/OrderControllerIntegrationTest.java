@@ -8,6 +8,12 @@ import com.minimall.domain.order.OrderRepository;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;
 import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
+import com.minimall.domain.order.exception.OrderStatusException;
+import com.minimall.domain.order.pay.PayAmountMismatchException;
+import com.minimall.domain.order.pay.PayMethod;
+import com.minimall.domain.order.pay.PayStatus;
+import com.minimall.domain.order.pay.dto.PayRequestDto;
+import com.minimall.domain.order.pay.dto.PaySummaryDto;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.OrderService;
@@ -30,10 +36,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -203,4 +212,74 @@ class OrderControllerIntegrationTest {
                     .andExpect(jsonPath("$.timestamp").exists());
         }
     }
+
+    @Nested
+    @DisplayName("POST /orders/{id}/payments")
+    class ProcessPayment {
+        @Test
+        @DisplayName("주문 결제 처리 -> 201 + Location 헤더 + JSON 검증")
+        void success() throws Exception{
+            //given
+            OrderCreateResponseDto order = orderService.createOrder(createRequest);
+            PayRequestDto request = new PayRequestDto(PayMethod.CARD, order.finalAmount());
+
+            //when
+            ResultActions result = mockMvc.perform(post("/orders/" + order.id() + "/payments")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            //then
+            MvcResult mvcResult = result.andExpect(status().isCreated())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                    .andExpect(jsonPath("$.id").isNumber())
+                    .andExpect(jsonPath("$.payAmount").value(order.finalAmount()))
+                    .andExpect(jsonPath("$.payStatus").value("PAID"))
+                    .andReturn();
+
+            String json = mvcResult.getResponse().getContentAsString();
+            PaySummaryDto body = objectMapper.readValue(json, PaySummaryDto.class);
+
+            String location = mvcResult.getResponse().getHeader("Location");
+            assertThat(location).endsWith("/orders/" + order.id() + "/payments/" + body.id());
+        }
+
+        @Test
+        @DisplayName("중복 결제 -> 422 Unprocessable Entity")
+        void shouldFail_whenDuplicatedPay() throws Exception{
+            ///given
+            OrderCreateResponseDto order = orderService.createOrder(createRequest);
+            PayRequestDto request = new PayRequestDto(PayMethod.CARD, order.finalAmount());
+
+            // when-then(1): 첫 결제 성공 -> 201
+            mockMvc.perform(post("/orders/{id}/payments", order.id())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated());
+
+            // when-then(2): 동일 요청 재시도 -> 422
+            mockMvc.perform(post("/orders/{id}/payments", order.id())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.status").value(422));
+        }
+
+        @Test
+        @DisplayName("결제 금액 오류 -> 422 Unprocessable Entity")
+        void shouldFail_whenMismatchAmount() throws Exception{
+            ///given
+            int invalidAmount = 999_999;
+            OrderCreateResponseDto order = orderService.createOrder(createRequest);
+            PayRequestDto request = new PayRequestDto(PayMethod.CARD, invalidAmount);
+
+            // when-then
+            mockMvc.perform(post("/orders/{id}/payments", order.id())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.status").value(422));
+        }
+    }
+
+
 }

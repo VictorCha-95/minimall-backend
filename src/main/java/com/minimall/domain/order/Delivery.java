@@ -56,24 +56,13 @@ public class Delivery extends BaseEntity {
             Delivery delivery = order.getDelivery();
             throw new DeliveryStatusException(delivery.getId(), delivery.getDeliveryStatus(), READY);
         }
-        return new Delivery(order, resolveShipAddr(order, shipAddr));
+        return new Delivery(order, shipAddr);
     }
 
     private Delivery(Order order, Address shipAddr) {
         this.order = order;
         this.shipAddr = shipAddr;
         deliveryStatus = READY;
-    }
-
-    private static @NotNull Address resolveShipAddr(Order order, @Nullable Address shipAddr) {
-        Member member = order.getMember();
-        if (shipAddr != null) {
-            return shipAddr;
-        } else if (member.getAddr() == null){
-            throw InvalidAddressException.required();
-        } else {
-            return member.getAddr();
-        }
     }
 
     //== 연관관계 메서드 ==//

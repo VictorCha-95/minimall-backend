@@ -1,9 +1,13 @@
 package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.minimall.domain.order.Order;
-import com.minimall.domain.order.OrderItem;
+import com.minimall.domain.embeddable.Address;
+import com.minimall.domain.embeddable.AddressDto;
+import com.minimall.domain.embeddable.AddressMapper;
+import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.order.OrderStatus;
+import com.minimall.domain.order.delivery.DeliveryStatus;
+import com.minimall.domain.order.delivery.dto.DeliverySummaryDto;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;
 import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
@@ -15,10 +19,8 @@ import com.minimall.domain.order.pay.PayMethod;
 import com.minimall.domain.order.pay.PayStatus;
 import com.minimall.domain.order.pay.dto.PayRequestDto;
 import com.minimall.domain.order.pay.dto.PaySummaryDto;
-import com.minimall.domain.product.Product;
 import com.minimall.service.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
-import com.minimall.service.exception.NotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
 import org.hamcrest.Matchers;
@@ -32,14 +34,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.BDDMockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -53,6 +51,9 @@ public class OrderControllerTest {
 
     @Autowired
     ObjectMapper objectMapper;
+
+    @MockitoBean
+    AddressMapper addressMapper;
 
     @MockitoBean
     OrderService orderService;
@@ -220,7 +221,7 @@ public class OrderControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /orders/{id}/payments")
+    @DisplayName("POST /orders/{id}/payment")
     class ProcessPayment {
         @Test
         @DisplayName("주문 결제 처리 -> 201 + Location 헤더 + JSON 검증")
@@ -230,7 +231,6 @@ public class OrderControllerTest {
             PayRequestDto request = new PayRequestDto(PayMethod.CARD, 100_000);
 
             PaySummaryDto response = new PaySummaryDto(
-                    456L,
                     PayMethod.CARD,
                     100_000,
                     PayStatus.PAID,
@@ -240,15 +240,14 @@ public class OrderControllerTest {
                     .willReturn(response);
 
             //when
-            ResultActions result = mockMvc.perform(post("/orders/" + orderId + "/payments")
+            ResultActions result = mockMvc.perform(post("/orders/" + orderId + "/payment")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
             //then
             result.andExpect(status().isCreated())
-                    .andExpect(header().string("Location", Matchers.endsWith("/orders/123/payments/456")))
+                    .andExpect(header().string("Location", Matchers.endsWith("/orders/" + orderId + "/payment")))
                     .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                    .andExpect(jsonPath("$.id").isNumber())
                     .andExpect(jsonPath("$.payAmount").value(100_000))
                     .andExpect(jsonPath("$.payStatus").value("PAID"));
         }
@@ -261,7 +260,6 @@ public class OrderControllerTest {
             PayRequestDto request = new PayRequestDto(PayMethod.CARD, 100_000);
 
             PaySummaryDto response = new PaySummaryDto(
-                    456L,
                     PayMethod.CARD,
                     100_000,
                     PayStatus.PAID,
@@ -272,13 +270,13 @@ public class OrderControllerTest {
                     .willThrow(OrderStatusException.class);
 
             // when-then(1): 첫 결제 성공 -> 201
-            mockMvc.perform(post("/orders/{id}/payments", orderId)
+            mockMvc.perform(post("/orders/{id}/payment", orderId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated());
 
             // when-then(2): 동일 요청 재시도 -> 422
-            mockMvc.perform(post("/orders/{id}/payments", orderId)
+            mockMvc.perform(post("/orders/{id}/payment", orderId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnprocessableEntity())
@@ -296,11 +294,82 @@ public class OrderControllerTest {
                     .willThrow(PayAmountMismatchException.class);
 
             // when-then
-            mockMvc.perform(post("/orders/{id}/payments", orderId)
+            mockMvc.perform(post("/orders/{id}/payment", orderId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.status").value(422));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /orders/{id}/delivery")
+    class PrepareDelivery {
+        @Test
+        @DisplayName("배송 준비 -> 201 + Location + JSON 검증")
+        void success() throws Exception {
+            // given
+            long orderId = 123L;
+
+            given(addressMapper.toEntity(any(AddressDto.class)))
+                    .willAnswer(inv -> {
+                        AddressDto a = inv.getArgument(0);
+                        return Address.createAddress(a.postcode(), a.state(), a.city(), a.street(), a.detail());
+                    });
+
+            AddressDto requestAddrDto = createSampleAddrDto();
+            DeliverySummaryDto expected =
+                    new DeliverySummaryDto(DeliveryStatus.READY, null,
+                            requestAddrDto, null, null);
+
+            given(orderService.prepareDelivery(eq(orderId), any(Address.class)))
+                    .willReturn(expected);
+
+            // when
+            ResultActions result = mockMvc.perform(post("/orders/{id}/delivery", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(requestAddrDto)));
+
+            // then
+            result.andExpect(status().isCreated())
+                    .andExpect(header().string("Location", Matchers.endsWith("/orders/" + orderId + "/delivery")))
+                    .andExpect(jsonPath("$.deliveryStatus").value("READY"))
+                    .andExpect(jsonPath("$.shipAddr.city").value(requestAddrDto.city()));
+
+            then(addressMapper).should(times(1)).toEntity(any(AddressDto.class));
+            then(orderService).should(times(1)).prepareDelivery(eq(orderId), any(Address.class));
+        }
+
+        @Test
+        @DisplayName("회원 주소 / 배송 주소 없음 -> 422 에러")
+        void shouldFail_whenShipAddrAndMemberAddrIsNull() throws Exception {
+            // given
+            long orderId = 123L;
+
+            given(orderService.prepareDelivery(eq(orderId), isNull()))
+                    .willThrow(InvalidAddressException.class);
+
+            // when
+            ResultActions result = mockMvc.perform(post("/orders/{id}/delivery", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("null"));
+
+            // then
+            result.andExpect(status().isUnprocessableEntity());
+
+            then(addressMapper).shouldHaveNoInteractions();
+            then(orderService).should(times(1)).prepareDelivery(eq(orderId), isNull());
+        }
+
+
+        private AddressDto createSampleAddrDto() {
+            return new AddressDto(
+                    "12345",
+                    "광주광역시",
+                    "광산구",
+                    "신창동",
+                    "상가 1층"
+            );
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.minimall.service;
 
 import com.minimall.domain.embeddable.Address;
+import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.Delivery;
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -76,7 +78,6 @@ public class OrderService {
     public PaySummaryDto processPayment(Long id, PayRequestDto request) {
         Order order = findOrderById(id);
         order.processPayment(payMapper.toEntity(request));
-        orderRepository.flush();
         return payMapper.toPaySummary(order.getPay());
     }
 
@@ -87,8 +88,24 @@ public class OrderService {
     //== 배송 ==//
     public DeliverySummaryDto prepareDelivery(Long id, @Nullable Address shipAddr) {
         Order order = findOrderById(id);
-        order.prepareDelivery(Objects.requireNonNullElse(shipAddr, order.getMember().getAddr()));
+
+        Address resolvedAddr = resolveAddr(shipAddr, order);
+        order.prepareDelivery(resolvedAddr);
+
         return deliveryMapper.toDeliverySummary(order.getDelivery());
+    }
+
+    private static Address resolveAddr(Address shipAddr, Order order) {
+        return Objects.requireNonNullElseGet(
+                shipAddr,
+                () -> getMemberAddr(order)
+        );
+    }
+
+    private static Address getMemberAddr(Order order) {
+        return Optional.of(order.getMember())
+                .map(Member::getAddr)
+                .orElseThrow(InvalidAddressException::required);
     }
 
     public DeliverySummaryDto startDelivery(Long id, String trackingNo, @Nullable LocalDateTime shippedAt) {

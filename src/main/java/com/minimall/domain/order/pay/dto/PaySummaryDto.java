@@ -6,7 +6,6 @@ import com.minimall.domain.order.pay.PayStatus;
 import java.time.LocalDateTime;
 
 public record PaySummaryDto(
-        Long id,
         PayMethod payMethod,
         int payAmount,
         PayStatus payStatus,

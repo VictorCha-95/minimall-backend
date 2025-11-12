@@ -197,28 +197,6 @@ public class MemberTest {
                         });
             }
         }
-
-        @Nested
-        class Addr {
-            @Test
-            @DisplayName("null -> 예외")
-            void shouldFail_whenAddrIsNull() {
-                assertThatThrownBy(() -> Member.builder()
-                        .loginId(DEFAULT_LOGIN_ID)
-                        .password(DEFAULT_PASSWORD)
-                        .name(DEFAULT_NAME)
-                        .email(DEFAULT_EMAIL)
-                        .addr(null)
-                        .build())
-                        .isInstanceOfSatisfying(InvalidAddressException.class, e -> {
-                            assertThat(e.getReason()).isEqualTo(InvalidAddressException.Reason.REQUIRED);
-                            assertThat(e.getMessage())
-                                    .isEqualTo(DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text(Fields.MEMBER_ADDR));
-                        });
-            }
-        }
-
-
     }
 
     @Nested

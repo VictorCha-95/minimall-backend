@@ -1,10 +1,11 @@
 package com.minimall.domain.embeddable;
 
 import com.minimall.domain.exception.DomainExceptionMessage;
+import com.minimall.domain.exception.DomainRuleException;
 import lombok.Getter;
 
 @Getter
-public class InvalidAddressException extends RuntimeException {
+public class InvalidAddressException extends DomainRuleException {
 
     public enum Reason {
         REQUIRED,

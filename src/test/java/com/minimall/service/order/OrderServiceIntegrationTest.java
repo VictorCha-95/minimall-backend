@@ -2,9 +2,13 @@ package com.minimall.service.order;
 
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
+import com.minimall.domain.embeddable.AddressDto;
+import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.*;
+import com.minimall.domain.order.delivery.DeliveryStatus;
+import com.minimall.domain.order.delivery.dto.DeliverySummaryDto;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;
 import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
@@ -73,17 +77,18 @@ public class OrderServiceIntegrationTest {
     EntityManager em;
 
     private Member member;
+    private Member memberNullAddr;
     private Product book;
     private Product keyboard;
     private OrderCreateRequestDto request1;
     private OrderCreateRequestDto request2;
+    private OrderCreateRequestDto requestAddrNull;
 
     static final int ORDER_QUANTITY = 10;
     static final long NOT_EXISTS_ID = 999_999_999_999_999L;
 
     @BeforeEach
     void setUp() {
-
         //== Member Entity ==//
         member = Member.builder()
                 .loginId("user1")
@@ -93,12 +98,21 @@ public class OrderServiceIntegrationTest {
                 .addr(new Address("12345", "광주광역시", "광산구", "수등로76번길 40", "123동 1501호"))
                 .build();
 
+        memberNullAddr = Member.builder()
+                .loginId("user1")
+                .password("abc12345")
+                .name("차태승")
+                .email("cts9458@naver.com")
+                .addr(null)
+                .build();
+
         //== Product Entity ==//
         keyboard = new Product("키보드", 100000, 20);
         book = new Product("도서", 20000, 50);
 
         //== OrderCreateRequest ==//
         Member savedMember = memberRepository.save(member);
+        Member savedMemberAddrNull = memberRepository.save(memberNullAddr);
         Product savedKeyboard = productRepository.save(keyboard);
         Product savedBook = productRepository.save(book);
         request1 = new OrderCreateRequestDto(
@@ -110,6 +124,12 @@ public class OrderServiceIntegrationTest {
                 savedMember.getId(),
                 List.of(new OrderItemCreateDto(savedKeyboard.getId(), 5),
                         new OrderItemCreateDto(savedBook.getId(), 5)));
+
+        requestAddrNull = new OrderCreateRequestDto(
+                savedMemberAddrNull.getId(),
+                List.of(new OrderItemCreateDto(savedKeyboard.getId(), 5),
+                        new OrderItemCreateDto(savedBook.getId(), 5)));
+
     }
 
     void flushClear() {
@@ -302,7 +322,6 @@ public class OrderServiceIntegrationTest {
 
             //then
             assertSoftly(softly -> {
-                softly.assertThat(result.id()).isNotNull();
                 softly.assertThat(result.payAmount()).isEqualTo(order.finalAmount());
             });
         }
@@ -341,7 +360,85 @@ public class OrderServiceIntegrationTest {
             assertThat(foundOrder.getPay().getPayStatus()).isEqualTo(PayStatus.FAILED);
             assertThat(foundOrder.getOrderStatus()).isEqualTo(OrderStatus.ORDERED);
         }
+    }
 
+    @Nested
+    @DisplayName("prepareDelivery(Long, Address)")
+    class PrepareDelivery {
+        @Test
+        @DisplayName("배송 준비: 결제된 주문 조회 -> delivery 생성 및 주소 세팅 -> address dto 변환 -> delivery dto 변환")
+        void success() {
+            //given
+            Long orderId = createOrderAndProcessPayment(request1);
+            Address shipAddr = createSampleAddr();
 
+            //when
+            DeliverySummaryDto result = orderService.prepareDelivery(orderId, shipAddr);
+
+            //then
+            assertSoftly(softly -> {
+                softly.assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.READY);
+                softly.assertThat(result.trackingNo()).isNull();
+                softly.assertThat(result.shipAddr().city()).isEqualTo(shipAddr.getCity());
+            });
+        }
+
+        @Test
+        @DisplayName("회원 주소 존재 / 배송 주소 null: 결제된 주문 조회 -> 회원 주소 조회 -> delivery 생성 및 주소 세팅 -> address dto 변환 -> delivery dto 변환")
+        void success_whenShipAddrIsNullAndMemberAddrIsNotNull() {
+            //given
+            Long orderId = createOrderAndProcessPayment(request1);
+
+            //when
+            DeliverySummaryDto result = orderService.prepareDelivery(orderId, null);
+
+            //then
+            assertSoftly(softly -> {
+                softly.assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.READY);
+                softly.assertThat(result.trackingNo()).isNull();
+                softly.assertThat(result.shipAddr().city()).isEqualTo(member.getAddr().getCity());
+            });
+        }
+
+        @Test
+        @DisplayName("회원 주소 null / 배송 주소 null: 예외 InvalidAddressException")
+        void shouldFail_whenShipAddrAndMemberAddrIsNull() {
+            //given
+            Long orderId = createOrderAndProcessPayment(requestAddrNull);
+            Member member = memberRepository.findById(requestAddrNull.memberId()).get();
+            assertThat(member.getAddr()).isNull();
+
+            //when-then
+            assertThatThrownBy(() -> orderService.prepareDelivery(orderId, null))
+                    .isInstanceOfSatisfying(InvalidAddressException.class, e -> {
+                        assertThat(e.getReason()).isEqualTo(InvalidAddressException.Reason.REQUIRED);
+                    });
+        }
+
+        private Long createOrderAndProcessPayment(OrderCreateRequestDto request) {
+            OrderCreateResponseDto order = orderService.createOrder(request);
+            orderService.processPayment(order.id(), new PayRequestDto(PayMethod.CARD, order.finalAmount()));
+            return order.id();
+        }
+
+        private AddressDto createSampleAddrDto() {
+            return new AddressDto(
+                    "12345",
+                    "광주광역시",
+                    "광산구",
+                    "신창동",
+                    "상가 1층"
+            );
+        }
+
+        private Address createSampleAddr() {
+            return Address.createAddress(
+                    "10580",
+                    "서울특별시",
+                    "노원구",
+                    "노원동",
+                    "상가 1층"
+            );
+        }
     }
 }

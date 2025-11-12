@@ -16,7 +16,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 
@@ -24,18 +28,20 @@ import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
+@ActiveProfiles("integration-test")
+@Testcontainers
 @Transactional
 public class MemberServiceIntegrationTest {
+
+    @ServiceConnection
+    static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
+            .withReuse(true);
 
     @Autowired
     MemberService memberService;
 
     @Autowired
     MemberRepository memberRepository;
-
-    @Autowired
-    MemberMapper memberMapper;
-
 
     private Member member;
     private MemberCreateRequestDto createRequest;
@@ -63,6 +69,8 @@ public class MemberServiceIntegrationTest {
                 "cts9458+update@naver.com",
                 member.getAddr()
         );
+
+        memberRepository.deleteAll();
     }
 
     //== create ==//

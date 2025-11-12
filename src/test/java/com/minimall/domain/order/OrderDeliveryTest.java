@@ -2,7 +2,6 @@ package com.minimall.domain.order;
 
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
-import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
@@ -103,30 +102,6 @@ public class OrderDeliveryTest {
                 softly.assertThat(order.getDelivery().getDeliveryStatus()).isEqualTo(DeliveryStatus.READY);
                 softly.assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
             });
-        }
-
-        @Test
-        @DisplayName("배송 주소, 회원 주소 모두 null -> 예외")
-        void shouldFail_whenNotAssignedShipAddrAndMemberAddr() {
-            //given
-            Member badMember = Member.builder()
-                    .loginId("user123")
-                    .password("12345")
-                    .email("user123@example.com")
-                    .name("차태승")
-                    .addr(null)
-                    .build();
-
-            Order newOrder = Order.createOrder(badMember, orderItems.toArray(OrderItem[]::new));
-            newOrder.processPayment(pay);
-
-            //then
-            assertThatThrownBy(() -> newOrder.prepareDelivery(null))
-                    .isInstanceOfSatisfying(InvalidAddressException.class, e -> {
-                        assertThat(e.getReason()).isEqualTo(InvalidAddressException.Reason.REQUIRED);
-                        assertThat(e.getMessage()).contains("addr", "필수");
-                    });
-
         }
 
         @Test

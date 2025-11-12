@@ -19,6 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -106,9 +108,7 @@ class MemberServiceTest {
         //then
         DuplicateException duplicateException =
                 assertThrows(DuplicateException.class, () -> memberService.create(createRequest));
-        assertThat(duplicateException.getMessage())
-                .isEqualTo(String.format("중복되는 %s은 사용할 수 없습니다. (이미 존재하는 값: %s)",
-                        "loginId", createRequest.loginId()));
+        assertThat(duplicateException.getMessage()).contains("loginId", "사용 중", member.getLoginId());
         verify(memberRepository).existsByLoginId(createRequest.loginId());
     }
 
@@ -122,9 +122,7 @@ class MemberServiceTest {
         //then
         DuplicateException duplicateException =
                 assertThrows(DuplicateException.class, () -> memberService.create(createRequest));
-        assertThat(duplicateException.getMessage())
-                .isEqualTo(String.format("중복되는 %s은 사용할 수 없습니다. (이미 존재하는 값: %s)",
-                        "email", createRequest.email()));
+        assertThat(duplicateException.getMessage()).contains("email", "사용 중", member.getEmail());
         verify(memberRepository).existsByLoginId(createRequest.loginId());
         verify(memberRepository).existsByEmail(createRequest.email());
     }
@@ -133,7 +131,7 @@ class MemberServiceTest {
     @Test
     void updateMember_success() {
         //given
-        when(memberRepository.existsByEmail(updateRequest.email())).thenReturn(false);
+        when(memberRepository.findByEmail(updateRequest.email())).thenReturn(Optional.empty());
         when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
         when(memberMapper.toDetailResponse(member)).thenReturn(detailResponse);
 
@@ -142,7 +140,7 @@ class MemberServiceTest {
 
         //then
         assertThat(result).isEqualTo(detailResponse);
-        verify(memberRepository).existsByEmail(updateRequest.email());
+        verify(memberRepository).findByEmail(updateRequest.email());
         verify(memberRepository).findById(1L);
         verify(memberMapper).toDetailResponse(member);
     }
@@ -151,33 +149,44 @@ class MemberServiceTest {
     @DisplayName("회원 수정 시 기존 회원의 이메일과 중복된 이메일로 수정하면 예외 발생")
     void updateMember_duplicateEmail_shouldFail() {
         //given
-        when(memberRepository.existsByEmail(updateRequest.email())).thenReturn(true);
+        ReflectionTestUtils.setField(member, "id", 1L); // 수정 대상 회원
+        Member existed = Member.create("other", "1234", "중복회원", updateRequest.email(), null);
+        ReflectionTestUtils.setField(existed, "id", 2L); // 중복 이메일 보유자
+
+        when(memberRepository.findByEmail(updateRequest.email())).thenReturn(Optional.of(existed));
+
+        //when
+        DuplicateException ex = assertThrows(DuplicateException.class,
+                () -> memberService.update(1L, updateRequest)
+        );
 
         //then
-        DuplicateException duplicateException =
-                assertThrows(DuplicateException.class, () -> memberService.update(1L, updateRequest));
-        assertThat(duplicateException.getMessage())
-                .isEqualTo(String.format("중복되는 %s은 사용할 수 없습니다. (이미 존재하는 값: %s)",
-                        "email", updateRequest.email()));
-        verify(memberRepository).existsByEmail(updateRequest.email());
+        assertThat(ex.getMessage()).contains("email", "사용 중");
     }
+
+
+
 
     @Test
     @DisplayName("회원 수정 시 회원id로 조회 불가능하면 예외 발생")
     void updateMember_notFindById_shouldFail() {
         //given
-        when(memberRepository.existsByEmail(updateRequest.email())).thenReturn(false);
+        when(memberRepository.findByEmail(updateRequest.email())).thenReturn(Optional.empty());
         when(memberRepository.findById(1L)).thenReturn(Optional.empty());
 
-        //then
-        MemberNotFoundException memberNotFoundException =
+        //when
+        MemberNotFoundException ex =
                 assertThrows(MemberNotFoundException.class, () -> memberService.update(1L, updateRequest));
-        assertThat(memberNotFoundException.getMessage())
+
+        //then
+        assertThat(ex.getMessage())
                 .isEqualTo(String.format("%s을(를) 찾을 수 없습니다. (%s: %s)",
-                        DomainType.MEMBER.getDisPlayName(),"id", 1L));
-        verify(memberRepository).existsByEmail(updateRequest.email());
+                        DomainType.MEMBER.getDisPlayName(), "id", 1L));
+
+        verify(memberRepository).findByEmail(updateRequest.email());
         verify(memberRepository).findById(1L);
     }
+
 
     //== delete ==//
     @Test
@@ -207,11 +216,10 @@ class MemberServiceTest {
         verify(memberRepository).findById(1L);
     }
 
-    //== read ==//
     @Test
     void getMembers() {
         //given
-        when(memberRepository.findAll()).thenReturn(List.of(member));
+        when(memberRepository.findAll(Sort.by("id").ascending())).thenReturn(List.of(member));
         when(memberMapper.toSummaryResponse(member)).thenReturn(summaryResponse);
 
         //when
@@ -219,8 +227,9 @@ class MemberServiceTest {
 
         //then
         assertThat(result).containsExactly(summaryResponse);
-        verify(memberRepository).findAll();
+        verify(memberRepository).findAll(Sort.by("id").ascending());
         verify(memberMapper).toSummaryResponse(member);
     }
+
 
 }

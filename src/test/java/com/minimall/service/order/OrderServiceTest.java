@@ -2,20 +2,24 @@ package com.minimall.service.order;
 
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
+import com.minimall.domain.embeddable.AddressDto;
+import com.minimall.domain.embeddable.AddressMapper;
+import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.*;
+import com.minimall.domain.order.delivery.DeliveryStatus;
+import com.minimall.domain.order.delivery.dto.DeliveryMapper;
+import com.minimall.domain.order.delivery.dto.DeliverySummaryDto;
 import com.minimall.domain.order.dto.OrderMapper;
 import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
 import com.minimall.domain.order.dto.request.OrderItemCreateDto;
-import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
 import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
 import com.minimall.domain.order.dto.response.OrderItemResponseDto;
 import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
-import com.minimall.domain.order.pay.PayStatus;
 import com.minimall.domain.order.pay.dto.PayMapper;
 import com.minimall.domain.order.pay.dto.PayRequestDto;
 import com.minimall.domain.order.pay.dto.PaySummaryDto;
@@ -35,11 +39,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.lang.Nullable;
 
-import javax.swing.text.html.Option;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -63,6 +68,12 @@ class OrderServiceTest {
 
     @Mock
     PayMapper payMapper;
+
+    @Mock
+    DeliveryMapper deliveryMapper;
+
+    @Mock
+    AddressMapper addressMapper;
 
     @InjectMocks
     OrderService orderService;
@@ -327,7 +338,6 @@ class OrderServiceTest {
             given(payMapper.toPaySummary(any(Pay.class))).willAnswer(inv -> {
                 Pay p = inv.getArgument(0, Pay.class);
                 return new PaySummaryDto(
-                        1L,
                         p.getPayMethod(),
                         p.getPayAmount(),
                         p.getPayStatus(),
@@ -340,7 +350,6 @@ class OrderServiceTest {
 
             //then
             assertSoftly(softly -> {
-                softly.assertThat(result.id()).isNotNull();
                 softly.assertThat(result.payAmount()).isEqualTo(order.getOrderAmount().getFinalAmount());
             });
 
@@ -364,7 +373,6 @@ class OrderServiceTest {
             given(payMapper.toPaySummary(any(Pay.class))).willAnswer(inv -> {
                 Pay p = inv.getArgument(0, Pay.class);
                 return new PaySummaryDto(
-                        1L,
                         p.getPayMethod(),
                         p.getPayAmount(),
                         p.getPayStatus(),
@@ -413,13 +421,173 @@ class OrderServiceTest {
             then(payMapper).should(times(1)).toEntity(request);
         }
 
-
+        private @NotNull Order createSampleOrder() {
+            return Order.createOrder(member,
+                    OrderItem.createOrderItem(book, 10),
+                    OrderItem.createOrderItem(keyboard, 10));
+        }
     }
 
-    private @NotNull Order createSampleOrder() {
-        return Order.createOrder(member,
-                OrderItem.createOrderItem(book, 10),
-                OrderItem.createOrderItem(keyboard, 10));
+    @Nested
+    @DisplayName("prepareDelivery(Long, Address)")
+    class PrepareDelivery {
+        @Test
+        @DisplayName("배송 준비: 결제된 주문 조회 -> delivery 생성 및 주소 세팅 -> address dto 변환 -> delivery dto 변환")
+        void success() {
+            //given
+            Order order = createSampleOrder(member);
+
+            processPayment(order);
+
+            given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+
+            given(addressMapper.toDto(any(Address.class)))
+                    .willAnswer(invocationOnMock -> {
+                        Address addr = invocationOnMock.getArgument(0);
+                        return new AddressDto(
+                                addr.getPostcode(),
+                                addr.getState(),
+                                addr.getCity(),
+                                addr.getStreet(),
+                                addr.getDetail()
+                        );
+                    });
+
+            given(deliveryMapper.toDeliverySummary(any(Delivery.class)))
+                    .willAnswer(invocationOnMock -> {
+                        Delivery d = invocationOnMock.getArgument(0);
+                        return new DeliverySummaryDto(
+                                d.getDeliveryStatus(),
+                                d.getTrackingNo(),
+                                addressMapper.toDto(d.getShipAddr()),
+                                null, null
+                        );
+                    });
+
+            Address sampleAddr = createSampleAddr();
+
+            //when
+            DeliverySummaryDto result = orderService.prepareDelivery(1L, sampleAddr);
+
+            //then
+            assertSoftly(softly -> {
+                softly.assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.READY);
+                softly.assertThat(result.trackingNo()).isNull();
+                softly.assertThat(result.shipAddr().city()).isEqualTo(sampleAddr.getCity());
+            });
+
+            then(orderRepository).should(times(1)).findById(1L);
+            then(addressMapper).should(times(1)).toDto(any(Address.class));
+            then(deliveryMapper).should(times(1)).toDeliverySummary(any(Delivery.class));
+        }
+
+        @Test
+        @DisplayName("회원 주소 존재 / 배송 주소 없음: 결제된 주문 조회 -> 회원 주소 조회 -> delivery 생성 및 주소 세팅 -> address dto 변환 -> delivery dto 변환")
+        void success_whenShipAddrIsNullAndMemberAddrIsNotNull() {
+            //given
+            Order order = createSampleOrder(member);
+
+            processPayment(order);
+
+            given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+            given(addressMapper.toDto(any(Address.class)))
+                    .willAnswer(invocationOnMock -> {
+                        Address addr = invocationOnMock.getArgument(0);
+                        return new AddressDto(
+                                addr.getPostcode(),
+                                addr.getState(),
+                                addr.getCity(),
+                                addr.getStreet(),
+                                addr.getDetail()
+                        );
+                    });
+
+            given(deliveryMapper.toDeliverySummary(any(Delivery.class)))
+                    .willAnswer(invocationOnMock -> {
+                        Delivery d = invocationOnMock.getArgument(0);
+                        return new DeliverySummaryDto(
+                                d.getDeliveryStatus(),
+                                d.getTrackingNo(),
+                                addressMapper.toDto(d.getShipAddr()),
+                                null, null
+                        );
+                    });
+
+            //when
+            DeliverySummaryDto result = orderService.prepareDelivery(1L, null);
+
+            //then
+            assertSoftly(softly -> {
+                softly.assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.READY);
+                softly.assertThat(result.trackingNo()).isNull();
+                softly.assertThat(result.shipAddr().city()).isEqualTo(member.getAddr().getCity());
+            });
+
+            then(orderRepository).should(times(1)).findById(1L);
+            then(addressMapper).should(times(1)).toDto(any(Address.class));
+            then(deliveryMapper).should(times(1)).toDeliverySummary(any(Delivery.class));
+        }
+
+        @Test
+        @DisplayName("회원 주소 / 배송 주소 없음: 예외 InvalidAddressException")
+        void shouldFail_whenShipAddrAndMemberAddrIsNull() {
+            //given
+            Order order = createSampleOrder(
+                    Member.builder()
+                            .loginId("user1")
+                            .password("abc12345")
+                            .name("차태승")
+                            .email("cts9458@naver.com")
+                            .addr(null)   // 회원 주소 null
+                            .build());
+
+            processPayment(order);
+
+            given(orderRepository.findById(1L)).willReturn(Optional.of(order));
+
+            //when-then
+            assertThatThrownBy(() -> orderService.prepareDelivery(1L, null))
+                    .isInstanceOfSatisfying(InvalidAddressException.class, e -> {
+                        assertThat(e.getReason()).isEqualTo(InvalidAddressException.Reason.REQUIRED);
+                    });
+
+            then(orderRepository).should(times(1)).findById(1L);
+            verifyNoInteractions(addressMapper, deliveryMapper);
+        }
+
+        private @NotNull Order createSampleOrder(Member member) {
+            return Order.createOrder(member,
+                    OrderItem.createOrderItem(book, 10),
+                    OrderItem.createOrderItem(keyboard, 10));
+        }
+
+        private static void processPayment(Order order) {
+            Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            order.processPayment(pay);
+        }
+
+        private AddressDto createSampleAddrDto() {
+            return new AddressDto(
+                    "12345",
+                    "광주광역시",
+                    "광산구",
+                    "신창동",
+                    "상가 1층"
+            );
+        }
+
+        private Address createSampleAddr() {
+            return Address.createAddress(
+                    "10580",
+                    "서울특별시",
+                    "노원구",
+                    "노원동",
+                    "상가 1층"
+            );
+        }
     }
+
 
 }

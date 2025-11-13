@@ -3,6 +3,7 @@ package com.minimall.domain.order;
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
+import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
 import com.minimall.domain.order.exception.PaymentRequiredException;
@@ -174,9 +175,7 @@ public class OrderDeliveryTest {
         @DisplayName("결제 전 -> 예외")
         void shouldFail_whenNotPaid() {
             assertThatThrownBy(() -> order.startDelivery(trackingNo, shippedAt))
-                    .isInstanceOfSatisfying(IllegalStateException.class, e -> {
-                        assertThat(e.getMessage()).contains("Delivery", "prepared", "first");
-                    });
+                    .isInstanceOf(DeliveryException.class);
         }
 
         @Test
@@ -186,10 +185,8 @@ public class OrderDeliveryTest {
             order.processPayment(pay);
 
             //then
-            assertThatThrownBy(() -> order.startDelivery(trackingNo,shippedAt))
-                    .isInstanceOfSatisfying(IllegalStateException.class, e -> {
-                        assertThat(e.getMessage()).contains("Delivery", "prepared", "first");
-                    });
+            assertThatThrownBy(() -> order.startDelivery(trackingNo, shippedAt))
+                    .isInstanceOf(DeliveryException.class);
             assertThat(order.getPay().getPayStatus()).isEqualTo(PayStatus.PAID);
         }
 
@@ -260,9 +257,7 @@ public class OrderDeliveryTest {
         @DisplayName("결제 전 -> 예외")
         void shouldFail_whenNotPaid() {
             assertThatThrownBy(() -> order.completeDelivery(shippedAt))
-                    .isInstanceOfSatisfying(IllegalStateException.class, e -> {
-                        assertThat(e.getMessage()).contains("Delivery", "prepared", "first");
-                    });
+                    .isInstanceOf(DeliveryException.class);
         }
 
         @Test
@@ -274,10 +269,7 @@ public class OrderDeliveryTest {
             //then
             assertThat(order.getPay().getPayStatus()).isEqualTo(PayStatus.PAID);
             assertThatThrownBy(() -> order.completeDelivery(shippedAt))
-                    .isInstanceOfSatisfying(IllegalStateException.class, e -> {
-                        assertThat(e.getMessage()).contains("Delivery", "prepared", "first");
-                    });
-
+                    .isInstanceOf(DeliveryException.class);
         }
 
         @Test

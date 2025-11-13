@@ -5,6 +5,7 @@ import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.exception.DomainExceptionMessage;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.order.exception.OrderStatusException;
+import com.minimall.domain.order.exception.PaymentRequiredException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
 import com.minimall.domain.order.pay.PayStatus;
@@ -93,7 +94,7 @@ public class OrderPaymentTest {
         @DisplayName("pay null -> 예외")
         void shouldFail_whenPayIsNull() {
             assertThatThrownBy(() -> order.processPayment(null))
-                    .isInstanceOfSatisfying(IllegalArgumentException.class, e -> {
+                    .isInstanceOfSatisfying(PaymentRequiredException.class, e -> {
                         assertThat(e.getMessage()).isEqualTo(DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text("pay"));
                         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.ORDERED);
                     });

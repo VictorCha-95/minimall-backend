@@ -1,0 +1,113 @@
+package com.minimall.api.member;
+
+import com.minimall.api.member.dto.request.MemberCreateRequest;
+import com.minimall.api.member.dto.request.MemberUpdateRequest;
+import com.minimall.api.member.dto.response.MemberDetailResponse;
+import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
+import com.minimall.api.member.dto.response.MemberSummaryResponse;
+import com.minimall.api.order.dto.response.OrderSummaryResponse;
+import com.minimall.service.MemberService;
+import com.minimall.service.OrderService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping(value = "/members", produces = "application/json")
+@Tag(name = "Member API", description = "회원 관련 API")
+public class MemberController {
+
+    private final MemberService memberService;
+    private final OrderService orderService;
+
+    //== 회원 조회 ==//
+    @Operation(summary = "회원 전체 조회", description = "모든 회원 요약 조회")
+    @GetMapping
+    public List<MemberSummaryResponse> getAll() {
+        return memberService.getMembers();
+    }
+
+    @Operation(summary = "회원 단건 상세 조회", description = "회원 ID로 상세 조회")
+    @GetMapping("/{id}")
+    public MemberDetailResponse getDetail(@PathVariable Long id) {
+        return memberService.getDetail(id);
+    }
+
+    @Operation(summary = "회원 단건 요약 조회", description = "회원 ID로 요약 조회")
+    @GetMapping("/{id}/summary")
+    public MemberSummaryResponse getSummary(@PathVariable Long id) {
+        return memberService.getSummary(id);
+    }
+
+    @Operation(summary = "회원 단건 상세 조회(주문 포함)", description = "회원 ID로 상세 조회하며 주문내역 포함")
+    @GetMapping("/{id}/with-orders")
+    public MemberDetailWithOrdersResponse getDetailWithOrders(@PathVariable Long id) {
+        return memberService.getDetailWithOrders(id);
+    }
+
+    @Operation(summary = "회원 상세 조회 by Email", description = "이메일로 회원 상세 조회")
+    @GetMapping("/by-email")
+    public MemberDetailResponse getDetailByEmail(@RequestParam String email) {
+        return memberService.getDetailByEmail(email);
+    }
+
+    @Operation(summary = "회원 요약 조회 by Email", description = "이메일로 회원 요약 조회")
+    @GetMapping("/by-email/summary")
+    public MemberSummaryResponse getSummaryByEmail(@RequestParam String email) {
+        return memberService.getSummaryByEmail(email);
+    }
+
+    @Operation(summary = "회원 상세 조회 by LoginId", description = "로그인 ID로 회원 상세 조회")
+    @GetMapping("/by-loginId")
+    public MemberDetailResponse getDetailByLoginId(@RequestParam String loginId) {
+        return memberService.getDetailByLoginId(loginId);
+    }
+
+    @Operation(summary = "회원 요약 조회 by LoginId", description = "로그인 ID로 회원 요약 조회")
+    @GetMapping("/by-loginId/summary")
+    public MemberSummaryResponse getSummaryByLoginId(@RequestParam String loginId) {
+        return memberService.getSummaryByLoginId(loginId);
+    }
+
+    //== 주문 조회 ==//
+    @Operation(summary = "주문 요약 목록 조회")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "400", description = "요청 검증 오류"),
+    })
+    @GetMapping("/{id}/orders")
+    public ResponseEntity<List<OrderSummaryResponse>> getOrdersByMember(@PathVariable Long id) {
+        List<OrderSummaryResponse> response = orderService.getOrderSummaries(id);
+        return ResponseEntity.ok(response);
+    }
+
+    //== 회원 생성 ==//
+    @Operation(summary = "회원 생성")
+    @PostMapping
+    public MemberSummaryResponse create(@Valid @RequestBody MemberCreateRequest request) {
+        return memberService.create(request);
+    }
+
+    //== 회원 수정 ==//
+    @Operation(summary = "회원 수정", description = "기존 회원 정보 수정")
+    @PatchMapping("/{id}")
+    public MemberDetailResponse update(@PathVariable Long id,
+                                       @Valid @RequestBody MemberUpdateRequest request) {
+        return memberService.update(id, request);
+    }
+
+    //== 회원 삭제 ==//
+    @Operation(summary = "회원 삭제", description = "기존 회원 삭제")
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        memberService.delete(id);
+    }
+}

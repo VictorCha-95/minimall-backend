@@ -1,0 +1,14 @@
+package com.minimall.api.order.dto;
+
+import com.minimall.domain.order.OrderItem;
+import com.minimall.api.order.dto.response.OrderItemResponse;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+@Mapper(componentModel = "spring")
+public interface OrderItemMapper {
+
+    @Mapping(target = "productId", source = "product.id")
+    @Mapping(target = "totalAmount", expression = "java(item.getTotalAmount())")
+    OrderItemResponse toDto(OrderItem item);
+}

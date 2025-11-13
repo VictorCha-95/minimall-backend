@@ -1,9 +1,10 @@
 package com.minimall.domain.order;
 
 import com.minimall.domain.common.base.BaseEntity;
-import com.minimall.domain.exception.DomainExceptionMessage;
+import com.minimall.domain.exception.Guards;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.embeddable.Address;
+import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.exception.InvalidOrderItemException;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.exception.PaymentRequiredException;
@@ -122,10 +123,7 @@ public class Order extends BaseEntity {
     }
 
     public void processPayment(Pay pay) {
-        if (pay == null) {
-            throw new IllegalArgumentException(
-                    DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text("pay"));
-        }
+        Guards.requireNotNull(pay, PaymentRequiredException::required);
         ensureCanTransition(OrderStatus.CONFIRMED);
         setPay(pay);
         completePay(pay);
@@ -152,13 +150,13 @@ public class Order extends BaseEntity {
         setDelivery(delivery);
     }
 
-    public void startDelivery(String trackingNo, LocalDateTime shippedAt) {
-        ensurePreparedDelivery();
+    public void startDelivery(String trackingNo, @Nullable LocalDateTime shippedAt) {
+        ensureDeliveryExists();
         delivery.startDelivery(trackingNo, shippedAt);
     }
 
-    public void completeDelivery(LocalDateTime arrivedAt) {
-        ensurePreparedDelivery();
+    public void completeDelivery(@Nullable LocalDateTime arrivedAt) {
+        ensureDeliveryExists();
         delivery.completeDelivery(arrivedAt);
         orderStatus = OrderStatus.COMPLETED;
     }
@@ -189,17 +187,14 @@ public class Order extends BaseEntity {
     }
 
     private void ensurePaidForDelivery() {
-        if (pay == null) {
-            throw PaymentRequiredException.mustBePaidBeforeDelivery(id);
-        }
+        Guards.requireNotNull(pay, () -> PaymentRequiredException.mustBePaidBeforeDelivery(id));
+
         if (pay.getPayStatus() != PayStatus.PAID) {
             throw PaymentRequiredException.mustBePaidBeforeDelivery(id, pay.getPayStatus());
         }
     }
 
-    private void ensurePreparedDelivery() {
-        if (delivery == null) {
-            throw new IllegalStateException("Delivery must be prepared first");
-        }
+    private void ensureDeliveryExists() {
+        Guards.requireNotNull(delivery, DeliveryException::notExist);
     }
 }

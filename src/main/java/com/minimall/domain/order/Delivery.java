@@ -15,6 +15,7 @@ import lombok.Setter;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.minimall.domain.order.delivery.DeliveryStatus.*;
@@ -71,14 +72,14 @@ public class Delivery extends BaseEntity {
     }
 
     //== 비즈니스 로직 ==//
-    void startDelivery(String trackingNo, LocalDateTime shippedAt) {
+    void startDelivery(String trackingNo, @Nullable LocalDateTime shippedAt) {
         ensureCanTransition(SHIPPING);
         deliveryStatus = SHIPPING;
-        this.trackingNo = trackingNo;
-        this.shippedAt = shippedAt;
+        this.trackingNo = Objects.requireNonNull(trackingNo);
+        this.shippedAt = Objects.requireNonNullElse(shippedAt, LocalDateTime.now());
     }
 
-    void completeDelivery(LocalDateTime arrivedAt) {
+    void completeDelivery(@Nullable LocalDateTime arrivedAt) {
         ensureCanTransition(COMPLETED);
         deliveryStatus = COMPLETED;
         this.arrivedAt = arrivedAt;

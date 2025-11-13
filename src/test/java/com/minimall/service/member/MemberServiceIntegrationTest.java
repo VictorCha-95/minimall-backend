@@ -1,14 +1,13 @@
 package com.minimall.service.member;
 
+import com.minimall.api.member.dto.request.MemberCreateRequest;
+import com.minimall.api.member.dto.request.MemberUpdateRequest;
+import com.minimall.api.member.dto.response.MemberDetailResponse;
+import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.domain.member.dto.MemberMapper;
-import com.minimall.domain.member.dto.request.MemberCreateRequestDto;
-import com.minimall.domain.member.dto.request.MemberUpdateRequestDto;
-import com.minimall.domain.member.dto.response.MemberDetailResponseDto;
-import com.minimall.domain.member.dto.response.MemberDetailWithOrdersResponseDto;
-import com.minimall.domain.member.dto.response.MemberSummaryResponseDto;
+import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.service.exception.NotFoundException;
 import com.minimall.service.MemberService;
@@ -44,8 +43,8 @@ public class MemberServiceIntegrationTest {
     MemberRepository memberRepository;
 
     private Member member;
-    private MemberCreateRequestDto createRequest;
-    private MemberUpdateRequestDto updateRequest;
+    private MemberCreateRequest createRequest;
+    private MemberUpdateRequest updateRequest;
 
 
     @BeforeEach
@@ -60,10 +59,10 @@ public class MemberServiceIntegrationTest {
                 .build();
 
         //== CreateRequest DTO ==//
-        createRequest = new MemberCreateRequestDto(member.getLoginId(), member.getPassword(), member.getName(), member.getEmail(), member.getAddr());
+        createRequest = new MemberCreateRequest(member.getLoginId(), member.getPassword(), member.getName(), member.getEmail(), member.getAddr());
 
         //== UpdateRequest DTO ==//
-        updateRequest = new MemberUpdateRequestDto(
+        updateRequest = new MemberUpdateRequest(
                 "newPassword456",
                 "차태승2",
                 "cts9458+update@naver.com",
@@ -77,10 +76,10 @@ public class MemberServiceIntegrationTest {
     @Test
     void createMember_success() {
         //when
-        MemberSummaryResponseDto created = memberService.create(createRequest);
+        MemberSummaryResponse created = memberService.create(createRequest);
 
         //then
-        MemberSummaryResponseDto found = memberService.getSummary(created.id());
+        MemberSummaryResponse found = memberService.getSummary(created.id());
         assertThat(found.name()).isEqualTo(created.name());
     }
 
@@ -88,8 +87,8 @@ public class MemberServiceIntegrationTest {
     void createMember_duplicateLoginId_shouldFail() {
         //given
         memberService.create(createRequest);
-        MemberCreateRequestDto duplicateLoginIdRequest =
-                new MemberCreateRequestDto(member.getLoginId(), member.getPassword(), "차태승", "example@naver.com", member.getAddr());
+        MemberCreateRequest duplicateLoginIdRequest =
+                new MemberCreateRequest(member.getLoginId(), member.getPassword(), "차태승", "example@naver.com", member.getAddr());
 
         //then
         assertThrows(DuplicateException.class, () -> memberService.create(duplicateLoginIdRequest));
@@ -99,8 +98,8 @@ public class MemberServiceIntegrationTest {
     void createMember_duplicateEmail_shouldFail() {
         //given
         memberService.create(createRequest);
-        MemberCreateRequestDto duplicateEmailRequest =
-                new MemberCreateRequestDto("exampleLoginId", member.getPassword(), "차태승", member.getEmail(), member.getAddr());
+        MemberCreateRequest duplicateEmailRequest =
+                new MemberCreateRequest("exampleLoginId", member.getPassword(), "차태승", member.getEmail(), member.getAddr());
 
         //then
         assertThrows(DuplicateException.class, () -> memberService.create(duplicateEmailRequest));
@@ -110,11 +109,11 @@ public class MemberServiceIntegrationTest {
     @Test
     void updateMember_success() {
         //given
-        MemberSummaryResponseDto created = memberService.create(createRequest);
+        MemberSummaryResponse created = memberService.create(createRequest);
 
         //when
-        MemberDetailResponseDto updated = memberService.update(created.id(), updateRequest);
-        MemberDetailResponseDto found = memberService.getDetail(updated.id());
+        MemberDetailResponse updated = memberService.update(created.id(), updateRequest);
+        MemberDetailResponse found = memberService.getDetail(updated.id());
 
         //then
         assertThat(found.id()).isEqualTo(created.id());
@@ -125,22 +124,22 @@ public class MemberServiceIntegrationTest {
     @Test
     void updateMember_duplicateEmail_shouldFail() {
         //given
-        MemberSummaryResponseDto original = memberService.create(createRequest);
-        MemberDetailResponseDto foundOriginal = memberService.getDetail(original.id());
-        MemberSummaryResponseDto newCreated = memberService.create(new MemberCreateRequestDto(
+        MemberSummaryResponse original = memberService.create(createRequest);
+        MemberDetailResponse foundOriginal = memberService.getDetail(original.id());
+        MemberSummaryResponse newCreated = memberService.create(new MemberCreateRequest(
                 "example123", "12345", "이름", "example123@naver.com", null));
 
         //then
         assertThrows(DuplicateException.class,
                 () -> memberService.update(newCreated.id(),
-                        new MemberUpdateRequestDto(null, null, foundOriginal.email(), null)));
+                        new MemberUpdateRequest(null, null, foundOriginal.email(), null)));
     }
 
     //== delete ==//
     @Test
     void deleteMember_success() {
         //given
-        MemberSummaryResponseDto created = memberService.create(createRequest);
+        MemberSummaryResponse created = memberService.create(createRequest);
 
         //then
         memberService.delete(created.id());
@@ -149,7 +148,7 @@ public class MemberServiceIntegrationTest {
     @Test
     void deleteMember_deletedMemberFind_shouldFail() {
         //given
-        MemberSummaryResponseDto created = memberService.create(createRequest);
+        MemberSummaryResponse created = memberService.create(createRequest);
 
         //when
         memberService.delete(created.id());
@@ -162,10 +161,10 @@ public class MemberServiceIntegrationTest {
     @Test
     void getMemberSummary_success() {
         //given
-        MemberSummaryResponseDto created = memberService.create(createRequest);
+        MemberSummaryResponse created = memberService.create(createRequest);
 
         //when
-        MemberSummaryResponseDto memberSummary = memberService.getSummary(created.id());
+        MemberSummaryResponse memberSummary = memberService.getSummary(created.id());
 
         //then
         assertThat(memberSummary.id()).isEqualTo(created.id());
@@ -176,10 +175,10 @@ public class MemberServiceIntegrationTest {
     @Test
     void getMemberDetail_success() {
         //given
-        MemberSummaryResponseDto created = memberService.create(createRequest);
+        MemberSummaryResponse created = memberService.create(createRequest);
 
         //when
-        MemberDetailResponseDto memberDetail = memberService.getDetail(created.id());
+        MemberDetailResponse memberDetail = memberService.getDetail(created.id());
 
         //then
         assertThat(memberDetail.id()).isEqualTo(created.id());
@@ -190,10 +189,10 @@ public class MemberServiceIntegrationTest {
     @Test
     void getMemberDetailWithOrders_success() {
         //given
-        MemberSummaryResponseDto created = memberService.create(createRequest);
+        MemberSummaryResponse created = memberService.create(createRequest);
 
         //when
-        MemberDetailWithOrdersResponseDto memberDetailWithOrders = memberService.getDetailWithOrders(created.id());
+        MemberDetailWithOrdersResponse memberDetailWithOrders = memberService.getDetailWithOrders(created.id());
 
         //then
         assertThat(memberDetailWithOrders.id()).isEqualTo(created.id());
@@ -204,10 +203,10 @@ public class MemberServiceIntegrationTest {
     @Test
     void getMemberSummaryByEmail_success() {
         //given
-        MemberSummaryResponseDto created = memberService.create(createRequest);
+        MemberSummaryResponse created = memberService.create(createRequest);
 
         //when
-        MemberSummaryResponseDto memberSummaryByEmail = memberService.getSummaryByEmail(createRequest.email());
+        MemberSummaryResponse memberSummaryByEmail = memberService.getSummaryByEmail(createRequest.email());
 
         //then
         assertThat(memberSummaryByEmail.id()).isEqualTo(created.id());
@@ -218,10 +217,10 @@ public class MemberServiceIntegrationTest {
     @Test
     void getMemberDetailByEmail_success() {
         //given
-        MemberSummaryResponseDto created = memberService.create(createRequest);
+        MemberSummaryResponse created = memberService.create(createRequest);
 
         //when
-        MemberDetailResponseDto memberDetailByEmail = memberService.getDetailByEmail(createRequest.email());
+        MemberDetailResponse memberDetailByEmail = memberService.getDetailByEmail(createRequest.email());
 
         //then
         assertThat(memberDetailByEmail.id()).isEqualTo(created.id());
@@ -232,10 +231,10 @@ public class MemberServiceIntegrationTest {
     @Test
     void getMemberSummaryByLoginId_success() {
         //given
-        MemberSummaryResponseDto created = memberService.create(createRequest);
+        MemberSummaryResponse created = memberService.create(createRequest);
 
         //when
-        MemberSummaryResponseDto memberSummaryByLoginId = memberService.getSummaryByLoginId(created.loginId());
+        MemberSummaryResponse memberSummaryByLoginId = memberService.getSummaryByLoginId(created.loginId());
 
         //then
         assertThat(memberSummaryByLoginId.id()).isEqualTo(created.id());
@@ -246,10 +245,10 @@ public class MemberServiceIntegrationTest {
     @Test
     void getMemberDetailByLoginId_success() {
         //given
-        MemberSummaryResponseDto created = memberService.create(createRequest);
+        MemberSummaryResponse created = memberService.create(createRequest);
 
         //when
-        MemberDetailResponseDto memberDetailByLoginId = memberService.getDetailByLoginId(created.loginId());
+        MemberDetailResponse memberDetailByLoginId = memberService.getDetailByLoginId(created.loginId());
 
         //then
         assertThat(memberDetailByLoginId.id()).isEqualTo(created.id());
@@ -260,10 +259,10 @@ public class MemberServiceIntegrationTest {
     @Test
     void getMembers() {
         //given
-        MemberSummaryResponseDto created = memberService.create(createRequest);
+        MemberSummaryResponse created = memberService.create(createRequest);
 
         //when
-        List<MemberSummaryResponseDto> result = memberService.getMembers();
+        List<MemberSummaryResponse> result = memberService.getMembers();
 
         //then
         assertThat(result.size()).isEqualTo(1);

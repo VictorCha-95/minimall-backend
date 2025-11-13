@@ -7,7 +7,7 @@ public class DeliveryException extends DomainRuleException {
         super(message);
     }
 
-    public static DeliveryException notExist() {
+    public static DeliveryException isNull() {
         return new DeliveryException("Delivery must be exist");
     }
 }

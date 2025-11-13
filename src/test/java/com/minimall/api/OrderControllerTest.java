@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.api.order.OrderController;
 import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
 import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
+import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.api.common.embeddable.AddressDto;
 import com.minimall.api.common.embeddable.AddressMapper;
@@ -16,6 +17,7 @@ import com.minimall.api.order.dto.request.OrderItemCreateRequest;
 import com.minimall.api.order.dto.response.OrderCreateResponse;
 import com.minimall.api.order.dto.response.OrderDetailResponse;
 import com.minimall.api.order.dto.response.OrderItemResponse;
+import com.minimall.domain.order.delivery.DeliveryStatusException;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.exception.PaymentRequiredException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
@@ -369,7 +371,7 @@ public class OrderControllerTest {
     }
 
     @Nested
-    @DisplayName("PATCH /orders/{id}/delivery (Long, StartDeliveryRequest)")
+    @DisplayName("PATCH /orders/{id}/delivery")
     class StartDelivery {
 
         StartDeliveryRequest request = new StartDeliveryRequest("12345", LocalDateTime.of(2025, 11, 12, 13, 30));
@@ -393,6 +395,27 @@ public class OrderControllerTest {
 
             then(orderService).should(times(1))
                     .startDelivery(orderId, request.trackingNo(), request.shippedAt());
+        }
+
+        @Test
+        @DisplayName("배송 시작 시간 미설정 -> 204 검증")
+        void success_whenShippedAtIsNull() throws Exception {
+            // given
+            long orderId = 123L;
+            willDoNothing()
+                    .given(orderService)
+                    .startDelivery(eq(orderId), eq(request.trackingNo()), isNull());
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isNoContent());
+
+            then(orderService).should(times(1))
+                    .startDelivery(eq(orderId), eq(request.trackingNo()), isNotNull());
         }
 
         @Test
@@ -439,6 +462,124 @@ public class OrderControllerTest {
 
             then(orderService).should(times(1))
                     .startDelivery(orderId, request.trackingNo(), request.shippedAt());
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /orders/{id}/delivery/complete")
+    class CompleteDelivery {
+
+        CompleteDeliveryRequest request = new CompleteDeliveryRequest(LocalDateTime.of(2025, 11, 15, 13, 30));
+
+        @Test
+        @DisplayName("배송 완료 -> 204 검증")
+        void success() throws Exception {
+            // given
+            long orderId = 123L;
+            willDoNothing()
+                    .given(orderService)
+                    .completeDelivery(orderId, request.arrivedAt());
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isNoContent());
+
+            then(orderService).should(times(1))
+                    .completeDelivery(orderId, request.arrivedAt());
+        }
+
+        @Test
+        @DisplayName("도착 시간 미설정 -> 204 검증")
+        void success_whenArrivedAtIsNull() throws Exception {
+            // given
+            long orderId = 123L;
+            willDoNothing()
+                    .given(orderService)
+                    .completeDelivery(eq(orderId), isNull());
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isNoContent());
+
+            then(orderService).should(times(1))
+                    .completeDelivery(eq(orderId), isNotNull());
+        }
+
+        @Test
+        @DisplayName("결제 되지 않은 상태 -> 422 에러")
+        void shouldFail_whenNotPaid() throws Exception {
+            // given
+            long orderId = 123L;
+
+            willThrow(PaymentRequiredException.class)
+                    .given(orderService)
+                    .completeDelivery(orderId, request.arrivedAt());
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.status").value(422));
+
+            then(orderService).should(times(1))
+                    .completeDelivery(orderId, request.arrivedAt());
+        }
+
+        @Test
+        @DisplayName("배송 준비되지 않은 상태 -> 422 에러")
+        void shouldFail_whenNotPrepared() throws Exception {
+            // given
+            long orderId = 123L;
+
+            willThrow(DeliveryException.class)
+                    .given(orderService)
+                    .completeDelivery(orderId, request.arrivedAt());
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.status").value(422));
+
+            then(orderService).should(times(1))
+                    .completeDelivery(orderId, request.arrivedAt());
+        }
+
+        @Test
+        @DisplayName("배송 시작 전 -> 422 에러")
+        void shouldFail_whenNotShipped() throws Exception {
+            // given
+            long orderId = 123L;
+
+            willThrow(DeliveryStatusException.class)
+                    .given(orderService)
+                    .completeDelivery(orderId, request.arrivedAt());
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.status").value(422));
+
+            then(orderService).should(times(1))
+                    .completeDelivery(orderId, request.arrivedAt());
         }
     }
 

@@ -3,6 +3,7 @@ package com.minimall.domain.order;
 import com.minimall.domain.common.base.BaseEntity;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.embeddable.InvalidAddressException;
+import com.minimall.domain.exception.Guards;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
@@ -76,13 +77,13 @@ public class Delivery extends BaseEntity {
         ensureCanTransition(SHIPPING);
         deliveryStatus = SHIPPING;
         this.trackingNo = Objects.requireNonNull(trackingNo);
-        this.shippedAt = Objects.requireNonNullElse(shippedAt, LocalDateTime.now());
+        this.shippedAt = Objects.requireNonNullElseGet(shippedAt, LocalDateTime::now);
     }
 
     void completeDelivery(@Nullable LocalDateTime arrivedAt) {
         ensureCanTransition(COMPLETED);
         deliveryStatus = COMPLETED;
-        this.arrivedAt = arrivedAt;
+        this.arrivedAt = Objects.requireNonNullElseGet(arrivedAt, LocalDateTime::now);
     }
 
     void cancel() {

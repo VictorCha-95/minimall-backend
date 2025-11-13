@@ -195,6 +195,6 @@ public class Order extends BaseEntity {
     }
 
     private void ensureDeliveryExists() {
-        Guards.requireNotNull(delivery, DeliveryException::notExist);
+        Guards.requireNotNull(delivery, DeliveryException::isNull);
     }
 }

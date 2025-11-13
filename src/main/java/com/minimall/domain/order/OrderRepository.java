@@ -15,7 +15,4 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByOrderStatus(OrderStatus orderStatus);
 
     List<Order> findByMemberAndOrderStatus(Member member, OrderStatus orderStatus);
-
-    @Query("select o from Order o join fetch o.delivery d where d.trackingNo = :trackingNo")
-    Optional<Order> findByTrackingNo(@Param("trackingNo") String trackingNo);
 }

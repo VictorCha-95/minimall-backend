@@ -2,6 +2,7 @@ package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
+import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.api.common.embeddable.AddressDto;
 import com.minimall.api.common.embeddable.AddressMapper;
@@ -12,6 +13,7 @@ import com.minimall.api.order.dto.request.OrderCreateRequest;
 import com.minimall.api.order.dto.request.OrderItemCreateRequest;
 import com.minimall.api.order.dto.response.OrderCreateResponse;
 import com.minimall.domain.order.delivery.DeliveryException;
+import com.minimall.domain.order.delivery.DeliveryStatusException;
 import com.minimall.domain.order.exception.PaymentRequiredException;
 import com.minimall.domain.order.pay.PayMethod;
 import com.minimall.api.order.pay.dto.PayRequest;
@@ -428,5 +430,116 @@ class OrderControllerIntegrationTest {
         }
     }
 
+    @Nested
+    @DisplayName("PATCH /orders/{id}/delivery/complete")
+    class CompleteDelivery {
+
+        Address shipAddr = new Address(
+                "12345",
+                "광주광역시",
+                "광산구",
+                "신창동",
+                "상가 1층");
+
+        private Long startDelivery() {
+            Long orderId = prepareDelivery();
+            orderService.startDelivery(orderId, "12345", LocalDateTime.of(2025, 11, 13, 13, 30));
+            return orderId;
+        }
+
+        private Long prepareDelivery() {
+            Long orderId = processPayment();
+            orderService.prepareDelivery(orderId, shipAddr);
+            return orderId;
+        }
+
+        private Long processPayment() {
+            OrderCreateResponse order = orderService.createOrder(orderCreateRequest);
+            Long orderId = order.id();
+            orderService.processPayment(orderId, new PayRequest(PayMethod.MOBILE_PAY, order.finalAmount()));
+            return orderId;
+        }
+
+        CompleteDeliveryRequest request = new CompleteDeliveryRequest(LocalDateTime.of(2025, 11, 15, 13, 30));
+
+        @Test
+        @DisplayName("배송 완료 -> 204 검증")
+        void success() throws Exception {
+            // given
+            Long orderId = startDelivery();
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isNoContent());
+        }
+
+        @Test
+        @DisplayName("도착 시간 미설정 -> 204 검증")
+        void success_whenArrivedAtIsNull() throws Exception {
+            // given
+            Long orderId = startDelivery();
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(new CompleteDeliveryRequest(null))));
+
+            // then
+            result.andExpect(status().isNoContent());
+        }
+
+        @Test
+        @DisplayName("결제 되지 않은 상태 -> 422 에러")
+        void shouldFail_whenNotPaid() throws Exception {
+            // given
+            OrderCreateResponse order = orderService.createOrder(orderCreateRequest);
+            Long orderId = order.id();
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.status").value(422));
+        }
+
+        @Test
+        @DisplayName("배송 준비되지 않은 상태 -> 422 에러")
+        void shouldFail_whenNotPrepared() throws Exception {
+            // given
+            Long orderId = processPayment();
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.status").value(422));
+        }
+
+        @Test
+        @DisplayName("배송 시작 전 -> 422 에러")
+        void shouldFail_whenNotShipped() throws Exception {
+            // given
+            Long orderId = prepareDelivery();
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.status").value(422));
+        }
+    }
 
 }

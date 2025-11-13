@@ -14,6 +14,7 @@ import com.minimall.api.order.dto.request.OrderItemCreateRequest;
 import com.minimall.api.order.dto.response.OrderCreateResponse;
 import com.minimall.api.order.dto.response.OrderDetailResponse;
 import com.minimall.api.order.dto.response.OrderSummaryResponse;
+import com.minimall.domain.order.delivery.DeliveryStatusException;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
@@ -27,6 +28,7 @@ import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
 import jakarta.persistence.EntityManager;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -458,6 +460,97 @@ public class OrderServiceIntegrationTest {
             //when-then
             assertThatThrownBy(() -> orderService.startDelivery(orderId, trackingNo, shippedAt))
                     .isInstanceOf(DeliveryException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("completeDelivery(Long, LocalDatetime)")
+    class CompleteDelivery {
+
+        LocalDateTime arrivedAt = LocalDateTime.of(2025, 12, 1, 8, 30);
+
+        @Test
+        @DisplayName("배송 완료: 배송 중인 주문 운송장 번호로 조회 -> 도착 시간 설정")
+        void success() {
+            //given
+            Long orderId = createOrderAndProcessPayment(request1);
+            Address shipAddr = createSampleAddr();
+            orderService.prepareDelivery(orderId, shipAddr);
+            startDelivery(orderId);
+
+            //when
+            orderService.completeDelivery(orderId, arrivedAt);
+            Delivery delivery = orderRepository.findById(orderId).get().getDelivery();
+
+            //then
+            assertSoftly(softly -> {
+                softly.assertThat(delivery.getDeliveryStatus()).isEqualTo(DeliveryStatus.COMPLETED);
+                softly.assertThat(delivery.getArrivedAt()).isEqualTo(arrivedAt);
+            });
+        }
+
+        @Test
+        @DisplayName("도착 시간 null -> 지금 시간으로 설정")
+        void success_whenArrivedAtIsNull() {
+            //given
+            Long orderId = createOrderAndProcessPayment(request1);
+            Address shipAddr = createSampleAddr();
+            orderService.prepareDelivery(orderId, shipAddr);
+            startDelivery(orderId);
+
+            //when
+            orderService.completeDelivery(orderId, null);
+            Delivery delivery = orderRepository.findById(orderId).get().getDelivery();
+
+            //then
+            assertSoftly(softly -> {
+                softly.assertThat(delivery.getDeliveryStatus()).isEqualTo(DeliveryStatus.COMPLETED);
+                softly.assertThat(delivery.getArrivedAt()).isNotNull();
+            });
+        }
+
+        @Test
+        @DisplayName("결제 되지 않은 상태 -> 예외")
+        void shouldFail_whenNotPaid() {
+            //given
+            OrderCreateResponse order = orderService.createOrder(request1);
+
+            //when-then
+            assertThatThrownBy(() -> orderService.completeDelivery(order.id(), arrivedAt))
+                    .isInstanceOf(DeliveryException.class);
+        }
+
+        @Test
+        @DisplayName("배송 준비 되지 않은 상태 -> 예외")
+        void shouldFail_whenNotPrepared() {
+            //given
+            Long orderId = createOrderAndProcessPayment(request1);
+
+            //when-then
+            assertThatThrownBy(() -> orderService.completeDelivery(orderId, arrivedAt))
+                    .isInstanceOf(DeliveryException.class);
+        }
+
+        @Test
+        @DisplayName("배송 시작하지 않은 상태 -> 예외")
+        void shouldFail_whenNotShipping() {
+            //given
+            Long orderId = createOrderAndProcessPayment(request1);
+            prepareDelivery(orderId);
+
+            //when-then
+            assertThatThrownBy(() -> orderService.completeDelivery(orderId, arrivedAt))
+                    .isInstanceOf(DeliveryStatusException.class);
+        }
+
+        private void startDelivery(Long orderId) {
+            orderService.startDelivery(orderId, "12345", arrivedAt);
+        }
+
+        private @NotNull Long prepareDelivery(Long orderId) {
+            Address shipAddr = createSampleAddr();
+            orderService.prepareDelivery(orderId, shipAddr);
+            return orderId;
         }
     }
 

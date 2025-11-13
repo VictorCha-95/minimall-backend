@@ -2,6 +2,7 @@ package com.minimall.api.order;
 
 import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
 import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
+import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.api.common.embeddable.AddressDto;
 import com.minimall.api.common.embeddable.AddressMapper;
@@ -95,12 +96,26 @@ public class OrderController {
             @ApiResponse(responseCode = "404", description = "주문 미존재"),
             @ApiResponse(responseCode = "422", description = "배송 상태 오류")
     })
-
     @PatchMapping("/{id}/delivery")
     public ResponseEntity<Void> startDelivery(@PathVariable Long id,
                                               @RequestBody StartDeliveryRequest request) {
 
         orderService.startDelivery(id, request.trackingNo(), request.shippedAt());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "배송 완료")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "배송 시작 성공"),
+            @ApiResponse(responseCode = "400", description = "요청 검증 오류"),
+            @ApiResponse(responseCode = "404", description = "주문 미존재"),
+            @ApiResponse(responseCode = "422", description = "배송 상태 오류")
+    })
+    @PatchMapping("/{id}/delivery/complete")
+    public ResponseEntity<Void> completeDelivery(@PathVariable Long id,
+                                                 @RequestBody CompleteDeliveryRequest request) {
+
+        orderService.completeDelivery(id, request.arrivedAt());
         return ResponseEntity.noContent().build();
     }
 }

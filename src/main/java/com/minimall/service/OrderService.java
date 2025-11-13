@@ -3,12 +3,14 @@ package com.minimall.service;
 import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.embeddable.InvalidAddressException;
+import com.minimall.domain.exception.Guards;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.Delivery;
 import com.minimall.domain.order.Order;
 import com.minimall.domain.order.OrderItem;
 import com.minimall.domain.order.OrderRepository;
+import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.api.order.delivery.dto.DeliveryMapper;
 import com.minimall.api.order.dto.OrderMapper;
@@ -113,16 +115,16 @@ public class OrderService {
         order.startDelivery(trackingNo, shippedAt);
     }
 
-    public DeliverySummaryResponse completeDelivery(String trackingNo, @Nullable LocalDateTime arrivedAt) {
-        Order order = findOrderByTrackingNo(trackingNo);
+    public void completeDelivery(Long id, @Nullable LocalDateTime arrivedAt) {
+        Order order = findOrderById(id);
         Delivery delivery = order.getDelivery();
+        Guards.requireNotNull(delivery, DeliveryException::isNull);
 
         if (delivery.getDeliveryStatus() == DeliveryStatus.COMPLETED) {
-            return deliveryMapper.toDeliverySummary(delivery);
+            return;
         }
 
         order.completeDelivery(arrivedAt);
-        return deliveryMapper.toDeliverySummary(delivery);
     }
 
 
@@ -132,11 +134,6 @@ public class OrderService {
     private Order findOrderById(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("id", orderId));
-    }
-
-    private Order findOrderByTrackingNo(String trackingNo) {
-        return orderRepository.findByTrackingNo(trackingNo)
-                .orElseThrow(() -> new OrderNotFoundException("trackingNo", trackingNo));
     }
 
     private Member findMember(Long memberId) {

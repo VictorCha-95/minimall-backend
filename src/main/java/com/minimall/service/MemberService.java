@@ -1,13 +1,13 @@
 package com.minimall.service;
 
+import com.minimall.api.member.dto.response.MemberDetailResponse;
+import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
+import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.domain.member.dto.MemberMapper;
-import com.minimall.domain.member.dto.request.MemberCreateRequestDto;
-import com.minimall.domain.member.dto.request.MemberUpdateRequestDto;
-import com.minimall.domain.member.dto.response.MemberDetailResponseDto;
-import com.minimall.domain.member.dto.response.MemberDetailWithOrdersResponseDto;
-import com.minimall.domain.member.dto.response.MemberSummaryResponseDto;
+import com.minimall.api.member.dto.MemberMapper;
+import com.minimall.api.member.dto.request.MemberCreateRequest;
+import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.service.exception.MemberNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ public class MemberService {
 
     //== 생성 ==//
     @Transactional
-    public MemberSummaryResponseDto create(MemberCreateRequestDto request) {
+    public MemberSummaryResponse create(MemberCreateRequest request) {
         validateDuplicateLoginId(request.loginId());
         validateDuplicateEmail(request.email());
         //TODO 비밀번호 검증, 암호화 로직 추가
@@ -38,7 +38,7 @@ public class MemberService {
 
     //== 수정 ==//
     @Transactional
-    public MemberDetailResponseDto update(Long memberId, MemberUpdateRequestDto request) {
+    public MemberDetailResponse update(Long memberId, MemberUpdateRequest request) {
         validateDuplicateEmailForUpdate(memberId, request.email());
         //TODO 비밀번호 검증, 암호화 로직 추가
         Member member = findMemberById(memberId);
@@ -56,37 +56,37 @@ public class MemberService {
     }
 
     //== 단건 조회 ==//
-    public MemberSummaryResponseDto getSummary(Long memberId) {
+    public MemberSummaryResponse getSummary(Long memberId) {
         return memberMapper.toSummaryResponse(findMemberById(memberId));
     }
-    public MemberDetailResponseDto getDetail(Long memberId) {
+    public MemberDetailResponse getDetail(Long memberId) {
         return memberMapper.toDetailResponse(findMemberById(memberId));
     }
 
-    public MemberDetailWithOrdersResponseDto getDetailWithOrders(Long memberId) {
+    public MemberDetailWithOrdersResponse getDetailWithOrders(Long memberId) {
         return memberMapper.toDetailWithOrdersResponse(findMemberById(memberId));
     }
 
-    public MemberSummaryResponseDto getSummaryByEmail(String email) {
+    public MemberSummaryResponse getSummaryByEmail(String email) {
         return memberMapper.toSummaryResponse(findMemberByEmail(email));
     }
 
-    public MemberDetailResponseDto getDetailByEmail(String email) {
+    public MemberDetailResponse getDetailByEmail(String email) {
         return memberMapper.toDetailResponse(findMemberByEmail(email));
     }
 
-    public MemberSummaryResponseDto getSummaryByLoginId(String loginId) {
+    public MemberSummaryResponse getSummaryByLoginId(String loginId) {
         return memberMapper.toSummaryResponse(findMemberByLoginId(loginId));
     }
 
 
-    public MemberDetailResponseDto getDetailByLoginId(String loginId) {
+    public MemberDetailResponse getDetailByLoginId(String loginId) {
         return memberMapper.toDetailResponse(findMemberByLoginId(loginId));
     }
 
 
     //== 목록 조회==//
-    public List<MemberSummaryResponseDto> getMembers() {
+    public List<MemberSummaryResponse> getMembers() {
         //TODO searchDto를 인자로 받아 pageable 등 구현
         return memberRepository.findAll(Sort.by(Sort.Direction.ASC, "id"))
                 .stream()

@@ -1,24 +1,28 @@
 package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minimall.api.order.OrderController;
+import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
+import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
 import com.minimall.domain.embeddable.Address;
-import com.minimall.domain.embeddable.AddressDto;
-import com.minimall.domain.embeddable.AddressMapper;
+import com.minimall.api.common.embeddable.AddressDto;
+import com.minimall.api.common.embeddable.AddressMapper;
 import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.order.OrderStatus;
+import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
-import com.minimall.domain.order.delivery.dto.DeliverySummaryDto;
-import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
-import com.minimall.domain.order.dto.request.OrderItemCreateDto;
-import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
-import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
-import com.minimall.domain.order.dto.response.OrderItemResponseDto;
+import com.minimall.api.order.dto.request.OrderCreateRequest;
+import com.minimall.api.order.dto.request.OrderItemCreateRequest;
+import com.minimall.api.order.dto.response.OrderCreateResponse;
+import com.minimall.api.order.dto.response.OrderDetailResponse;
+import com.minimall.api.order.dto.response.OrderItemResponse;
 import com.minimall.domain.order.exception.OrderStatusException;
+import com.minimall.domain.order.exception.PaymentRequiredException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
 import com.minimall.domain.order.pay.PayStatus;
-import com.minimall.domain.order.pay.dto.PayRequestDto;
-import com.minimall.domain.order.pay.dto.PaySummaryDto;
+import com.minimall.api.order.pay.dto.PayRequest;
+import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.service.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
@@ -58,24 +62,24 @@ public class OrderControllerTest {
     @MockitoBean
     OrderService orderService;
 
-    private OrderCreateRequestDto createRequest;
-    private OrderDetailResponseDto detailResponse;
+    private OrderCreateRequest createRequest;
+    private OrderDetailResponse detailResponse;
 
     private static final long NOT_EXIST_ID = 999_999_999L;
 
     @BeforeEach
     void setUp() {
-        createRequest = new OrderCreateRequestDto(
+        createRequest = new OrderCreateRequest(
                 1L,
-                List.of(new OrderItemCreateDto(1L, 10),
-                        new OrderItemCreateDto(2L, 20)));
+                List.of(new OrderItemCreateRequest(1L, 10),
+                        new OrderItemCreateRequest(2L, 20)));
 
-        detailResponse = new OrderDetailResponseDto(
+        detailResponse = new OrderDetailResponse(
                 1L,
                 LocalDateTime.of(2025, 11, 11, 12, 30),
                 OrderStatus.ORDERED,
                 100_000,
-                List.of(new OrderItemResponseDto(
+                List.of(new OrderItemResponse(
                         1L,
                         "도서",
                         10_000,
@@ -92,7 +96,7 @@ public class OrderControllerTest {
         void return201_whenSuccess() throws Exception {
             //given
             given(orderService.createOrder(any())).willReturn(
-                    new OrderCreateResponseDto(1L, LocalDateTime.now(), OrderStatus.ORDERED,
+                    new OrderCreateResponse(1L, LocalDateTime.now(), OrderStatus.ORDERED,
                             100_000, 0, 100_000, 2)
             );
 
@@ -228,15 +232,15 @@ public class OrderControllerTest {
         void success() throws Exception{
             //given
             long orderId = 123L;
-            PayRequestDto request = new PayRequestDto(PayMethod.CARD, 100_000);
+            PayRequest request = new PayRequest(PayMethod.CARD, 100_000);
 
-            PaySummaryDto response = new PaySummaryDto(
+            PayResponse response = new PayResponse(
                     PayMethod.CARD,
                     100_000,
                     PayStatus.PAID,
                     LocalDateTime.of(2025, 11, 11, 13, 30));
 
-            given(orderService.processPayment(eq(orderId), any(PayRequestDto.class)))
+            given(orderService.processPayment(eq(orderId), any(PayRequest.class)))
                     .willReturn(response);
 
             //when
@@ -257,15 +261,15 @@ public class OrderControllerTest {
         void shouldFail_whenDuplicatedPay() throws Exception{
             //given
             long orderId = 123L;
-            PayRequestDto request = new PayRequestDto(PayMethod.CARD, 100_000);
+            PayRequest request = new PayRequest(PayMethod.CARD, 100_000);
 
-            PaySummaryDto response = new PaySummaryDto(
+            PayResponse response = new PayResponse(
                     PayMethod.CARD,
                     100_000,
                     PayStatus.PAID,
                     LocalDateTime.of(2025, 11, 11, 13, 30));
 
-            given(orderService.processPayment(eq(orderId), any(PayRequestDto.class)))
+            given(orderService.processPayment(eq(orderId), any(PayRequest.class)))
                     .willReturn(response)
                     .willThrow(OrderStatusException.class);
 
@@ -288,9 +292,9 @@ public class OrderControllerTest {
         void shouldFail_whenMismatchAmount() throws Exception{
             //given
             long orderId = 123L;
-            PayRequestDto request = new PayRequestDto(PayMethod.CARD, 100_000);
+            PayRequest request = new PayRequest(PayMethod.CARD, 100_000);
 
-            given(orderService.processPayment(eq(orderId), any(PayRequestDto.class)))
+            given(orderService.processPayment(eq(orderId), any(PayRequest.class)))
                     .willThrow(PayAmountMismatchException.class);
 
             // when-then
@@ -318,8 +322,8 @@ public class OrderControllerTest {
                     });
 
             AddressDto requestAddrDto = createSampleAddrDto();
-            DeliverySummaryDto expected =
-                    new DeliverySummaryDto(DeliveryStatus.READY, null,
+            DeliverySummaryResponse expected =
+                    new DeliverySummaryResponse(DeliveryStatus.READY, null,
                             requestAddrDto, null, null);
 
             given(orderService.prepareDelivery(eq(orderId), any(Address.class)))
@@ -362,14 +366,92 @@ public class OrderControllerTest {
         }
 
 
-        private AddressDto createSampleAddrDto() {
-            return new AddressDto(
-                    "12345",
-                    "광주광역시",
-                    "광산구",
-                    "신창동",
-                    "상가 1층"
-            );
+    }
+
+    @Nested
+    @DisplayName("PATCH /orders/{id}/delivery (Long, StartDeliveryRequest)")
+    class StartDelivery {
+
+        StartDeliveryRequest request = new StartDeliveryRequest("12345", LocalDateTime.of(2025, 11, 12, 13, 30));
+
+        @Test
+        @DisplayName("배송 시작 -> 204 검증")
+        void success() throws Exception {
+            // given
+            long orderId = 123L;
+            willDoNothing()
+                    .given(orderService)
+                    .startDelivery(eq(orderId), eq(request.trackingNo()), eq(request.shippedAt()));
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isNoContent());
+
+            then(orderService).should(times(1))
+                    .startDelivery(orderId, request.trackingNo(), request.shippedAt());
+        }
+
+        @Test
+        @DisplayName("결제 되지 않은 상태 -> 422 에러")
+        void shouldFail_whenNotPaid() throws Exception {
+            // given
+            long orderId = 123L;
+
+            willThrow(PaymentRequiredException.class)
+                    .given(orderService)
+                    .startDelivery(eq(orderId), eq(request.trackingNo()), eq(request.shippedAt()));
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.status").value(422));
+
+            then(orderService).should(times(1))
+                    .startDelivery(orderId, request.trackingNo(), request.shippedAt());
+        }
+
+        @Test
+        @DisplayName("배송 준비되지 않은 상태 -> 422 에러")
+        void shouldFail_whenNotPrepared() throws Exception {
+            // given
+            long orderId = 123L;
+
+            willThrow(DeliveryException.class)
+                    .given(orderService)
+                    .startDelivery(eq(orderId), eq(request.trackingNo()), eq(request.shippedAt()));
+
+            // when
+            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery", orderId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.status").value(422));
+
+            then(orderService).should(times(1))
+                    .startDelivery(orderId, request.trackingNo(), request.shippedAt());
         }
     }
+
+
+
+    private AddressDto createSampleAddrDto() {
+        return new AddressDto(
+                "12345",
+                "광주광역시",
+                "광산구",
+                "신창동",
+                "상가 1층"
+        );
+    }
+
 }

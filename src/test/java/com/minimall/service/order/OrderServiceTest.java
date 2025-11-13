@@ -1,28 +1,29 @@
 package com.minimall.service.order;
 
+import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
-import com.minimall.domain.embeddable.AddressDto;
-import com.minimall.domain.embeddable.AddressMapper;
+import com.minimall.api.common.embeddable.AddressDto;
+import com.minimall.api.common.embeddable.AddressMapper;
 import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.*;
+import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
-import com.minimall.domain.order.delivery.dto.DeliveryMapper;
-import com.minimall.domain.order.delivery.dto.DeliverySummaryDto;
-import com.minimall.domain.order.dto.OrderMapper;
-import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
-import com.minimall.domain.order.dto.request.OrderItemCreateDto;
-import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
-import com.minimall.domain.order.dto.response.OrderItemResponseDto;
-import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
+import com.minimall.api.order.delivery.dto.DeliveryMapper;
+import com.minimall.api.order.dto.OrderMapper;
+import com.minimall.api.order.dto.request.OrderCreateRequest;
+import com.minimall.api.order.dto.request.OrderItemCreateRequest;
+import com.minimall.api.order.dto.response.OrderDetailResponse;
+import com.minimall.api.order.dto.response.OrderItemResponse;
+import com.minimall.api.order.dto.response.OrderSummaryResponse;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
-import com.minimall.domain.order.pay.dto.PayMapper;
-import com.minimall.domain.order.pay.dto.PayRequestDto;
-import com.minimall.domain.order.pay.dto.PaySummaryDto;
+import com.minimall.api.order.pay.dto.PayMapper;
+import com.minimall.api.order.pay.dto.PayRequest;
+import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.OrderService;
@@ -39,12 +40,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -78,8 +77,8 @@ class OrderServiceTest {
     @InjectMocks
     OrderService orderService;
 
-    private OrderCreateRequestDto orderCreateRequest;
-    private List<OrderItemResponseDto> orderItemResponses;
+    private OrderCreateRequest orderCreateRequest;
+    private List<OrderItemResponse> orderItemResponses;
 
     private Member member;
     private Product book;
@@ -94,20 +93,20 @@ class OrderServiceTest {
     @BeforeEach
     void setUp() {
         //== OrderItemRequestList ==//
-        List<OrderItemCreateDto> orderItems = new ArrayList<>();
+        List<OrderItemCreateRequest> orderItems = new ArrayList<>();
 
-        OrderItemCreateDto orderItemCreateRequest1 = new OrderItemCreateDto(PRODUCT1_ID, 30);
-        OrderItemCreateDto orderItemCreateRequest2 = new OrderItemCreateDto(PRODUCT2_ID, 10);
+        OrderItemCreateRequest orderItemCreateRequest1 = new OrderItemCreateRequest(PRODUCT1_ID, 30);
+        OrderItemCreateRequest orderItemCreateRequest2 = new OrderItemCreateRequest(PRODUCT2_ID, 10);
         orderItems.add(orderItemCreateRequest1);
         orderItems.add(orderItemCreateRequest2);
 
         //== OrderCreateRequest ==//
-        orderCreateRequest = new OrderCreateRequestDto(MEMBER_ID, orderItems);
+        orderCreateRequest = new OrderCreateRequest(MEMBER_ID, orderItems);
 
         //== OrderItemResponse ==//
         orderItemResponses = List.of(
-                new OrderItemResponseDto(PRODUCT1_ID, "도서", 20000, 30, 600000),
-                new OrderItemResponseDto(PRODUCT2_ID, "키보드", 100_000, 10, 1_000_000)
+                new OrderItemResponse(PRODUCT1_ID, "도서", 20000, 30, 600000),
+                new OrderItemResponse(PRODUCT2_ID, "키보드", 100_000, 10, 1_000_000)
         );
 
 
@@ -216,7 +215,7 @@ class OrderServiceTest {
             Order order = mock(Order.class);
 
             LocalDateTime localDateTime = LocalDateTime.of(2025, 11, 10, 15, 25, 0);
-            OrderDetailResponseDto dto = new OrderDetailResponseDto(orderId,
+            OrderDetailResponse dto = new OrderDetailResponse(orderId,
                     localDateTime,
                     OrderStatus.ORDERED,
                     1_100_000,
@@ -226,7 +225,7 @@ class OrderServiceTest {
             given(orderMapper.toOrderDetailResponse(order)).willReturn(dto);
 
             //when
-            OrderDetailResponseDto result = orderService.getOrderDetail(orderId);
+            OrderDetailResponse result = orderService.getOrderDetail(orderId);
 
             //then
             assertThat(result).isEqualTo(dto);
@@ -268,12 +267,12 @@ class OrderServiceTest {
             Long orderId = 1L;
             LocalDateTime localDateTime = LocalDateTime.of(2025, 11, 10, 15, 25, 0);
 
-            List<OrderSummaryResponseDto> dtoList = List.of(new OrderSummaryResponseDto(
+            List<OrderSummaryResponse> dtoList = List.of(new OrderSummaryResponse(
                     orderId,
                     localDateTime,
                     OrderStatus.ORDERED,
                     2,
-                    1_100_000), new OrderSummaryResponseDto(
+                    1_100_000), new OrderSummaryResponse(
                     orderId,
                     localDateTime,
                     OrderStatus.ORDERED,
@@ -286,7 +285,7 @@ class OrderServiceTest {
             given(orderMapper.toOrderSummaryResponse(orders)).willReturn(dtoList);
 
             //when
-            List<OrderSummaryResponseDto> result = orderService.getOrderSummaries(MEMBER_ID);
+            List<OrderSummaryResponse> result = orderService.getOrderSummaries(MEMBER_ID);
 
             //then
             assertThat(result).isEqualTo(dtoList);
@@ -302,14 +301,14 @@ class OrderServiceTest {
             //given
             List<Order> emptyOrder = List.of();
 
-            List<OrderSummaryResponseDto> dtoEmptyList = List.of();
+            List<OrderSummaryResponse> dtoEmptyList = List.of();
 
             given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));
             given(orderRepository.findByMember(member)).willReturn(emptyOrder);
             given(orderMapper.toOrderSummaryResponse(emptyOrder)).willReturn(dtoEmptyList);
 
             //when
-            List<OrderSummaryResponseDto> result = orderService.getOrderSummaries(MEMBER_ID);
+            List<OrderSummaryResponse> result = orderService.getOrderSummaries(MEMBER_ID);
 
             //then
             assertThat(result).isEqualTo(dtoEmptyList);
@@ -331,13 +330,13 @@ class OrderServiceTest {
             given(orderRepository.findById(1L)).willReturn(Optional.of(order));
 
             Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
-            PayRequestDto request = new PayRequestDto(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
             given(payMapper.toEntity(request)).willReturn(pay);
 
             given(payMapper.toPaySummary(any(Pay.class))).willAnswer(inv -> {
                 Pay p = inv.getArgument(0, Pay.class);
-                return new PaySummaryDto(
+                return new PayResponse(
                         p.getPayMethod(),
                         p.getPayAmount(),
                         p.getPayStatus(),
@@ -346,7 +345,7 @@ class OrderServiceTest {
             });
 
             //when
-            PaySummaryDto result = orderService.processPayment(1L, request);
+            PayResponse result = orderService.processPayment(1L, request);
 
             //then
             assertSoftly(softly -> {
@@ -366,13 +365,13 @@ class OrderServiceTest {
             given(orderRepository.findById(1L)).willReturn(Optional.of(order));
 
             Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
-            PayRequestDto request = new PayRequestDto(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
             given(payMapper.toEntity(request)).willReturn(pay);
 
             given(payMapper.toPaySummary(any(Pay.class))).willAnswer(inv -> {
                 Pay p = inv.getArgument(0, Pay.class);
-                return new PaySummaryDto(
+                return new PayResponse(
                         p.getPayMethod(),
                         p.getPayAmount(),
                         p.getPayStatus(),
@@ -405,7 +404,7 @@ class OrderServiceTest {
             int invalidAmount = 999_999;
 
             Pay pay = new Pay(PayMethod.CARD, invalidAmount);
-            PayRequestDto request = new PayRequestDto(PayMethod.CARD, invalidAmount);
+            PayRequest request = new PayRequest(PayMethod.CARD, invalidAmount);
 
             given(payMapper.toEntity(request)).willReturn(pay);
 
@@ -457,7 +456,7 @@ class OrderServiceTest {
             given(deliveryMapper.toDeliverySummary(any(Delivery.class)))
                     .willAnswer(invocationOnMock -> {
                         Delivery d = invocationOnMock.getArgument(0);
-                        return new DeliverySummaryDto(
+                        return new DeliverySummaryResponse(
                                 d.getDeliveryStatus(),
                                 d.getTrackingNo(),
                                 addressMapper.toDto(d.getShipAddr()),
@@ -468,7 +467,7 @@ class OrderServiceTest {
             Address sampleAddr = createSampleAddr();
 
             //when
-            DeliverySummaryDto result = orderService.prepareDelivery(1L, sampleAddr);
+            DeliverySummaryResponse result = orderService.prepareDelivery(1L, sampleAddr);
 
             //then
             assertSoftly(softly -> {
@@ -507,7 +506,7 @@ class OrderServiceTest {
             given(deliveryMapper.toDeliverySummary(any(Delivery.class)))
                     .willAnswer(invocationOnMock -> {
                         Delivery d = invocationOnMock.getArgument(0);
-                        return new DeliverySummaryDto(
+                        return new DeliverySummaryResponse(
                                 d.getDeliveryStatus(),
                                 d.getTrackingNo(),
                                 addressMapper.toDto(d.getShipAddr()),
@@ -516,7 +515,7 @@ class OrderServiceTest {
                     });
 
             //when
-            DeliverySummaryDto result = orderService.prepareDelivery(1L, null);
+            DeliverySummaryResponse result = orderService.prepareDelivery(1L, null);
 
             //then
             assertSoftly(softly -> {
@@ -557,37 +556,88 @@ class OrderServiceTest {
             verifyNoInteractions(addressMapper, deliveryMapper);
         }
 
-        private @NotNull Order createSampleOrder(Member member) {
-            return Order.createOrder(member,
-                    OrderItem.createOrderItem(book, 10),
-                    OrderItem.createOrderItem(keyboard, 10));
+    }
+
+    @Nested
+    @DisplayName("startDelivery(Long, String, LocalDatetime")
+    class StartDelivery {
+
+        String trackingNo = "98765";
+        LocalDateTime shippedAt = LocalDateTime.of(2025, 11, 12, 8, 30);
+
+        @Test
+        @DisplayName("배송 시작: 배송 준비된 주문 조회 -> trackingNo, shippedAt 설정")
+        void success() {
+            //given
+            long orderId = 123L;
+            Order order = createSampleOrder(member);
+            given(orderRepository.findById(orderId)).willReturn(Optional.of(order));
+
+            processPayment(order);
+
+            Address shipAddr = createSampleAddr();
+            orderService.prepareDelivery(orderId, shipAddr);
+
+            //when
+            orderService.startDelivery(orderId, trackingNo, shippedAt);
+            Delivery delivery = orderRepository.findById(orderId).get().getDelivery();
+
+            //then
+            assertSoftly(softly -> {
+                softly.assertThat(delivery.getDeliveryStatus()).isEqualTo(DeliveryStatus.SHIPPING);
+                softly.assertThat(delivery.getTrackingNo()).isEqualTo(trackingNo);
+                softly.assertThat(delivery.getShippedAt()).isEqualTo(shippedAt);
+            });
         }
 
-        private static void processPayment(Order order) {
-            Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
-            order.processPayment(pay);
+        @Test
+        @DisplayName("결제 되지 않은 상태 -> 예외")
+        void shouldFail_whenNotPaid() {
+            //given
+            long orderId = 123L;
+            Order order = createSampleOrder(member);
+            given(orderRepository.findById(orderId)).willReturn(Optional.of(order));
+
+            //when-then
+            assertThatThrownBy(() -> orderService.startDelivery(orderId, trackingNo, shippedAt))
+                    .isInstanceOf(DeliveryException.class);
         }
 
-        private AddressDto createSampleAddrDto() {
-            return new AddressDto(
-                    "12345",
-                    "광주광역시",
-                    "광산구",
-                    "신창동",
-                    "상가 1층"
-            );
-        }
+        @Test
+        @DisplayName("배송 준비 되지 않은 상태 -> 예외")
+        void shouldFail_whenNotPrepared() {
+            //given
+            long orderId = 123L;
+            Order order = createSampleOrder(member);
+            given(orderRepository.findById(orderId)).willReturn(Optional.of(order));
 
-        private Address createSampleAddr() {
-            return Address.createAddress(
-                    "10580",
-                    "서울특별시",
-                    "노원구",
-                    "노원동",
-                    "상가 1층"
-            );
+            processPayment(order);
+
+            //when-then
+            assertThatThrownBy(() -> orderService.startDelivery(orderId, trackingNo, shippedAt))
+                    .isInstanceOf(DeliveryException.class);
         }
     }
 
 
+    private @NotNull Order createSampleOrder(Member member) {
+        return Order.createOrder(member,
+                OrderItem.createOrderItem(book, 10),
+                OrderItem.createOrderItem(keyboard, 10));
+    }
+
+    private static void processPayment(Order order) {
+        Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+        order.processPayment(pay);
+    }
+
+    private Address createSampleAddr() {
+        return Address.createAddress(
+                "10580",
+                "서울특별시",
+                "노원구",
+                "노원동",
+                "상가 1층"
+        );
+    }
 }

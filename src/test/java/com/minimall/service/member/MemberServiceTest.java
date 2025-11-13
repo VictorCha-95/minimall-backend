@@ -1,14 +1,14 @@
 package com.minimall.service.member;
 
+import com.minimall.api.member.dto.response.MemberDetailResponse;
+import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.domain.member.dto.MemberMapper;
-import com.minimall.domain.member.dto.request.MemberCreateRequestDto;
-import com.minimall.domain.member.dto.request.MemberUpdateRequestDto;
-import com.minimall.domain.member.dto.response.MemberDetailResponseDto;
-import com.minimall.domain.member.dto.response.MemberSummaryResponseDto;
+import com.minimall.api.member.dto.MemberMapper;
+import com.minimall.api.member.dto.request.MemberCreateRequest;
+import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.MemberService;
@@ -42,10 +42,10 @@ class MemberServiceTest {
     MemberService memberService;
 
     private Member member;
-    private MemberCreateRequestDto createRequest;
-    private MemberUpdateRequestDto updateRequest;
-    private MemberDetailResponseDto detailResponse;
-    private MemberSummaryResponseDto summaryResponse;
+    private MemberCreateRequest createRequest;
+    private MemberUpdateRequest updateRequest;
+    private MemberDetailResponse detailResponse;
+    private MemberSummaryResponse summaryResponse;
 
 
     @BeforeEach
@@ -60,10 +60,10 @@ class MemberServiceTest {
                 .build();
 
         //== CreateRequest DTO ==//
-        createRequest = new MemberCreateRequestDto(member.getLoginId(), member.getPassword(), member.getName(), member.getEmail(), member.getAddr());
+        createRequest = new MemberCreateRequest(member.getLoginId(), member.getPassword(), member.getName(), member.getEmail(), member.getAddr());
 
         //== UpdateRequest DTO ==//
-        updateRequest = new MemberUpdateRequestDto(
+        updateRequest = new MemberUpdateRequest(
                 "newPassword456",
                 "차태승2",
                 "cts9458+update@naver.com",
@@ -71,9 +71,9 @@ class MemberServiceTest {
         );
 
         //== Response DTOs ==//
-        summaryResponse = new MemberSummaryResponseDto(member.getId(), member.getLoginId(), member.getName());
+        summaryResponse = new MemberSummaryResponse(member.getId(), member.getLoginId(), member.getName());
 
-        detailResponse = new MemberDetailResponseDto(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getGrade(), member.getAddr());
+        detailResponse = new MemberDetailResponse(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getGrade(), member.getAddr());
     }
 
 
@@ -88,7 +88,7 @@ class MemberServiceTest {
         when(memberRepository.save(member)).thenReturn(member);
 
         //when
-        MemberSummaryResponseDto result = memberService.create(createRequest);
+        MemberSummaryResponse result = memberService.create(createRequest);
 
         //then
         assertThat(result).isEqualTo(summaryResponse);
@@ -136,7 +136,7 @@ class MemberServiceTest {
         when(memberMapper.toDetailResponse(member)).thenReturn(detailResponse);
 
         //when
-        MemberDetailResponseDto result = memberService.update(1L, updateRequest);
+        MemberDetailResponse result = memberService.update(1L, updateRequest);
 
         //then
         assertThat(result).isEqualTo(detailResponse);
@@ -223,7 +223,7 @@ class MemberServiceTest {
         when(memberMapper.toSummaryResponse(member)).thenReturn(summaryResponse);
 
         //when
-        List<MemberSummaryResponseDto> result = memberService.getMembers();
+        List<MemberSummaryResponse> result = memberService.getMembers();
 
         //then
         assertThat(result).containsExactly(summaryResponse);

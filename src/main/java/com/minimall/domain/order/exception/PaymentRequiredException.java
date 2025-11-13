@@ -1,5 +1,6 @@
 package com.minimall.domain.order.exception;
 
+import com.minimall.domain.exception.DomainExceptionMessage;
 import com.minimall.domain.exception.DomainRuleException;
 import com.minimall.domain.order.OrderMessage;
 import com.minimall.domain.order.pay.PayStatus;
@@ -13,6 +14,11 @@ public class PaymentRequiredException extends DomainRuleException {
     public static PaymentRequiredException mustBePaidBeforeDelivery(Long orderId, PayStatus payStatus) {
         return new PaymentRequiredException(
                 OrderMessage.PAYMENT_REQUIRED_FOR_DELIVERY_PREPARE_WITH_STATUS.text(orderId, payStatus));
+    }
+
+    public static PaymentRequiredException required() {
+        return new PaymentRequiredException(
+                DomainExceptionMessage.PARAM_REQUIRE_NOT_NULL.text("pay"));
     }
 
     private PaymentRequiredException(String message) {

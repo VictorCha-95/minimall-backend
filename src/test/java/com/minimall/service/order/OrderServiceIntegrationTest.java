@@ -2,24 +2,24 @@ package com.minimall.service.order;
 
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
-import com.minimall.domain.embeddable.AddressDto;
 import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.*;
+import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
-import com.minimall.domain.order.delivery.dto.DeliverySummaryDto;
-import com.minimall.domain.order.dto.request.OrderCreateRequestDto;
-import com.minimall.domain.order.dto.request.OrderItemCreateDto;
-import com.minimall.domain.order.dto.response.OrderCreateResponseDto;
-import com.minimall.domain.order.dto.response.OrderDetailResponseDto;
-import com.minimall.domain.order.dto.response.OrderSummaryResponseDto;
+import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
+import com.minimall.api.order.dto.request.OrderCreateRequest;
+import com.minimall.api.order.dto.request.OrderItemCreateRequest;
+import com.minimall.api.order.dto.response.OrderCreateResponse;
+import com.minimall.api.order.dto.response.OrderDetailResponse;
+import com.minimall.api.order.dto.response.OrderSummaryResponse;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
 import com.minimall.domain.order.pay.PayStatus;
-import com.minimall.domain.order.pay.dto.PayRequestDto;
-import com.minimall.domain.order.pay.dto.PaySummaryDto;
+import com.minimall.api.order.pay.dto.PayRequest;
+import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.OrderService;
@@ -27,7 +27,6 @@ import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
 import jakarta.persistence.EntityManager;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -41,15 +40,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.SoftAssertions.*;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.times;
 
 @SpringBootTest
 @ActiveProfiles("integration-test")
@@ -80,9 +75,9 @@ public class OrderServiceIntegrationTest {
     private Member memberNullAddr;
     private Product book;
     private Product keyboard;
-    private OrderCreateRequestDto request1;
-    private OrderCreateRequestDto request2;
-    private OrderCreateRequestDto requestAddrNull;
+    private OrderCreateRequest request1;
+    private OrderCreateRequest request2;
+    private OrderCreateRequest requestAddrNull;
 
     static final int ORDER_QUANTITY = 10;
     static final long NOT_EXISTS_ID = 999_999_999_999_999L;
@@ -115,20 +110,20 @@ public class OrderServiceIntegrationTest {
         Member savedMemberAddrNull = memberRepository.save(memberNullAddr);
         Product savedKeyboard = productRepository.save(keyboard);
         Product savedBook = productRepository.save(book);
-        request1 = new OrderCreateRequestDto(
+        request1 = new OrderCreateRequest(
                 savedMember.getId(),
-                List.of(new OrderItemCreateDto(savedKeyboard.getId(), ORDER_QUANTITY),
-                        new OrderItemCreateDto(savedBook.getId(), ORDER_QUANTITY)));
+                List.of(new OrderItemCreateRequest(savedKeyboard.getId(), ORDER_QUANTITY),
+                        new OrderItemCreateRequest(savedBook.getId(), ORDER_QUANTITY)));
 
-        request2 = new OrderCreateRequestDto(
+        request2 = new OrderCreateRequest(
                 savedMember.getId(),
-                List.of(new OrderItemCreateDto(savedKeyboard.getId(), 5),
-                        new OrderItemCreateDto(savedBook.getId(), 5)));
+                List.of(new OrderItemCreateRequest(savedKeyboard.getId(), 5),
+                        new OrderItemCreateRequest(savedBook.getId(), 5)));
 
-        requestAddrNull = new OrderCreateRequestDto(
+        requestAddrNull = new OrderCreateRequest(
                 savedMemberAddrNull.getId(),
-                List.of(new OrderItemCreateDto(savedKeyboard.getId(), 5),
-                        new OrderItemCreateDto(savedBook.getId(), 5)));
+                List.of(new OrderItemCreateRequest(savedKeyboard.getId(), 5),
+                        new OrderItemCreateRequest(savedBook.getId(), 5)));
 
     }
 
@@ -144,7 +139,7 @@ public class OrderServiceIntegrationTest {
         @DisplayName("주문 생성 - DB 반영 및 기타 검증")
         void success() {
             //when
-            OrderCreateResponseDto order = orderService.createOrder(request1);
+            OrderCreateResponse order = orderService.createOrder(request1);
             flushClear();
 
             //then: DB 조회해서 검증
@@ -188,9 +183,9 @@ public class OrderServiceIntegrationTest {
             long beforeOrderCount = orderRepository.count();
             long beforeStock = productRepository.findById(product.getId()).orElseThrow().getStockQuantity();
 
-            OrderCreateRequestDto request = new OrderCreateRequestDto(
+            OrderCreateRequest request = new OrderCreateRequest(
                     NOT_EXISTS_ID,
-                    List.of(new OrderItemCreateDto(product.getId(), ORDER_QUANTITY)));
+                    List.of(new OrderItemCreateRequest(product.getId(), ORDER_QUANTITY)));
 
             //when
             assertThatThrownBy(() -> orderService.createOrder(request))
@@ -215,10 +210,10 @@ public class OrderServiceIntegrationTest {
             long beforeOrderCount = orderRepository.count();
             Integer beforeStock = exists.getStockQuantity();
 
-            OrderCreateRequestDto request = new OrderCreateRequestDto(
+            OrderCreateRequest request = new OrderCreateRequest(
                     member.getId(),
-                    List.of(new OrderItemCreateDto(exists.getId(), ORDER_QUANTITY),
-                            new OrderItemCreateDto(NOT_EXISTS_ID, ORDER_QUANTITY)));
+                    List.of(new OrderItemCreateRequest(exists.getId(), ORDER_QUANTITY),
+                            new OrderItemCreateRequest(NOT_EXISTS_ID, ORDER_QUANTITY)));
 
             //when
             assertThatThrownBy(() -> orderService.createOrder(request))
@@ -240,10 +235,10 @@ public class OrderServiceIntegrationTest {
         @DisplayName("주문 상세 단건 조회: 식별자, 일시, 상태, 총금액, 주문 항목, 결제, 배송 응답")
         void success() {
             //given
-            OrderCreateResponseDto order = orderService.createOrder(request1);
+            OrderCreateResponse order = orderService.createOrder(request1);
 
             //when
-            OrderDetailResponseDto result = orderService.getOrderDetail(order.id());
+            OrderDetailResponse result = orderService.getOrderDetail(order.id());
 
             //then
             assertSoftly(softly -> {
@@ -279,7 +274,7 @@ public class OrderServiceIntegrationTest {
             orderService.createOrder(request2);
 
             //when
-            List<OrderSummaryResponseDto> result = orderService.getOrderSummaries(member.getId());
+            List<OrderSummaryResponse> result = orderService.getOrderSummaries(member.getId());
 
             //then
             assertSoftly(softly -> {
@@ -300,7 +295,7 @@ public class OrderServiceIntegrationTest {
             Member savedMember = memberRepository.save(member);
 
             //when
-            List<OrderSummaryResponseDto> result = orderService.getOrderSummaries(savedMember.getId());
+            List<OrderSummaryResponse> result = orderService.getOrderSummaries(savedMember.getId());
 
             //then
             assertThat(result).isEmpty();
@@ -314,11 +309,11 @@ public class OrderServiceIntegrationTest {
         @DisplayName("결제: 주문 조회 -> 결제 -> 매퍼 dto 변환")
         void success() {
             //given
-            OrderCreateResponseDto order = orderService.createOrder(request1);
-            PayRequestDto request = new PayRequestDto(PayMethod.CARD, order.finalAmount());
+            OrderCreateResponse order = orderService.createOrder(request1);
+            PayRequest request = new PayRequest(PayMethod.CARD, order.finalAmount());
 
             //when
-            PaySummaryDto result = orderService.processPayment(order.id(), request);
+            PayResponse result = orderService.processPayment(order.id(), request);
 
             //then
             assertSoftly(softly -> {
@@ -330,8 +325,8 @@ public class OrderServiceIntegrationTest {
         @DisplayName("중복 결제 -> 예외 발생 + 기존 결제/주문 상태 유지")
         void shouldFail_whenDuplicatedPay() {
             //given
-            OrderCreateResponseDto order = orderService.createOrder(request1);
-            PayRequestDto request = new PayRequestDto(PayMethod.CARD, order.finalAmount());
+            OrderCreateResponse order = orderService.createOrder(request1);
+            PayRequest request = new PayRequest(PayMethod.CARD, order.finalAmount());
             orderService.processPayment(order.id(), request);
 
             //then
@@ -347,10 +342,10 @@ public class OrderServiceIntegrationTest {
         @DisplayName("주문 금액, 결제 금액 불일치 -> 예외 발생 + 주문 상태는 ORDERED 유지")
         void shouldFail_whenMismatchAmount() {
             //given
-            OrderCreateResponseDto order = orderService.createOrder(request1);
+            OrderCreateResponse order = orderService.createOrder(request1);
 
             int invalidAmount = 999_999;
-            PayRequestDto request = new PayRequestDto(PayMethod.CARD, invalidAmount);
+            PayRequest request = new PayRequest(PayMethod.CARD, invalidAmount);
 
             //then
             assertThatThrownBy(() -> orderService.processPayment(order.id(), request))
@@ -373,7 +368,7 @@ public class OrderServiceIntegrationTest {
             Address shipAddr = createSampleAddr();
 
             //when
-            DeliverySummaryDto result = orderService.prepareDelivery(orderId, shipAddr);
+            DeliverySummaryResponse result = orderService.prepareDelivery(orderId, shipAddr);
 
             //then
             assertSoftly(softly -> {
@@ -390,7 +385,7 @@ public class OrderServiceIntegrationTest {
             Long orderId = createOrderAndProcessPayment(request1);
 
             //when
-            DeliverySummaryDto result = orderService.prepareDelivery(orderId, null);
+            DeliverySummaryResponse result = orderService.prepareDelivery(orderId, null);
 
             //then
             assertSoftly(softly -> {
@@ -414,31 +409,71 @@ public class OrderServiceIntegrationTest {
                         assertThat(e.getReason()).isEqualTo(InvalidAddressException.Reason.REQUIRED);
                     });
         }
+    }
 
-        private Long createOrderAndProcessPayment(OrderCreateRequestDto request) {
-            OrderCreateResponseDto order = orderService.createOrder(request);
-            orderService.processPayment(order.id(), new PayRequestDto(PayMethod.CARD, order.finalAmount()));
-            return order.id();
+    @Nested
+    @DisplayName("startDelivery(Long, String, LocalDatetime")
+    class StartDelivery {
+
+        String trackingNo = "98765";
+        LocalDateTime shippedAt = LocalDateTime.of(2025, 11, 12, 8, 30);
+
+        @Test
+        @DisplayName("배송 시작: 배송 준비된 주문 조회 -> trackingNo, shippedAt 설정")
+        void success() {
+            //given
+            Long orderId = createOrderAndProcessPayment(request1);
+            Address shipAddr = createSampleAddr();
+            orderService.prepareDelivery(orderId, shipAddr);
+
+            //when
+            orderService.startDelivery(orderId, trackingNo, shippedAt);
+            Delivery result = orderRepository.findById(orderId).get().getDelivery();
+
+            //then
+            assertSoftly(softly -> {
+                softly.assertThat(result.getDeliveryStatus()).isEqualTo(DeliveryStatus.SHIPPING);
+                softly.assertThat(result.getTrackingNo()).isEqualTo(trackingNo);
+                softly.assertThat(result.getShippedAt()).isEqualTo(shippedAt);
+            });
         }
 
-        private AddressDto createSampleAddrDto() {
-            return new AddressDto(
-                    "12345",
-                    "광주광역시",
-                    "광산구",
-                    "신창동",
-                    "상가 1층"
-            );
+        @Test
+        @DisplayName("결제 되지 않은 상태 -> 예외")
+        void shouldFail_whenNotPaid() {
+            //given
+            OrderCreateResponse order = orderService.createOrder(request1);
+
+            //when-then
+            assertThatThrownBy(() -> orderService.startDelivery(order.id(), trackingNo, shippedAt))
+                    .isInstanceOf(DeliveryException.class);
         }
 
-        private Address createSampleAddr() {
-            return Address.createAddress(
-                    "10580",
-                    "서울특별시",
-                    "노원구",
-                    "노원동",
-                    "상가 1층"
-            );
+        @Test
+        @DisplayName("배송 준비 되지 않은 상태 -> 예외")
+        void shouldFail_whenNotPrepared() {
+            //given
+            Long orderId = createOrderAndProcessPayment(request1);
+
+            //when-then
+            assertThatThrownBy(() -> orderService.startDelivery(orderId, trackingNo, shippedAt))
+                    .isInstanceOf(DeliveryException.class);
         }
+    }
+
+    private Long createOrderAndProcessPayment(OrderCreateRequest request) {
+        OrderCreateResponse order = orderService.createOrder(request);
+        orderService.processPayment(order.id(), new PayRequest(PayMethod.CARD, order.finalAmount()));
+        return order.id();
+    }
+
+    private Address createSampleAddr() {
+        return Address.createAddress(
+                "10580",
+                "서울특별시",
+                "노원구",
+                "노원동",
+                "상가 1층"
+        );
     }
 }

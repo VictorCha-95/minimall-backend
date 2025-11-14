@@ -4,20 +4,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.api.order.OrderController;
 import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
 import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
+import com.minimall.api.order.dto.OrderMapper;
 import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
+import com.minimall.api.order.dto.response.OrderCreateResponse;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.api.common.embeddable.AddressDto;
 import com.minimall.api.common.embeddable.AddressMapper;
 import com.minimall.domain.embeddable.InvalidAddressException;
+import com.minimall.domain.order.Order;
+import com.minimall.domain.order.OrderAmount;
 import com.minimall.domain.order.OrderStatus;
 import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.api.order.dto.request.OrderCreateRequest;
 import com.minimall.api.order.dto.request.OrderItemCreateRequest;
-import com.minimall.api.order.dto.response.OrderCreateResponse;
 import com.minimall.api.order.dto.response.OrderDetailResponse;
 import com.minimall.api.order.dto.response.OrderItemResponse;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
+import com.minimall.service.order.dto.OrderCreateCommand;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.exception.PaymentRequiredException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
@@ -25,7 +29,7 @@ import com.minimall.domain.order.pay.PayMethod;
 import com.minimall.domain.order.pay.PayStatus;
 import com.minimall.api.order.pay.dto.PayRequest;
 import com.minimall.api.order.pay.dto.PayResponse;
-import com.minimall.service.OrderService;
+import com.minimall.service.order.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
@@ -57,6 +61,9 @@ public class OrderControllerTest {
 
     @Autowired
     ObjectMapper objectMapper;
+
+    @MockitoBean
+    OrderMapper orderMapper;
 
     @MockitoBean
     AddressMapper addressMapper;
@@ -97,10 +104,18 @@ public class OrderControllerTest {
         @DisplayName("주문 생성 -> 201 + JSON 검증")
         void return201_whenSuccess() throws Exception {
             //given
-            given(orderService.createOrder(any())).willReturn(
-                    new OrderCreateResponse(1L, LocalDateTime.now(), OrderStatus.ORDERED,
-                            100_000, 0, 100_000, 2)
-            );
+            Order sutbOrder = mock(Order.class);
+            given(orderService.createOrder(any(OrderCreateCommand.class)))
+                    .willReturn(sutbOrder);
+
+            given(orderMapper.toCreateResponse(sutbOrder))
+                    .willReturn(new OrderCreateResponse(
+                            1L,
+                            LocalDateTime.now(),
+                            OrderStatus.ORDERED,
+                            100_000, 0, 100_000,
+                            2
+                    ));
 
             //when
             ResultActions result = mockMvc.perform(post("/orders")
@@ -115,6 +130,9 @@ public class OrderControllerTest {
                     .andExpect(jsonPath("$.finalAmount").value(100_000))
                     .andExpect(jsonPath("$.orderStatus").value("ORDERED"))
                     .andExpect(jsonPath("$.itemCount").value(2));
+
+            then(orderService).should(times(1)).createOrder(any(OrderCreateCommand.class));
+            then(orderMapper).should(times(1)).toCreateResponse(any(Order.class));
         }
 
         @Test
@@ -323,7 +341,7 @@ public class OrderControllerTest {
                         return Address.createAddress(a.postcode(), a.state(), a.city(), a.street(), a.detail());
                     });
 
-            AddressDto requestAddrDto = createSampleAddrDto();
+            AddressDto requestAddrDto = createOrderSampleAddrDto();
             DeliverySummaryResponse expected =
                     new DeliverySummaryResponse(DeliveryStatus.READY, null,
                             requestAddrDto, null, null);
@@ -585,7 +603,7 @@ public class OrderControllerTest {
 
 
 
-    private AddressDto createSampleAddrDto() {
+    private AddressDto createOrderSampleAddrDto() {
         return new AddressDto(
                 "12345",
                 "광주광역시",

@@ -7,7 +7,7 @@ import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.api.order.dto.response.OrderSummaryResponse;
 import com.minimall.service.MemberService;
-import com.minimall.service.OrderService;
+import com.minimall.service.order.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

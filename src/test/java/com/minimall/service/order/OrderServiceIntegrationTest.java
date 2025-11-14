@@ -9,12 +9,11 @@ import com.minimall.domain.order.*;
 import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
-import com.minimall.api.order.dto.request.OrderCreateRequest;
-import com.minimall.api.order.dto.request.OrderItemCreateRequest;
-import com.minimall.api.order.dto.response.OrderCreateResponse;
 import com.minimall.api.order.dto.response.OrderDetailResponse;
 import com.minimall.api.order.dto.response.OrderSummaryResponse;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
+import com.minimall.service.order.dto.OrderCreateCommand;
+import com.minimall.service.order.dto.OrderItemCreateCommand;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
@@ -23,7 +22,6 @@ import com.minimall.api.order.pay.dto.PayRequest;
 import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
-import com.minimall.service.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
@@ -75,11 +73,13 @@ public class OrderServiceIntegrationTest {
 
     private Member member;
     private Member memberNullAddr;
+
     private Product book;
     private Product keyboard;
-    private OrderCreateRequest request1;
-    private OrderCreateRequest request2;
-    private OrderCreateRequest requestAddrNull;
+
+    private OrderCreateCommand createCommand1;
+    private OrderCreateCommand createCommand2;
+    private OrderCreateCommand requestAddrNull;
 
     static final int ORDER_QUANTITY = 10;
     static final long NOT_EXISTS_ID = 999_999_999_999_999L;
@@ -112,20 +112,20 @@ public class OrderServiceIntegrationTest {
         Member savedMemberAddrNull = memberRepository.save(memberNullAddr);
         Product savedKeyboard = productRepository.save(keyboard);
         Product savedBook = productRepository.save(book);
-        request1 = new OrderCreateRequest(
+        createCommand1 = new OrderCreateCommand(
                 savedMember.getId(),
-                List.of(new OrderItemCreateRequest(savedKeyboard.getId(), ORDER_QUANTITY),
-                        new OrderItemCreateRequest(savedBook.getId(), ORDER_QUANTITY)));
+                List.of(new OrderItemCreateCommand(savedKeyboard.getId(), ORDER_QUANTITY),
+                        new OrderItemCreateCommand(savedBook.getId(), ORDER_QUANTITY)));
 
-        request2 = new OrderCreateRequest(
+        createCommand2 = new OrderCreateCommand(
                 savedMember.getId(),
-                List.of(new OrderItemCreateRequest(savedKeyboard.getId(), 5),
-                        new OrderItemCreateRequest(savedBook.getId(), 5)));
+                List.of(new OrderItemCreateCommand(savedKeyboard.getId(), 5),
+                        new OrderItemCreateCommand(savedBook.getId(), 5)));
 
-        requestAddrNull = new OrderCreateRequest(
+        requestAddrNull = new OrderCreateCommand(
                 savedMemberAddrNull.getId(),
-                List.of(new OrderItemCreateRequest(savedKeyboard.getId(), 5),
-                        new OrderItemCreateRequest(savedBook.getId(), 5)));
+                List.of(new OrderItemCreateCommand(savedKeyboard.getId(), 5),
+                        new OrderItemCreateCommand(savedBook.getId(), 5)));
 
     }
 
@@ -141,15 +141,15 @@ public class OrderServiceIntegrationTest {
         @DisplayName("주문 생성 - DB 반영 및 기타 검증")
         void success() {
             //when
-            OrderCreateResponse order = orderService.createOrder(request1);
+            Order order = orderService.createOrder(createCommand1);
             flushClear();
 
             //then: DB 조회해서 검증
-            Order found = orderRepository.findById(order.id())
+            Order found = orderRepository.findById(order.getId())
                     .orElseThrow(() -> new AssertionError("주문이 저장되지 않음"));
 
             assertSoftly(softly -> {
-                softly.assertThat(found.getId()).isEqualTo(order.id());
+                softly.assertThat(found.getId()).isEqualTo(order.getId());
                 softly.assertThat(found.getOrderStatus()).isEqualTo(OrderStatus.ORDERED);
                 softly.assertThat(found.getOrderedAt()).isNotNull();
                 softly.assertThat(found.getMember().getId()).isEqualTo(member.getId());
@@ -185,12 +185,12 @@ public class OrderServiceIntegrationTest {
             long beforeOrderCount = orderRepository.count();
             long beforeStock = productRepository.findById(product.getId()).orElseThrow().getStockQuantity();
 
-            OrderCreateRequest request = new OrderCreateRequest(
+            OrderCreateCommand command = new OrderCreateCommand(
                     NOT_EXISTS_ID,
-                    List.of(new OrderItemCreateRequest(product.getId(), ORDER_QUANTITY)));
+                    List.of(new OrderItemCreateCommand(product.getId(), ORDER_QUANTITY)));
 
             //when
-            assertThatThrownBy(() -> orderService.createOrder(request))
+            assertThatThrownBy(() -> orderService.createOrder(command))
                     .isInstanceOf(MemberNotFoundException.class);
 
             flushClear();
@@ -212,13 +212,13 @@ public class OrderServiceIntegrationTest {
             long beforeOrderCount = orderRepository.count();
             Integer beforeStock = exists.getStockQuantity();
 
-            OrderCreateRequest request = new OrderCreateRequest(
+            OrderCreateCommand command = new OrderCreateCommand(
                     member.getId(),
-                    List.of(new OrderItemCreateRequest(exists.getId(), ORDER_QUANTITY),
-                            new OrderItemCreateRequest(NOT_EXISTS_ID, ORDER_QUANTITY)));
+                    List.of(new OrderItemCreateCommand(exists.getId(), ORDER_QUANTITY),
+                            new OrderItemCreateCommand(NOT_EXISTS_ID, ORDER_QUANTITY)));
 
             //when
-            assertThatThrownBy(() -> orderService.createOrder(request))
+            assertThatThrownBy(() -> orderService.createOrder(command))
                     .isInstanceOf(ProductNotFoundException.class);
 
             //then: 롤백: 주문 미생성, 실제 존재하는 주문 상품 재고 변화 없음
@@ -237,10 +237,10 @@ public class OrderServiceIntegrationTest {
         @DisplayName("주문 상세 단건 조회: 식별자, 일시, 상태, 총금액, 주문 항목, 결제, 배송 응답")
         void success() {
             //given
-            OrderCreateResponse order = orderService.createOrder(request1);
+            Order order = orderService.createOrder(createCommand1);
 
             //when
-            OrderDetailResponse result = orderService.getOrderDetail(order.id());
+            OrderDetailResponse result = orderService.getOrderDetail(order.getId());
 
             //then
             assertSoftly(softly -> {
@@ -272,8 +272,8 @@ public class OrderServiceIntegrationTest {
         @DisplayName("주문 목록 요약 조회: ")
         void success() {
             //given
-            orderService.createOrder(request1);
-            orderService.createOrder(request2);
+            orderService.createOrder(createCommand1);
+            orderService.createOrder(createCommand2);
 
             //when
             List<OrderSummaryResponse> result = orderService.getOrderSummaries(member.getId());
@@ -311,15 +311,15 @@ public class OrderServiceIntegrationTest {
         @DisplayName("결제: 주문 조회 -> 결제 -> 매퍼 dto 변환")
         void success() {
             //given
-            OrderCreateResponse order = orderService.createOrder(request1);
-            PayRequest request = new PayRequest(PayMethod.CARD, order.finalAmount());
+            Order order = orderService.createOrder(createCommand1);
+            PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
             //when
-            PayResponse result = orderService.processPayment(order.id(), request);
+            PayResponse result = orderService.processPayment(order.getId(), request);
 
             //then
             assertSoftly(softly -> {
-                softly.assertThat(result.payAmount()).isEqualTo(order.finalAmount());
+                softly.assertThat(result.payAmount()).isEqualTo(order.getOrderAmount().getFinalAmount());
             });
         }
 
@@ -327,15 +327,15 @@ public class OrderServiceIntegrationTest {
         @DisplayName("중복 결제 -> 예외 발생 + 기존 결제/주문 상태 유지")
         void shouldFail_whenDuplicatedPay() {
             //given
-            OrderCreateResponse order = orderService.createOrder(request1);
-            PayRequest request = new PayRequest(PayMethod.CARD, order.finalAmount());
-            orderService.processPayment(order.id(), request);
+            Order order = orderService.createOrder(createCommand1);
+            PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            orderService.processPayment(order.getId(), request);
 
             //then
-            assertThatThrownBy(() -> orderService.processPayment(order.id(), request))
+            assertThatThrownBy(() -> orderService.processPayment(order.getId(), request))
                     .isInstanceOf(OrderStatusException.class);
 
-            Order foundOrder = orderRepository.findById(order.id()).get();
+            Order foundOrder = orderRepository.findById(order.getId()).get();
             assertThat(foundOrder.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
             assertThat(foundOrder.getPay().getPayStatus()).isEqualTo(PayStatus.PAID);
         }
@@ -344,16 +344,16 @@ public class OrderServiceIntegrationTest {
         @DisplayName("주문 금액, 결제 금액 불일치 -> 예외 발생 + 주문 상태는 ORDERED 유지")
         void shouldFail_whenMismatchAmount() {
             //given
-            OrderCreateResponse order = orderService.createOrder(request1);
+            Order order = orderService.createOrder(createCommand1);
 
             int invalidAmount = 999_999;
             PayRequest request = new PayRequest(PayMethod.CARD, invalidAmount);
 
             //then
-            assertThatThrownBy(() -> orderService.processPayment(order.id(), request))
+            assertThatThrownBy(() -> orderService.processPayment(order.getId(), request))
                     .isInstanceOf(PayAmountMismatchException.class);
 
-            Order foundOrder = orderRepository.findById(order.id()).get();
+            Order foundOrder = orderRepository.findById(order.getId()).get();
             assertThat(foundOrder.getPay().getPayStatus()).isEqualTo(PayStatus.FAILED);
             assertThat(foundOrder.getOrderStatus()).isEqualTo(OrderStatus.ORDERED);
         }
@@ -366,7 +366,7 @@ public class OrderServiceIntegrationTest {
         @DisplayName("배송 준비: 결제된 주문 조회 -> delivery 생성 및 주소 세팅 -> address dto 변환 -> delivery dto 변환")
         void success() {
             //given
-            Long orderId = createOrderAndProcessPayment(request1);
+            Long orderId = createOrderAndProcessPayment(createCommand1);
             Address shipAddr = createSampleAddr();
 
             //when
@@ -384,7 +384,7 @@ public class OrderServiceIntegrationTest {
         @DisplayName("회원 주소 존재 / 배송 주소 null: 결제된 주문 조회 -> 회원 주소 조회 -> delivery 생성 및 주소 세팅 -> address dto 변환 -> delivery dto 변환")
         void success_whenShipAddrIsNullAndMemberAddrIsNotNull() {
             //given
-            Long orderId = createOrderAndProcessPayment(request1);
+            Long orderId = createOrderAndProcessPayment(createCommand1);
 
             //when
             DeliverySummaryResponse result = orderService.prepareDelivery(orderId, null);
@@ -424,7 +424,7 @@ public class OrderServiceIntegrationTest {
         @DisplayName("배송 시작: 배송 준비된 주문 조회 -> trackingNo, shippedAt 설정")
         void success() {
             //given
-            Long orderId = createOrderAndProcessPayment(request1);
+            Long orderId = createOrderAndProcessPayment(createCommand1);
             Address shipAddr = createSampleAddr();
             orderService.prepareDelivery(orderId, shipAddr);
 
@@ -444,10 +444,10 @@ public class OrderServiceIntegrationTest {
         @DisplayName("결제 되지 않은 상태 -> 예외")
         void shouldFail_whenNotPaid() {
             //given
-            OrderCreateResponse order = orderService.createOrder(request1);
+            Order order = orderService.createOrder(createCommand1);
 
             //when-then
-            assertThatThrownBy(() -> orderService.startDelivery(order.id(), trackingNo, shippedAt))
+            assertThatThrownBy(() -> orderService.startDelivery(order.getId(), trackingNo, shippedAt))
                     .isInstanceOf(DeliveryException.class);
         }
 
@@ -455,7 +455,7 @@ public class OrderServiceIntegrationTest {
         @DisplayName("배송 준비 되지 않은 상태 -> 예외")
         void shouldFail_whenNotPrepared() {
             //given
-            Long orderId = createOrderAndProcessPayment(request1);
+            Long orderId = createOrderAndProcessPayment(createCommand1);
 
             //when-then
             assertThatThrownBy(() -> orderService.startDelivery(orderId, trackingNo, shippedAt))
@@ -473,7 +473,7 @@ public class OrderServiceIntegrationTest {
         @DisplayName("배송 완료: 배송 중인 주문 운송장 번호로 조회 -> 도착 시간 설정")
         void success() {
             //given
-            Long orderId = createOrderAndProcessPayment(request1);
+            Long orderId = createOrderAndProcessPayment(createCommand1);
             Address shipAddr = createSampleAddr();
             orderService.prepareDelivery(orderId, shipAddr);
             startDelivery(orderId);
@@ -493,7 +493,7 @@ public class OrderServiceIntegrationTest {
         @DisplayName("도착 시간 null -> 지금 시간으로 설정")
         void success_whenArrivedAtIsNull() {
             //given
-            Long orderId = createOrderAndProcessPayment(request1);
+            Long orderId = createOrderAndProcessPayment(createCommand1);
             Address shipAddr = createSampleAddr();
             orderService.prepareDelivery(orderId, shipAddr);
             startDelivery(orderId);
@@ -513,10 +513,10 @@ public class OrderServiceIntegrationTest {
         @DisplayName("결제 되지 않은 상태 -> 예외")
         void shouldFail_whenNotPaid() {
             //given
-            OrderCreateResponse order = orderService.createOrder(request1);
+            Order order = orderService.createOrder(createCommand1);
 
             //when-then
-            assertThatThrownBy(() -> orderService.completeDelivery(order.id(), arrivedAt))
+            assertThatThrownBy(() -> orderService.completeDelivery(order.getId(), arrivedAt))
                     .isInstanceOf(DeliveryException.class);
         }
 
@@ -524,7 +524,7 @@ public class OrderServiceIntegrationTest {
         @DisplayName("배송 준비 되지 않은 상태 -> 예외")
         void shouldFail_whenNotPrepared() {
             //given
-            Long orderId = createOrderAndProcessPayment(request1);
+            Long orderId = createOrderAndProcessPayment(createCommand1);
 
             //when-then
             assertThatThrownBy(() -> orderService.completeDelivery(orderId, arrivedAt))
@@ -535,7 +535,7 @@ public class OrderServiceIntegrationTest {
         @DisplayName("배송 시작하지 않은 상태 -> 예외")
         void shouldFail_whenNotShipping() {
             //given
-            Long orderId = createOrderAndProcessPayment(request1);
+            Long orderId = createOrderAndProcessPayment(createCommand1);
             prepareDelivery(orderId);
 
             //when-then
@@ -554,10 +554,10 @@ public class OrderServiceIntegrationTest {
         }
     }
 
-    private Long createOrderAndProcessPayment(OrderCreateRequest request) {
-        OrderCreateResponse order = orderService.createOrder(request);
-        orderService.processPayment(order.id(), new PayRequest(PayMethod.CARD, order.finalAmount()));
-        return order.id();
+    private Long createOrderAndProcessPayment(OrderCreateCommand command) {
+        Order order = orderService.createOrder(command);
+        orderService.processPayment(order.getId(), new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount()));
+        return order.getId();
     }
 
     private Address createSampleAddr() {

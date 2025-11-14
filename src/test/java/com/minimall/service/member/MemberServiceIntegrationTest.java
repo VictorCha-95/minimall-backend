@@ -9,6 +9,7 @@ import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.domain.exception.DuplicateException;
+import com.minimall.domain.order.OrderRepository;
 import com.minimall.service.exception.NotFoundException;
 import com.minimall.service.MemberService;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +43,9 @@ public class MemberServiceIntegrationTest {
     @Autowired
     MemberRepository memberRepository;
 
+    @Autowired
+    OrderRepository orderRepository;
+
     private Member member;
     private MemberCreateRequest createRequest;
     private MemberUpdateRequest updateRequest;
@@ -69,6 +73,7 @@ public class MemberServiceIntegrationTest {
                 member.getAddr()
         );
 
+        orderRepository.deleteAll();
         memberRepository.deleteAll();
     }
 

@@ -27,10 +27,11 @@ import com.minimall.api.order.pay.dto.PayRequest;
 import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
-import com.minimall.service.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
+import com.minimall.service.order.dto.OrderCreateCommand;
+import com.minimall.service.order.dto.OrderItemCreateCommand;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -81,6 +82,8 @@ class OrderServiceTest {
     private OrderCreateRequest orderCreateRequest;
     private List<OrderItemResponse> orderItemResponses;
 
+    private OrderCreateCommand orderCreateCommand;
+
     private Member member;
     private Product book;
     private Product keyboard;
@@ -123,6 +126,13 @@ class OrderServiceTest {
         //== Product Entity ==//
         book = new Product("도서", 20000, 50);
         keyboard = new Product("키보드", 100000, 20);
+
+        orderCreateCommand = new OrderCreateCommand(
+                orderCreateRequest.memberId(),
+                orderCreateRequest.items().stream()
+                        .map(i -> new OrderItemCreateCommand(i.productId(), i.quantity()))
+                        .toList()
+        );
     }
 
     @Nested
@@ -138,7 +148,7 @@ class OrderServiceTest {
             given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
 
             //when
-            orderService.createOrder(orderCreateRequest);
+            orderService.createOrder(orderCreateCommand);
 
             //then: 호출검증
             then(memberRepository).should(times(1)).findById(MEMBER_ID);
@@ -170,7 +180,7 @@ class OrderServiceTest {
             given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.empty());
 
             //when & then: 예외
-            assertThatThrownBy(() -> orderService.createOrder(orderCreateRequest))
+            assertThatThrownBy(() -> orderService.createOrder(orderCreateCommand))
                     .isInstanceOfSatisfying(MemberNotFoundException.class, e -> {
                         assertThat(e.getMessage()).contains("id", orderCreateRequest.memberId().toString());
                     });
@@ -190,7 +200,7 @@ class OrderServiceTest {
             given(productRepository.findById(PRODUCT2_ID)).willReturn(Optional.empty());
 
             //when & then: 예외
-            assertThatThrownBy(() -> orderService.createOrder(orderCreateRequest))
+            assertThatThrownBy(() -> orderService.createOrder(orderCreateCommand))
                     .isInstanceOfSatisfying(ProductNotFoundException.class, e -> {
                         assertThat(e.getMessage()).contains("id", PRODUCT2_ID.toString());
                     });

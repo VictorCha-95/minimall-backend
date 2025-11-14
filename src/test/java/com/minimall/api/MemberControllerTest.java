@@ -8,10 +8,10 @@ import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.OrderRepository;
-import com.minimall.api.order.dto.request.OrderCreateRequest;
-import com.minimall.api.order.dto.request.OrderItemCreateRequest;
+import com.minimall.service.order.dto.OrderCreateCommand;
+import com.minimall.service.order.dto.OrderItemCreateCommand;
 import com.minimall.domain.product.Product;
-import com.minimall.service.OrderService;
+import com.minimall.service.order.OrderService;
 import com.minimall.service.ProductService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.MemberService;
@@ -74,6 +74,7 @@ class MemberControllerTest {
 
     @BeforeEach
     void setUp() {
+        orderRepository.deleteAll();
         memberRepository.deleteAll();
     }
 
@@ -456,10 +457,10 @@ class MemberControllerTest {
                     memberService.create(new MemberCreateRequest("loginId123", "12345", "박지성", "ex@ex.com", null));
             Member foundMember = memberRepository.findById(member.id()).get();
 
-            orderService.createOrder(new OrderCreateRequest(foundMember.getId(),
-                    List.of(new OrderItemCreateRequest(book.getId(), 10))));
-            orderService.createOrder(new OrderCreateRequest(foundMember.getId(),
-                    List.of(new OrderItemCreateRequest(mouse.getId(), 10))));
+            orderService.createOrder(new OrderCreateCommand(foundMember.getId(),
+                    List.of(new OrderItemCreateCommand(book.getId(), 10))));
+            orderService.createOrder(new OrderCreateCommand(foundMember.getId(),
+                    List.of(new OrderItemCreateCommand(mouse.getId(), 10))));
 
             //when
             ResultActions result = mockMvc.perform(get("/members/" + foundMember.getId() + "/orders"));

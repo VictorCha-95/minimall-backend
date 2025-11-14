@@ -32,6 +32,7 @@ import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
 import com.minimall.service.order.dto.OrderCreateCommand;
 import com.minimall.service.order.dto.OrderItemCreateCommand;
+import com.minimall.service.order.dto.PayCommand;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -341,31 +342,20 @@ class OrderServiceTest {
             given(orderRepository.findById(1L)).willReturn(Optional.of(order));
 
             Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
-            PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            PayCommand command = new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
-            given(payMapper.toEntity(request)).willReturn(pay);
-
-            given(payMapper.toPaySummary(any(Pay.class))).willAnswer(inv -> {
-                Pay p = inv.getArgument(0, Pay.class);
-                return new PayResponse(
-                        p.getPayMethod(),
-                        p.getPayAmount(),
-                        p.getPayStatus(),
-                        p.getPaidAt()
-                );
-            });
+            given(payMapper.toEntity(command)).willReturn(pay);
 
             //when
-            PayResponse result = orderService.processPayment(1L, request);
+            Pay result = orderService.processPayment(1L, command);
 
             //then
             assertSoftly(softly -> {
-                softly.assertThat(result.payAmount()).isEqualTo(order.getOrderAmount().getFinalAmount());
+                softly.assertThat(result.getPayAmount()).isEqualTo(order.getOrderAmount().getFinalAmount());
             });
 
             then(orderRepository).should(times(1)).findById(1L);
-            then(payMapper).should(times(1)).toEntity(request);
-            then(payMapper).should(times(1)).toPaySummary(pay);
+            then(payMapper).should(times(1)).toEntity(command);
         }
 
         @Test
@@ -376,24 +366,14 @@ class OrderServiceTest {
             given(orderRepository.findById(1L)).willReturn(Optional.of(order));
 
             Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
-            PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            PayCommand command = new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
-            given(payMapper.toEntity(request)).willReturn(pay);
+            given(payMapper.toEntity(command)).willReturn(pay);
 
-            given(payMapper.toPaySummary(any(Pay.class))).willAnswer(inv -> {
-                Pay p = inv.getArgument(0, Pay.class);
-                return new PayResponse(
-                        p.getPayMethod(),
-                        p.getPayAmount(),
-                        p.getPayStatus(),
-                        p.getPaidAt()
-                );
-            });
-
-            orderService.processPayment(1L, request); // 첫 번째 결제
+            orderService.processPayment(1L, command); // 첫 번째 결제
 
             //then
-            assertThatThrownBy(() -> orderService.processPayment(1L, request))
+            assertThatThrownBy(() -> orderService.processPayment(1L, command))
                     .isInstanceOfSatisfying(OrderStatusException.class, e -> {
                         assertThat(e.getMessage()).contains(DomainType.ORDER.toString());
                         assertThat(e.getMessage()).contains("상태 오류");
@@ -401,8 +381,7 @@ class OrderServiceTest {
                     });
 
             then(orderRepository).should(times(2)).findById(1L);
-            then(payMapper).should(times(2)).toEntity(request);
-            then(payMapper).should(times(1)).toPaySummary(pay);
+            then(payMapper).should(times(2)).toEntity(command);
         }
 
         @Test
@@ -415,12 +394,12 @@ class OrderServiceTest {
             int invalidAmount = 999_999;
 
             Pay pay = new Pay(PayMethod.CARD, invalidAmount);
-            PayRequest request = new PayRequest(PayMethod.CARD, invalidAmount);
+            PayCommand command = new PayCommand(PayMethod.CARD, invalidAmount);
 
-            given(payMapper.toEntity(request)).willReturn(pay);
+            given(payMapper.toEntity(command)).willReturn(pay);
 
             //then
-            assertThatThrownBy(() -> orderService.processPayment(1L, request))
+            assertThatThrownBy(() -> orderService.processPayment(1L, command))
                     .isInstanceOfSatisfying(PayAmountMismatchException.class, e -> {
                         assertThat(e.getMessage()).contains("결제 금액");
                         assertThat(e.getMessage()).contains(String.valueOf(invalidAmount));
@@ -428,7 +407,7 @@ class OrderServiceTest {
                     });
 
             then(orderRepository).should(times(1)).findById(1L);
-            then(payMapper).should(times(1)).toEntity(request);
+            then(payMapper).should(times(1)).toEntity(command);
         }
 
         private @NotNull Order createSampleOrder() {

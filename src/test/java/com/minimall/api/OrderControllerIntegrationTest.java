@@ -20,6 +20,7 @@ import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.order.OrderService;
 import com.minimall.service.order.dto.OrderItemCreateCommand;
+import com.minimall.service.order.dto.PayCommand;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -259,14 +260,11 @@ class OrderControllerIntegrationTest {
                     .content(objectMapper.writeValueAsString(request)));
 
             //then
-            MvcResult mvcResult = result.andExpect(status().isCreated())
+            MvcResult mvcResult = result.andExpect(status().isOk())
                     .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                     .andExpect(jsonPath("$.payAmount").value(order.getOrderAmount().getFinalAmount()))
                     .andExpect(jsonPath("$.payStatus").value("PAID"))
                     .andReturn();
-
-            String location = mvcResult.getResponse().getHeader("Location");
-            assertThat(location).endsWith("/orders/" + id + "/payment");
         }
 
         @Test
@@ -281,7 +279,7 @@ class OrderControllerIntegrationTest {
             mockMvc.perform(post("/orders/{id}/payment", id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated());
+                    .andExpect(status().isOk());
 
             // when-then(2): 동일 요청 재시도 -> 422
             mockMvc.perform(post("/orders/{id}/payment", id)
@@ -362,7 +360,7 @@ class OrderControllerIntegrationTest {
         private long createOrderAndProcessPayment(OrderCreateCommand command) {
             Order order = orderService.createOrder(command);
             Long id = order.getId();
-            orderService.processPayment(id, new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount()));
+            orderService.processPayment(id, new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount()));
             return id;
         }
 
@@ -392,7 +390,7 @@ class OrderControllerIntegrationTest {
             Long orderId = order.getId();
             orderService.processPayment(
                     orderId,
-                    new PayRequest(PayMethod.MOBILE_PAY, order.getOrderAmount().getFinalAmount()));
+                    new PayCommand(PayMethod.MOBILE_PAY, order.getOrderAmount().getFinalAmount()));
             return orderId;
         }
 
@@ -472,7 +470,7 @@ class OrderControllerIntegrationTest {
         private Long processPayment() {
             Order order = orderService.createOrder(orderCreateCommand);
             Long orderId = order.getId();
-            orderService.processPayment(orderId, new PayRequest(PayMethod.MOBILE_PAY, order.getOrderAmount().getFinalAmount()));
+            orderService.processPayment(orderId, new PayCommand(PayMethod.MOBILE_PAY, order.getOrderAmount().getFinalAmount()));
             return orderId;
         }
 

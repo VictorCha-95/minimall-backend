@@ -4,6 +4,7 @@ import com.minimall.domain.exception.DomainRuleException;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.service.exception.NotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,8 +15,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 400: @RequestBody DTO 검증 실패(@Valid)
-    @ExceptionHandler(MethodArgumentNotValidException.class)
+    // 400: @RequestBody, @RequestParam, @PathVariable 검증 실패(@Valid)
+    @ExceptionHandler({
+            MethodArgumentNotValidException.class,
+            ConstraintViolationException.class
+    })
     public ResponseEntity<ErrorResponse> handleInvalidBody(
             MethodArgumentNotValidException ex, HttpServletRequest req) {
 

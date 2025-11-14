@@ -12,9 +12,10 @@ import com.minimall.service.order.dto.OrderCreateCommand;
 import com.minimall.service.order.dto.OrderItemCreateCommand;
 import com.minimall.domain.product.Product;
 import com.minimall.service.order.OrderService;
-import com.minimall.service.ProductService;
+import com.minimall.service.product.ProductService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.MemberService;
+import com.minimall.service.product.dto.ProductRegisterCommand;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -450,8 +451,8 @@ class MemberControllerTest {
         @DisplayName("주문 목록 요약 조회 -> 200 + JSON 검증")
         void success() throws Exception {
             //given
-            Product book = productService.register(new Product("도서", 10_000, 20));
-            Product mouse = productService.register(new Product("마우스", 20_000, 50));
+            Product book = productService.register(new ProductRegisterCommand("도서", 10_000, 20));
+            Product mouse = productService.register(new ProductRegisterCommand("마우스", 20_000, 50));
 
             MemberSummaryResponse member =
                     memberService.create(new MemberCreateRequest("loginId123", "12345", "박지성", "ex@ex.com", null));

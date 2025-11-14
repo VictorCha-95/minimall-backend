@@ -65,7 +65,7 @@ public class Product extends BaseEntity {
         stockQuantity = realQuantity;
     }
 
-    public void removeAllStock() {
+    public void clearStock() {
         stockQuantity = 0;
     }
 

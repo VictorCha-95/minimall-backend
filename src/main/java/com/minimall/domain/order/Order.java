@@ -122,12 +122,13 @@ public class Order extends BaseEntity {
         orderStatus = OrderStatus.CANCELED;
     }
 
-    public void processPayment(Pay pay) {
+    public Pay processPayment(Pay pay) {
         Guards.requireNotNull(pay, PaymentRequiredException::required);
         ensureCanTransition(OrderStatus.CONFIRMED);
         setPay(pay);
         completePay(pay);
         orderStatus = OrderStatus.CONFIRMED;
+        return pay;
     }
 
     private void completePay(Pay pay) {

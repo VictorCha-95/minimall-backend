@@ -7,13 +7,15 @@ import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
 import com.minimall.api.order.dto.OrderMapper;
 import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
 import com.minimall.api.order.dto.response.OrderCreateResponse;
+import com.minimall.api.order.pay.dto.PayMapper;
+import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.api.common.embeddable.AddressDto;
 import com.minimall.api.common.embeddable.AddressMapper;
 import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.order.Order;
-import com.minimall.domain.order.OrderAmount;
 import com.minimall.domain.order.OrderStatus;
+import com.minimall.domain.order.Pay;
 import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.api.order.dto.request.OrderCreateRequest;
@@ -21,18 +23,18 @@ import com.minimall.api.order.dto.request.OrderItemCreateRequest;
 import com.minimall.api.order.dto.response.OrderDetailResponse;
 import com.minimall.api.order.dto.response.OrderItemResponse;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
+import com.minimall.domain.order.pay.PayStatus;
 import com.minimall.service.order.dto.OrderCreateCommand;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.exception.PaymentRequiredException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
-import com.minimall.domain.order.pay.PayStatus;
 import com.minimall.api.order.pay.dto.PayRequest;
-import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.service.order.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
+import com.minimall.service.order.dto.PayCommand;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -64,6 +66,9 @@ public class OrderControllerTest {
 
     @MockitoBean
     OrderMapper orderMapper;
+
+    @MockitoBean
+    PayMapper payMapper;
 
     @MockitoBean
     AddressMapper addressMapper;
@@ -254,14 +259,20 @@ public class OrderControllerTest {
             long orderId = 123L;
             PayRequest request = new PayRequest(PayMethod.CARD, 100_000);
 
-            PayResponse response = new PayResponse(
+            Pay pay = new Pay(
                     PayMethod.CARD,
-                    100_000,
-                    PayStatus.PAID,
-                    LocalDateTime.of(2025, 11, 11, 13, 30));
+                    100_000);
 
-            given(orderService.processPayment(eq(orderId), any(PayRequest.class)))
-                    .willReturn(response);
+            given(orderService.processPayment(eq(orderId), any(PayCommand.class)))
+                    .willReturn(pay);
+
+            given(payMapper.toPaySummary(pay))
+                    .willReturn(new PayResponse(
+                            PayMethod.CARD,
+                            100_000,
+                            PayStatus.PAID,
+                            LocalDateTime.of(2025, 11, 14, 12, 30)
+                    ));
 
             //when
             ResultActions result = mockMvc.perform(post("/orders/" + orderId + "/payment")
@@ -269,8 +280,7 @@ public class OrderControllerTest {
                     .content(objectMapper.writeValueAsString(request)));
 
             //then
-            result.andExpect(status().isCreated())
-                    .andExpect(header().string("Location", Matchers.endsWith("/orders/" + orderId + "/payment")))
+            result.andExpect(status().isOk())
                     .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                     .andExpect(jsonPath("$.payAmount").value(100_000))
                     .andExpect(jsonPath("$.payStatus").value("PAID"));
@@ -283,21 +293,19 @@ public class OrderControllerTest {
             long orderId = 123L;
             PayRequest request = new PayRequest(PayMethod.CARD, 100_000);
 
-            PayResponse response = new PayResponse(
+            Pay pay = new Pay(
                     PayMethod.CARD,
-                    100_000,
-                    PayStatus.PAID,
-                    LocalDateTime.of(2025, 11, 11, 13, 30));
+                    100_000);
 
-            given(orderService.processPayment(eq(orderId), any(PayRequest.class)))
-                    .willReturn(response)
+            given(orderService.processPayment(eq(orderId), any(PayCommand.class)))
+                    .willReturn(pay)
                     .willThrow(OrderStatusException.class);
 
             // when-then(1): 첫 결제 성공 -> 201
             mockMvc.perform(post("/orders/{id}/payment", orderId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated());
+                    .andExpect(status().isOk());
 
             // when-then(2): 동일 요청 재시도 -> 422
             mockMvc.perform(post("/orders/{id}/payment", orderId)
@@ -314,7 +322,7 @@ public class OrderControllerTest {
             long orderId = 123L;
             PayRequest request = new PayRequest(PayMethod.CARD, 100_000);
 
-            given(orderService.processPayment(eq(orderId), any(PayRequest.class)))
+            given(orderService.processPayment(eq(orderId), any(PayCommand.class)))
                     .willThrow(PayAmountMismatchException.class);
 
             // when-then

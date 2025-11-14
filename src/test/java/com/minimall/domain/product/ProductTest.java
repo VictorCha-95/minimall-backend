@@ -219,7 +219,7 @@ public class ProductTest {
                 Product product = new Product(DEFAULT_NAME, DEFAULT_PRICE, 50);
 
                 //when
-                product.removeAllStock();
+                product.clearStock();
 
                 //then
                 assertThat(product.getStockQuantity()).isZero();

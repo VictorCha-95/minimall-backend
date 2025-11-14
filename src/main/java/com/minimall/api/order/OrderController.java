@@ -4,6 +4,7 @@ import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
 import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
 import com.minimall.api.order.dto.OrderMapper;
 import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
+import com.minimall.api.order.pay.dto.PayMapper;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.api.common.embeddable.AddressDto;
 import com.minimall.api.common.embeddable.AddressMapper;
@@ -13,9 +14,11 @@ import com.minimall.api.order.dto.response.OrderDetailResponse;
 import com.minimall.api.order.pay.dto.PayRequest;
 import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.order.Order;
+import com.minimall.domain.order.Pay;
 import com.minimall.service.order.dto.OrderItemCreateCommand;
 import com.minimall.service.order.OrderService;
 import com.minimall.service.order.dto.OrderCreateCommand;
+import com.minimall.service.order.dto.PayCommand;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -36,6 +39,7 @@ public class OrderController {
 
     private final OrderService orderService;
     private final OrderMapper orderMapper;
+    private final PayMapper payMapper;
     private final AddressMapper addressMapper;
 
     @Operation(summary = "주문 생성")
@@ -83,9 +87,10 @@ public class OrderController {
     @PostMapping("/{id}/payment")
     public ResponseEntity<PayResponse> processPayment(@PathVariable Long id,
                                                       @Valid @RequestBody PayRequest request) {
-        PayResponse body = orderService.processPayment(id, request);
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest().build().toUri();
-        return ResponseEntity.created(location).body(body);
+        PayCommand command = new PayCommand(request.payMethod(), request.payAmount());
+        Pay pay = orderService.processPayment(id, command);
+        PayResponse body = payMapper.toPaySummary(pay);
+        return ResponseEntity.ok(body);
     }
 
     @Operation(summary = "배송 준비")
@@ -115,7 +120,7 @@ public class OrderController {
     })
     @PatchMapping("/{id}/delivery")
     public ResponseEntity<Void> startDelivery(@PathVariable Long id,
-                                              @RequestBody StartDeliveryRequest request) {
+                                              @Valid @RequestBody StartDeliveryRequest request) {
 
         orderService.startDelivery(id, request.trackingNo(), request.shippedAt());
         return ResponseEntity.noContent().build();
@@ -130,7 +135,7 @@ public class OrderController {
     })
     @PatchMapping("/{id}/delivery/complete")
     public ResponseEntity<Void> completeDelivery(@PathVariable Long id,
-                                                 @RequestBody CompleteDeliveryRequest request) {
+                                                 @Valid @RequestBody CompleteDeliveryRequest request) {
 
         orderService.completeDelivery(id, request.arrivedAt());
         return ResponseEntity.noContent().build();

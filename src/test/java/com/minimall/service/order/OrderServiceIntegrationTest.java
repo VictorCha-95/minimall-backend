@@ -18,13 +18,12 @@ import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
 import com.minimall.domain.order.pay.PayStatus;
-import com.minimall.api.order.pay.dto.PayRequest;
-import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
+import com.minimall.service.order.dto.PayCommand;
 import jakarta.persistence.EntityManager;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
@@ -312,14 +311,14 @@ public class OrderServiceIntegrationTest {
         void success() {
             //given
             Order order = orderService.createOrder(createCommand1);
-            PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            PayCommand command = new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
             //when
-            PayResponse result = orderService.processPayment(order.getId(), request);
+            Pay result = orderService.processPayment(order.getId(), command);
 
             //then
             assertSoftly(softly -> {
-                softly.assertThat(result.payAmount()).isEqualTo(order.getOrderAmount().getFinalAmount());
+                softly.assertThat(result.getPayAmount()).isEqualTo(order.getOrderAmount().getFinalAmount());
             });
         }
 
@@ -328,11 +327,11 @@ public class OrderServiceIntegrationTest {
         void shouldFail_whenDuplicatedPay() {
             //given
             Order order = orderService.createOrder(createCommand1);
-            PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
-            orderService.processPayment(order.getId(), request);
+            PayCommand command = new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            orderService.processPayment(order.getId(), command);
 
             //then
-            assertThatThrownBy(() -> orderService.processPayment(order.getId(), request))
+            assertThatThrownBy(() -> orderService.processPayment(order.getId(), command))
                     .isInstanceOf(OrderStatusException.class);
 
             Order foundOrder = orderRepository.findById(order.getId()).get();
@@ -347,10 +346,10 @@ public class OrderServiceIntegrationTest {
             Order order = orderService.createOrder(createCommand1);
 
             int invalidAmount = 999_999;
-            PayRequest request = new PayRequest(PayMethod.CARD, invalidAmount);
+            PayCommand command = new PayCommand(PayMethod.CARD, invalidAmount);
 
             //then
-            assertThatThrownBy(() -> orderService.processPayment(order.getId(), request))
+            assertThatThrownBy(() -> orderService.processPayment(order.getId(), command))
                     .isInstanceOf(PayAmountMismatchException.class);
 
             Order foundOrder = orderRepository.findById(order.getId()).get();
@@ -556,7 +555,7 @@ public class OrderServiceIntegrationTest {
 
     private Long createOrderAndProcessPayment(OrderCreateCommand command) {
         Order order = orderService.createOrder(command);
-        orderService.processPayment(order.getId(), new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount()));
+        orderService.processPayment(order.getId(), new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount()));
         return order.getId();
     }
 

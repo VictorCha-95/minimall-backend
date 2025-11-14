@@ -8,19 +8,18 @@ import com.minimall.api.common.embeddable.AddressDto;
 import com.minimall.api.common.embeddable.AddressMapper;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
+import com.minimall.domain.order.Order;
 import com.minimall.domain.order.OrderRepository;
 import com.minimall.api.order.dto.request.OrderCreateRequest;
 import com.minimall.api.order.dto.request.OrderItemCreateRequest;
 import com.minimall.api.order.dto.response.OrderCreateResponse;
-import com.minimall.domain.order.delivery.DeliveryException;
-import com.minimall.domain.order.delivery.DeliveryStatusException;
-import com.minimall.domain.order.exception.PaymentRequiredException;
+import com.minimall.service.order.dto.OrderCreateCommand;
 import com.minimall.domain.order.pay.PayMethod;
 import com.minimall.api.order.pay.dto.PayRequest;
-import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
-import com.minimall.service.OrderService;
+import com.minimall.service.order.OrderService;
+import com.minimall.service.order.dto.OrderItemCreateCommand;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,12 +40,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.BDDMockito.*;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.times;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -90,6 +83,9 @@ class OrderControllerIntegrationTest {
     private OrderCreateRequest orderCreateRequest;
     private OrderCreateRequest createRequestMemberAddrIsNull;
 
+    private OrderCreateCommand orderCreateCommand;
+    private OrderCreateCommand createCommandMemberAddrIsNull;
+
     private static final long NOT_EXIST_ID = 999_999_999L;
 
 
@@ -103,6 +99,7 @@ class OrderControllerIntegrationTest {
                 .email("cts9458@naver.com")
                 .addr(new Address("12345", "광주광역시", "광산구", "수등로76번길 40", "123동 1501호"))
                 .build();
+
         Member memberAddrIsNull = Member.builder()
                 .loginId("user1")
                 .password("abc12345")
@@ -110,6 +107,7 @@ class OrderControllerIntegrationTest {
                 .email("cts9458@naver.com")
                 .addr(null)
                 .build();
+
         savedMember = memberRepository.save(member);
         savedMemberAddrIsNull = memberRepository.save(memberAddrIsNull);
 
@@ -128,6 +126,20 @@ class OrderControllerIntegrationTest {
         //== OrderCreateRequest ==//
         orderCreateRequest = new OrderCreateRequest(savedMember.getId(), orderItems);
         createRequestMemberAddrIsNull = new OrderCreateRequest(savedMemberAddrIsNull.getId(), orderItems);
+
+        orderCreateCommand = new OrderCreateCommand(
+                orderCreateRequest.memberId(),
+                orderCreateRequest.items().stream()
+                        .map(i -> new OrderItemCreateCommand(i.productId(), i.quantity()))
+                        .toList()
+        );
+
+         createCommandMemberAddrIsNull = new OrderCreateCommand(
+                createRequestMemberAddrIsNull.memberId(),
+                 createRequestMemberAddrIsNull.items().stream()
+                        .map(i -> new OrderItemCreateCommand(i.productId(), i.quantity()))
+                        .toList()
+        );
     }
 
     @Nested
@@ -200,15 +212,16 @@ class OrderControllerIntegrationTest {
         @DisplayName("주문 단건 상세 조회 -> 200 + JSON 검증")
         void return200_whenSuccess() throws Exception {
             //given
-            OrderCreateResponse order = orderService.createOrder(orderCreateRequest);
+            Order order = orderService.createOrder(orderCreateCommand);
+            Long id = order.getId();
 
             //when
-            ResultActions result = mockMvc.perform(get("/orders/" + order.id()));
+            ResultActions result = mockMvc.perform(get("/orders/" + id));
 
             //then
             result.andExpect(status().isOk())
                     .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                    .andExpect(jsonPath("$.id").value(order.id()));
+                    .andExpect(jsonPath("$.id").value(id));
         }
 
         @Test
@@ -236,43 +249,42 @@ class OrderControllerIntegrationTest {
         @DisplayName("주문 결제 처리 -> 201 + Location 헤더 + JSON 검증")
         void success() throws Exception{
             //given
-            OrderCreateResponse order = orderService.createOrder(orderCreateRequest);
-            PayRequest request = new PayRequest(PayMethod.CARD, order.finalAmount());
+            Order order = orderService.createOrder(orderCreateCommand);
+            Long id = order.getId();
+            PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
             //when
-            ResultActions result = mockMvc.perform(post("/orders/" + order.id() + "/payment")
+            ResultActions result = mockMvc.perform(post("/orders/" + id + "/payment")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
             //then
             MvcResult mvcResult = result.andExpect(status().isCreated())
                     .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                    .andExpect(jsonPath("$.payAmount").value(order.finalAmount()))
+                    .andExpect(jsonPath("$.payAmount").value(order.getOrderAmount().getFinalAmount()))
                     .andExpect(jsonPath("$.payStatus").value("PAID"))
                     .andReturn();
 
-            String json = mvcResult.getResponse().getContentAsString();
-            PayResponse body = objectMapper.readValue(json, PayResponse.class);
-
             String location = mvcResult.getResponse().getHeader("Location");
-            assertThat(location).endsWith("/orders/" + order.id() + "/payment");
+            assertThat(location).endsWith("/orders/" + id + "/payment");
         }
 
         @Test
         @DisplayName("중복 결제 -> 422 Unprocessable Entity")
         void shouldFail_whenDuplicatedPay() throws Exception{
             ///given
-            OrderCreateResponse order = orderService.createOrder(orderCreateRequest);
-            PayRequest request = new PayRequest(PayMethod.CARD, order.finalAmount());
+            Order order = orderService.createOrder(orderCreateCommand);
+            Long id = order.getId();
+            PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
             // when-then(1): 첫 결제 성공 -> 201
-            mockMvc.perform(post("/orders/{id}/payment", order.id())
+            mockMvc.perform(post("/orders/{id}/payment", id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated());
 
             // when-then(2): 동일 요청 재시도 -> 422
-            mockMvc.perform(post("/orders/{id}/payment", order.id())
+            mockMvc.perform(post("/orders/{id}/payment", id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnprocessableEntity())
@@ -284,11 +296,12 @@ class OrderControllerIntegrationTest {
         void shouldFail_whenMismatchAmount() throws Exception{
             ///given
             int invalidAmount = 999_999;
-            OrderCreateResponse order = orderService.createOrder(orderCreateRequest);
+            Order order = orderService.createOrder(orderCreateCommand);
+            Long id = order.getId();
             PayRequest request = new PayRequest(PayMethod.CARD, invalidAmount);
 
             // when-then
-            mockMvc.perform(post("/orders/{id}/payment", order.id())
+            mockMvc.perform(post("/orders/{id}/payment", id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnprocessableEntity())
@@ -312,7 +325,7 @@ class OrderControllerIntegrationTest {
         @DisplayName("배송 준비 -> 201 + Location + JSON 검증")
         void success() throws Exception {
             // given
-            long orderId = createOrderAndProcessPayment(orderCreateRequest);
+            long orderId = createOrderAndProcessPayment(orderCreateCommand);
 
             AddressDto requestAddrDto = createSampleAddrDto();
 
@@ -332,7 +345,7 @@ class OrderControllerIntegrationTest {
         @DisplayName("회원 주소 / 배송 주소 없음 -> 422 에러")
         void shouldFail_whenShipAddrAndMemberAddrIsNull() throws Exception {
             // given
-            long orderId = createOrderAndProcessPayment(createRequestMemberAddrIsNull);
+            long orderId = createOrderAndProcessPayment(createCommandMemberAddrIsNull);
             Member member = memberRepository.findById(createRequestMemberAddrIsNull.memberId()).get();
             assertThat(member.getAddr()).isNull();
 
@@ -346,10 +359,11 @@ class OrderControllerIntegrationTest {
                     .andExpect(jsonPath("$.status").value(422));
         }
 
-        private long createOrderAndProcessPayment(OrderCreateRequest request) {
-            OrderCreateResponse order = orderService.createOrder(request);
-            orderService.processPayment(order.id(), new PayRequest(PayMethod.CARD, order.finalAmount()));
-            return order.id();
+        private long createOrderAndProcessPayment(OrderCreateCommand command) {
+            Order order = orderService.createOrder(command);
+            Long id = order.getId();
+            orderService.processPayment(id, new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount()));
+            return id;
         }
 
 
@@ -374,9 +388,11 @@ class OrderControllerIntegrationTest {
         }
 
         private Long processPayment() {
-            OrderCreateResponse order = orderService.createOrder(orderCreateRequest);
-            Long orderId = order.id();
-            orderService.processPayment(orderId, new PayRequest(PayMethod.MOBILE_PAY, order.finalAmount()));
+            Order order = orderService.createOrder(orderCreateCommand);
+            Long orderId = order.getId();
+            orderService.processPayment(
+                    orderId,
+                    new PayRequest(PayMethod.MOBILE_PAY, order.getOrderAmount().getFinalAmount()));
             return orderId;
         }
 
@@ -400,8 +416,8 @@ class OrderControllerIntegrationTest {
         @DisplayName("결제 되지 않은 상태 -> 422 에러")
         void shouldFail_whenNotPaid() throws Exception {
             // given
-            OrderCreateResponse order = orderService.createOrder(orderCreateRequest);
-            Long orderId = order.id();
+            Order order = orderService.createOrder(orderCreateCommand);
+            Long orderId = order.getId();
 
             // when
             ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery", orderId)
@@ -454,9 +470,9 @@ class OrderControllerIntegrationTest {
         }
 
         private Long processPayment() {
-            OrderCreateResponse order = orderService.createOrder(orderCreateRequest);
-            Long orderId = order.id();
-            orderService.processPayment(orderId, new PayRequest(PayMethod.MOBILE_PAY, order.finalAmount()));
+            Order order = orderService.createOrder(orderCreateCommand);
+            Long orderId = order.getId();
+            orderService.processPayment(orderId, new PayRequest(PayMethod.MOBILE_PAY, order.getOrderAmount().getFinalAmount()));
             return orderId;
         }
 
@@ -496,8 +512,8 @@ class OrderControllerIntegrationTest {
         @DisplayName("결제 되지 않은 상태 -> 422 에러")
         void shouldFail_whenNotPaid() throws Exception {
             // given
-            OrderCreateResponse order = orderService.createOrder(orderCreateRequest);
-            Long orderId = order.id();
+            Order order = orderService.createOrder(orderCreateCommand);
+            Long orderId = order.getId();
 
             // when
             ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)

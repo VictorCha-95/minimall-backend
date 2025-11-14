@@ -1,4 +1,4 @@
-package com.minimall.service;
+package com.minimall.service.order;
 
 import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
 import com.minimall.domain.embeddable.Address;
@@ -14,14 +14,13 @@ import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.api.order.delivery.dto.DeliveryMapper;
 import com.minimall.api.order.dto.OrderMapper;
-import com.minimall.api.order.dto.request.OrderCreateRequest;
-import com.minimall.api.order.dto.request.OrderItemCreateRequest;
-import com.minimall.api.order.dto.response.OrderCreateResponse;
 import com.minimall.api.order.dto.response.OrderDetailResponse;
 import com.minimall.api.order.dto.response.OrderSummaryResponse;
 import com.minimall.api.order.pay.dto.PayMapper;
 import com.minimall.api.order.pay.dto.PayRequest;
 import com.minimall.api.order.pay.dto.PayResponse;
+import com.minimall.service.order.dto.OrderCreateCommand;
+import com.minimall.service.order.dto.OrderItemCreateCommand;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.exception.MemberNotFoundException;
@@ -33,9 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -50,16 +47,25 @@ public class OrderService {
     private final DeliveryMapper deliveryMapper;
     
     //== 주문 생성 ==//
-    public OrderCreateResponse createOrder(OrderCreateRequest request) {
+    public Order createOrder(OrderCreateCommand command) {
 
-        Member member = findMember(request.memberId());
+        Member member = findMember(command.memberId());
 
-        List<OrderItem> orderItems = createOrderItems(request);
+        Order order = Order.createOrder(
+                member,
+                command.items().stream()
+                        .map(this::toOrderItem)
+                        .toArray(OrderItem[]::new));
 
-        Order order = Order.createOrder(member, orderItems.toArray(OrderItem[]::new));
         orderRepository.save(order);
 
-        return orderMapper.toCreateResponse(order);
+        return order;
+    }
+
+    private OrderItem toOrderItem(OrderItemCreateCommand command) {
+        Long productId = command.productId();
+        Product product = findProductById(productId);
+        return OrderItem.createOrderItem(product, command.quantity());
     }
 
     //== 주문 조회 ==//
@@ -127,31 +133,20 @@ public class OrderService {
         order.completeDelivery(arrivedAt);
     }
 
-
-
-
     //== 헬퍼 메서드 ==//
     private Order findOrderById(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("id", orderId));
     }
 
+    private Product findProductById(Long productId) {
+        return productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException("id", productId));
+    }
+
     private Member findMember(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberNotFoundException("id", memberId));
-    }
-
-    private List<OrderItem> createOrderItems(OrderCreateRequest request) {
-        return request.items().stream()
-                .map(this::toOrderItem)
-                .toList();
-    }
-
-    private OrderItem toOrderItem(OrderItemCreateRequest item) {
-        Product product = productRepository.findById(item.productId())
-                .orElseThrow(() -> new ProductNotFoundException("id", item.productId()));
-
-        return OrderItem.createOrderItem(product, item.quantity());
     }
 
 }

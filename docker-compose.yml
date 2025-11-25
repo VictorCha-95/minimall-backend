@@ -1,0 +1,35 @@
+services:
+  app:
+    build: .
+    container_name: minimall-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/minimall?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&autoReconnect=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: rootpw
+
+      # 개발 환경이니까 update 가능
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.4
+    container_name: minimall-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpw
+      MYSQL_DATABASE: minimall
+      TZ: Asia/Seoul
+    ports:
+      - "3307:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:

@@ -73,7 +73,7 @@ public class ProductControllerIntegrationTest {
         }
 
         @Test
-        @DisplayName("상품명 공백 -> 400 에러")
+        @DisplayName("상품명 공백 -> 422 에러")
         void shouldFail_whenNameIsBlank() throws Exception {
             //given
             ProductRegisterRequest request = new ProductRegisterRequest("", 150_000, 50);
@@ -84,7 +84,7 @@ public class ProductControllerIntegrationTest {
                     .content(objectMapper.writeValueAsString(request)));
 
             //then
-            result.andExpect(status().isBadRequest());
+            result.andExpect(status().isUnprocessableEntity());
         }
 
     }

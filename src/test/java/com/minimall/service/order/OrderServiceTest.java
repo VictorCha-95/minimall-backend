@@ -137,7 +137,7 @@ class OrderServiceTest {
     }
 
     @Nested
-    @DisplayName("createOrder(CreateRequestDto)")
+    @DisplayName("createOrder(OrderCreateCommand)")
     class CreateOrder {
         @Test
         @DisplayName("주문 생성 - 주문 기본 정보 및 연관관계 검증")
@@ -332,7 +332,7 @@ class OrderServiceTest {
     }
 
     @Nested
-    @DisplayName("processPayment(Long, PayRequestDto)")
+    @DisplayName("processPayment(Long, PayCommand)")
     class ProcessPayment {
         @Test
         @DisplayName("결제: 주문 조회 -> 결제 -> 매퍼 dto 변환")

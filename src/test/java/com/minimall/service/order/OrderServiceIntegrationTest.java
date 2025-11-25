@@ -134,7 +134,7 @@ public class OrderServiceIntegrationTest {
     }
 
     @Nested
-    @DisplayName("createOrder(createRequestDto)")
+    @DisplayName("createOrder(OrderCreateCommand)")
     class CreateOrder {
         @Test
         @DisplayName("주문 생성 - DB 반영 및 기타 검증")
@@ -304,7 +304,7 @@ public class OrderServiceIntegrationTest {
     }
 
     @Nested
-    @DisplayName("processPayment(Long, PayRequestDto)")
+    @DisplayName("processPayment(Long, PayCommand)")
     class ProcessPayment {
         @Test
         @DisplayName("결제: 주문 조회 -> 결제 -> 매퍼 dto 변환")

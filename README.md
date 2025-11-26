@@ -259,6 +259,7 @@ src
     │       └── config
     └── resources
         ├── application.yml
+```
 
 ## 10. 로컬 실행 방법
 

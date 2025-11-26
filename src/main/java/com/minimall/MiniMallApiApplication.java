@@ -12,4 +12,6 @@ public class MiniMallApiApplication {
 		SpringApplication.run(MiniMallApiApplication.class, args);
 	}
 
+
+
 }

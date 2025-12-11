@@ -1,0 +1,54 @@
+package com.minimall.service.member.dto;
+
+import com.minimall.api.member.dto.response.MemberDetailResponse;
+import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
+import com.minimall.api.member.dto.response.MemberSummaryResponse;
+import com.minimall.api.order.dto.OrderMapper;
+import com.minimall.domain.embeddable.Address;
+import com.minimall.domain.member.Member;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
+
+import java.util.List;
+
+@Mapper(
+        componentModel = "spring",
+        uses = OrderMapper.class,
+        unmappedTargetPolicy = ReportingPolicy.ERROR
+)
+public interface MemberServiceMapper {
+
+    // == Command -> Domain == //
+    default Member toEntity(MemberCreateCommand command) {
+
+        Address address = null;
+        if (command.addr() != null) {
+                address = new Address(
+                    command.addr().postcode(),
+                    command.addr().state(),
+                    command.addr().city(),
+                    command.addr().street(),
+                    command.addr().detail()
+            );
+        }
+
+        return Member.create(
+                command.loginId(),
+                command.password(),
+                command.name(),
+                command.email(),
+                address
+        );
+    }
+
+    // == Domain -> Response == //
+    MemberSummaryResponse toSummaryResponse(Member member);
+
+    List<MemberSummaryResponse> toSummaryResponseList(List<Member> members);
+
+    MemberDetailResponse toDetailResponse(Member member);
+
+    @Mapping(target = "orders", source = "orders")
+    MemberDetailWithOrdersResponse toDetailWithOrdersResponse(Member member);
+}

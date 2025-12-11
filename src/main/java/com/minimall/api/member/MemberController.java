@@ -1,12 +1,14 @@
 package com.minimall.api.member;
 
+import com.minimall.api.member.dto.MemberApiMapper;
 import com.minimall.api.member.dto.request.MemberCreateRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.api.order.dto.response.OrderSummaryResponse;
-import com.minimall.service.MemberService;
+import com.minimall.domain.member.Member;
+import com.minimall.service.member.MemberService;
 import com.minimall.service.order.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -27,6 +29,7 @@ public class MemberController {
 
     private final MemberService memberService;
     private final OrderService orderService;
+    private final MemberApiMapper memberApiMapper;
 
     //== 회원 조회 ==//
     @Operation(summary = "회원 전체 조회", description = "모든 회원 요약 조회")
@@ -93,7 +96,8 @@ public class MemberController {
     @Operation(summary = "회원 생성")
     @PostMapping
     public MemberSummaryResponse create(@Valid @RequestBody MemberCreateRequest request) {
-        return memberService.create(request);
+        Member member = memberService.create(memberApiMapper.toCreateCommand(request));
+        return memberApiMapper.toSummaryResponse(member);
     }
 
     //== 회원 수정 ==//

@@ -1,6 +1,7 @@
 package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minimall.api.member.dto.request.MemberAddressRequest;
 import com.minimall.api.member.dto.request.MemberCreateRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
@@ -8,13 +9,15 @@ import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.OrderRepository;
+import com.minimall.service.member.dto.MemberAddressCommand;
+import com.minimall.service.member.dto.MemberCreateCommand;
 import com.minimall.service.order.dto.OrderCreateCommand;
 import com.minimall.service.order.dto.OrderItemCreateCommand;
 import com.minimall.domain.product.Product;
 import com.minimall.service.order.OrderService;
 import com.minimall.service.product.ProductService;
 import com.minimall.service.exception.MemberNotFoundException;
-import com.minimall.service.MemberService;
+import com.minimall.service.member.MemberService;
 import com.minimall.service.product.dto.ProductRegisterCommand;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,8 +89,8 @@ class MemberControllerTest {
         @DisplayName("정상 -> 회원 전체 조회")
         void success() throws Exception {
             //given
-            memberService.create(createRequestDto("member1", "손흥민"));
-            memberService.create(createRequestDto("member2", "박지성"));
+            memberService.create(createCommand("member1", "손흥민"));
+            memberService.create(createCommand("member2", "박지성"));
             MemberSummaryResponse member1 = memberService.getSummaryByLoginId("member1");
             MemberSummaryResponse member2 = memberService.getSummaryByLoginId("member2");
 
@@ -130,10 +133,10 @@ class MemberControllerTest {
         @DisplayName("정상 -> 회원 단건 상세 조회")
         void success() throws Exception {
             //given
-            MemberSummaryResponse createdMember = memberService.create(createRequestDto("member123", "손흥민"));
+            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/" + createdMember.id()));
+            ResultActions result = mockMvc.perform(get("/members/" + createdMember.getId()));
 
             //then
             assertMemberDetail(createdMember, result);
@@ -161,10 +164,10 @@ class MemberControllerTest {
         @DisplayName("성공 -> 회원 단건 요약 조회")
         void success() throws Exception {
             //given
-            MemberSummaryResponse createdMember = memberService.create(createRequestDto("member123", "손흥민"));
+            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/" + createdMember.id() + "/summary"));
+            ResultActions result = mockMvc.perform(get("/members/" + createdMember.getId() + "/summary"));
 
             //then
             assertMemberSummary(createdMember, result);
@@ -200,11 +203,11 @@ class MemberControllerTest {
         @DisplayName("정상 -> 회원 상세 조회")
         void success() throws Exception {
             //given
-            MemberSummaryResponse createdMember = memberService.create(createRequestDto("member123", "손흥민"));
+            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
 
             //when
             ResultActions result = mockMvc.perform(get("/members/by-email")
-                    .param("email", createdMember.loginId() + "@example.com"));
+                    .param("email", createdMember.getLoginId() + "@example.com"));
 
             //then
             assertMemberDetail(createdMember, result);
@@ -228,11 +231,11 @@ class MemberControllerTest {
     @Test
     void getDetailByEmail_success() throws Exception {
         //given
-        MemberSummaryResponse createdMember = memberService.create(createRequestDto("member123", "손흥민"));
+        Member createdMember = memberService.create(createCommand("member123", "손흥민"));
 
         //when
         ResultActions result = mockMvc.perform(get("/members/by-email")
-                .param("email", createdMember.loginId() + "@example.com"));
+                .param("email", createdMember.getLoginId() + "@example.com"));
 
         //then
         assertMemberDetail(createdMember, result);
@@ -254,11 +257,11 @@ class MemberControllerTest {
     @Test
     void getSummaryByEmail_success() throws Exception {
         //given
-        MemberSummaryResponse createdMember = memberService.create(createRequestDto("member123", "손흥민"));
+        Member createdMember = memberService.create(createCommand("member123", "손흥민"));
 
         //when
         ResultActions result = mockMvc.perform(get("/members/by-email/summary")
-                .param("email", createdMember.loginId() + "@example.com"));
+                .param("email", createdMember.getLoginId() + "@example.com"));
 
         //then
         assertMemberSummary(createdMember, result);
@@ -280,11 +283,11 @@ class MemberControllerTest {
     @Test
     void getDetailByLoginId_success() throws Exception {
         //given
-        MemberSummaryResponse createdMember = memberService.create(createRequestDto("member123", "손흥민"));
+        Member createdMember = memberService.create(createCommand("member123", "손흥민"));
 
         //when
         ResultActions result = mockMvc.perform(get("/members/by-loginId")
-                .param("loginId", createdMember.loginId()));
+                .param("loginId", createdMember.getLoginId()));
 
         //then
         assertMemberDetail(createdMember, result);
@@ -306,11 +309,11 @@ class MemberControllerTest {
     @Test
     void getSummaryByLoginId_success() throws Exception {
         //given
-        MemberSummaryResponse createdMember = memberService.create(createRequestDto("member123", "손흥민"));
+        Member createdMember = memberService.create(createCommand("member123", "손흥민"));
 
         //when
         ResultActions result = mockMvc.perform(get("/members/by-loginId/summary")
-                .param("loginId", createdMember.loginId()));
+                .param("loginId", createdMember.getLoginId()));
 
         //then
         assertMemberSummary(createdMember, result);
@@ -333,7 +336,7 @@ class MemberControllerTest {
     @Test
     void create_success() throws Exception {
         //given
-        MemberCreateRequest request = createRequestDto("new123", "새로운 회원");
+        MemberCreateRequest request = createRequest("new123", "새로운 회원");
 
         //when
         ResultActions result = mockMvc.perform(post("/members")
@@ -349,8 +352,8 @@ class MemberControllerTest {
     @Test
     void create_shouldFail_whenDuplicateLoginId() throws Exception {
         //given
-        MemberCreateRequest request1 = createRequestDto("new123", "새로운 회원1");
-        MemberCreateRequest request2 = createRequestDto("new123", "새로운 회원2");
+        MemberCreateRequest request1 = createRequest("new123", "새로운 회원1");
+        MemberCreateRequest request2 = createRequest("new123", "새로운 회원2");
 
         //when
         mockMvc.perform(post("/members")
@@ -372,17 +375,17 @@ class MemberControllerTest {
     @Test
     void update_success() throws Exception {
         //given
-        MemberSummaryResponse createdMember = memberService.create(createRequestDto("new123", "새로운 회원"));
+        Member createdMember = memberService.create(createCommand("new123", "새로운 회원"));
         MemberUpdateRequest updateRequest = new MemberUpdateRequest("12345", "수정된 회원", "updated@example.com", null);
 
         //when
-        ResultActions result = mockMvc.perform(patch("/members/" + createdMember.id())
+        ResultActions result = mockMvc.perform(patch("/members/" + createdMember.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateRequest)));
 
         //then
         result.andExpect(status().isOk())
-                .andExpect(jsonPath("$.loginId").value(createdMember.loginId()))
+                .andExpect(jsonPath("$.loginId").value(createdMember.getLoginId()))
                 .andExpect(jsonPath("$.name").value(updateRequest.name()))
                 .andExpect(jsonPath("$.email").value(updateRequest.email()))
                 //PATCH: 주소는 수정 요청 없었으므로 기존 값 유지
@@ -396,10 +399,10 @@ class MemberControllerTest {
     @Test
     void update_shouldFail_whenDuplicateEmail() throws Exception {
         //given
-        memberService.create(new MemberCreateRequest("original123", "12345", "original",
+        memberService.create(new MemberCreateCommand("original123", "12345", "original",
                 "original123@example.com", null));
 
-        MemberSummaryResponse otherMember = memberService.create(new MemberCreateRequest("other123", "12345", "other",
+        Member otherMember = memberService.create(new MemberCreateCommand("other123", "12345", "other",
                 "other123@example.com", null));
 
         MemberUpdateRequest updateRequest = new MemberUpdateRequest("12345", "다른 회원",
@@ -407,7 +410,7 @@ class MemberControllerTest {
 
 
         //when 중복 이메일로 업데이트 시도
-        ResultActions result = mockMvc.perform(patch("/members/" + otherMember.id())
+        ResultActions result = mockMvc.perform(patch("/members/" + otherMember.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateRequest)));
 
@@ -421,15 +424,15 @@ class MemberControllerTest {
     @Test
     void delete_success() throws Exception {
         //given
-        MemberSummaryResponse createdMember = memberService.create(createRequestDto("member123", "손흥민"));
+        Member createdMember = memberService.create(createCommand("member123", "손흥민"));
 
         //when
-        ResultActions result = mockMvc.perform(delete("/members/" + createdMember.id()));
+        ResultActions result = mockMvc.perform(delete("/members/" + createdMember.getId()));
 
         //then
         result.andExpect(status().isOk());
 
-        assertThrows(MemberNotFoundException.class, () -> memberService.getDetail(createdMember.id()));
+        assertThrows(MemberNotFoundException.class, () -> memberService.getDetail(createdMember.getId()));
     }
 
     @Test
@@ -454,9 +457,9 @@ class MemberControllerTest {
             Product book = productService.register(new ProductRegisterCommand("도서", 10_000, 20));
             Product mouse = productService.register(new ProductRegisterCommand("마우스", 20_000, 50));
 
-            MemberSummaryResponse member =
-                    memberService.create(new MemberCreateRequest("loginId123", "12345", "박지성", "ex@ex.com", null));
-            Member foundMember = memberRepository.findById(member.id()).get();
+            Member member =
+                    memberService.create(new MemberCreateCommand("loginId123", "12345", "박지성", "ex@ex.com", null));
+            Member foundMember = memberRepository.findById(member.getId()).get();
 
             orderService.createOrder(new OrderCreateCommand(foundMember.getId(),
                     List.of(new OrderItemCreateCommand(book.getId(), 10))));
@@ -477,8 +480,8 @@ class MemberControllerTest {
         @DisplayName("회원 주문 없음: 빈 리스트 반환")
         void returnEmpty_whenOrderIsEmpty() throws Exception {
             //given
-            MemberSummaryResponse member = memberService.create(new MemberCreateRequest("loginId123", "12345", "박지성", "ex@ex.com", null));
-            Member foundMember = memberRepository.findById(member.id()).get();
+            Member member = memberService.create(new MemberCreateCommand("loginId123", "12345", "박지성", "ex@ex.com", null));
+            Member foundMember = memberRepository.findById(member.getId()).get();
 
             //when
             ResultActions result = mockMvc.perform(get("/members/" + foundMember.getId() + "/orders"));
@@ -493,11 +496,11 @@ class MemberControllerTest {
 
 
     //== Validate Methods ==//
-    private void assertMemberDetail(MemberSummaryResponse member, ResultActions result) throws Exception {
+    private void assertMemberDetail(Member member, ResultActions result) throws Exception {
         result.andExpect(status().isOk())
-                .andExpect(jsonPath("$.loginId").value(member.loginId()))
-                .andExpect(jsonPath("$.name").value(member.name()))
-                .andExpect(jsonPath("$.email").value(member.loginId() + "@example.com"))
+                .andExpect(jsonPath("$.loginId").value(member.getLoginId()))
+                .andExpect(jsonPath("$.name").value(member.getName()))
+                .andExpect(jsonPath("$.email").value(member.getLoginId() + "@example.com"))
                 .andExpect(jsonPath("$.addr.postcode").value("12345"))
                 .andExpect(jsonPath("$.addr.state").value("서울특별시"))
                 .andExpect(jsonPath("$.addr.city").value("강남구"))
@@ -505,10 +508,10 @@ class MemberControllerTest {
                 .andExpect(jsonPath("$.addr.detail").value("101동 202호"));
     }
 
-    private void assertMemberSummary(MemberSummaryResponse member, ResultActions result) throws Exception {
+    private void assertMemberSummary(Member member, ResultActions result) throws Exception {
         result.andExpect(status().isOk())
-                .andExpect(jsonPath("$.loginId").value(member.loginId()))
-                .andExpect(jsonPath("$.name").value(member.name()));
+                .andExpect(jsonPath("$.loginId").value(member.getLoginId()))
+                .andExpect(jsonPath("$.name").value(member.getName()));
     }
 
     private static void assertNotFoundMemberError(ResultActions result, String fieldName, Object fieldValue) throws Exception {
@@ -519,8 +522,13 @@ class MemberControllerTest {
 
 
     //== Helper Methods==//
-    private MemberCreateRequest createRequestDto(String loginId, String name) {
+    private MemberCreateCommand createCommand(String loginId, String name) {
+        return new MemberCreateCommand(loginId, "12345", name, loginId + "@example.com",
+                new MemberAddressCommand("12345", "서울특별시", "강남구", "테헤란로 1", "101동 202호"));
+    }
+
+    private MemberCreateRequest createRequest(String loginId, String name) {
         return new MemberCreateRequest(loginId, "12345", name, loginId + "@example.com",
-                Address.createAddress("12345", "서울특별시", "강남구", "테헤란로 1", "101동 202호"));
+                new MemberAddressRequest("12345", "서울특별시", "강남구", "테헤란로 1", "101동 202호"));
     }
 }

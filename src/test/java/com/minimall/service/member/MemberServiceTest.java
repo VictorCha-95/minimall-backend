@@ -6,12 +6,12 @@ import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.api.member.dto.MemberMapper;
-import com.minimall.api.member.dto.request.MemberCreateRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.service.exception.MemberNotFoundException;
-import com.minimall.service.MemberService;
+import com.minimall.service.member.dto.MemberAddressCommand;
+import com.minimall.service.member.dto.MemberCreateCommand;
+import com.minimall.service.member.dto.MemberServiceMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ import static org.mockito.Mockito.*;
 class MemberServiceTest {
 
     @Mock
-    MemberMapper memberMapper;
+    MemberServiceMapper memberServiceMapper;
 
     @Mock
     MemberRepository memberRepository;
@@ -42,7 +42,7 @@ class MemberServiceTest {
     MemberService memberService;
 
     private Member member;
-    private MemberCreateRequest createRequest;
+    private MemberCreateCommand createCommand;
     private MemberUpdateRequest updateRequest;
     private MemberDetailResponse detailResponse;
     private MemberSummaryResponse summaryResponse;
@@ -60,7 +60,8 @@ class MemberServiceTest {
                 .build();
 
         //== CreateRequest DTO ==//
-        createRequest = new MemberCreateRequest(member.getLoginId(), member.getPassword(), member.getName(), member.getEmail(), member.getAddr());
+        createCommand = new MemberCreateCommand(member.getLoginId(), member.getPassword(), member.getName(), member.getEmail(),
+                new MemberAddressCommand(member.getAddr().getPostcode(), member.getAddr().getState(), member.getAddr().getCity(), member.getAddr().getStreet(), member.getAddr().getDetail()));
 
         //== UpdateRequest DTO ==//
         updateRequest = new MemberUpdateRequest(
@@ -81,21 +82,19 @@ class MemberServiceTest {
     @Test
     void createMember_success() {
         //given
-        when(memberRepository.existsByLoginId(createRequest.loginId())).thenReturn(false);
-        when(memberRepository.existsByEmail(createRequest.email())).thenReturn(false);
-        when(memberMapper.toEntity(createRequest)).thenReturn(member);
-        when(memberMapper.toSummaryResponse(member)).thenReturn(summaryResponse);
+        when(memberRepository.existsByLoginId(createCommand.loginId())).thenReturn(false);
+        when(memberRepository.existsByEmail(createCommand.email())).thenReturn(false);
+        when(memberServiceMapper.toEntity(createCommand)).thenReturn(member);
         when(memberRepository.save(member)).thenReturn(member);
 
         //when
-        MemberSummaryResponse result = memberService.create(createRequest);
+        Member result = memberService.create(createCommand);
 
         //then
-        assertThat(result).isEqualTo(summaryResponse);
-        verify(memberRepository).existsByLoginId(createRequest.loginId());
-        verify(memberRepository).existsByEmail(createRequest.email());
-        verify(memberMapper).toEntity(createRequest);
-        verify(memberMapper).toSummaryResponse(member);
+        assertThat(result).isEqualTo(member);
+        verify(memberRepository).existsByLoginId(createCommand.loginId());
+        verify(memberRepository).existsByEmail(createCommand.email());
+        verify(memberServiceMapper).toEntity(createCommand);
         verify(memberRepository).save(member);
     }
 
@@ -103,28 +102,28 @@ class MemberServiceTest {
     @DisplayName("회원 등록 시 로그인 아이디 중복일 경우 예외 발생")
     void createMember_duplicateLoginId_shouldFail() {
         //given
-        when(memberRepository.existsByLoginId(createRequest.loginId())).thenReturn(true);
+        when(memberRepository.existsByLoginId(createCommand.loginId())).thenReturn(true);
 
         //then
         DuplicateException duplicateException =
-                assertThrows(DuplicateException.class, () -> memberService.create(createRequest));
+                assertThrows(DuplicateException.class, () -> memberService.create(createCommand));
         assertThat(duplicateException.getMessage()).contains("loginId", "사용 중", member.getLoginId());
-        verify(memberRepository).existsByLoginId(createRequest.loginId());
+        verify(memberRepository).existsByLoginId(createCommand.loginId());
     }
 
     @Test
     @DisplayName("회원 등록 시 이메일 중복일 경우 예외 발생")
     void createMember_duplicateEmail_shouldFail() {
         //given
-        when(memberRepository.existsByLoginId(createRequest.loginId())).thenReturn(false);
-        when(memberRepository.existsByEmail(createRequest.email())).thenReturn(true);
+        when(memberRepository.existsByLoginId(createCommand.loginId())).thenReturn(false);
+        when(memberRepository.existsByEmail(createCommand.email())).thenReturn(true);
 
         //then
         DuplicateException duplicateException =
-                assertThrows(DuplicateException.class, () -> memberService.create(createRequest));
+                assertThrows(DuplicateException.class, () -> memberService.create(createCommand));
         assertThat(duplicateException.getMessage()).contains("email", "사용 중", member.getEmail());
-        verify(memberRepository).existsByLoginId(createRequest.loginId());
-        verify(memberRepository).existsByEmail(createRequest.email());
+        verify(memberRepository).existsByLoginId(createCommand.loginId());
+        verify(memberRepository).existsByEmail(createCommand.email());
     }
 
     //== update ==//
@@ -133,7 +132,7 @@ class MemberServiceTest {
         //given
         when(memberRepository.findByEmail(updateRequest.email())).thenReturn(Optional.empty());
         when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
-        when(memberMapper.toDetailResponse(member)).thenReturn(detailResponse);
+        when(memberServiceMapper.toDetailResponse(member)).thenReturn(detailResponse);
 
         //when
         MemberDetailResponse result = memberService.update(1L, updateRequest);
@@ -142,7 +141,7 @@ class MemberServiceTest {
         assertThat(result).isEqualTo(detailResponse);
         verify(memberRepository).findByEmail(updateRequest.email());
         verify(memberRepository).findById(1L);
-        verify(memberMapper).toDetailResponse(member);
+        verify(memberServiceMapper).toDetailResponse(member);
     }
 
     @Test
@@ -220,7 +219,7 @@ class MemberServiceTest {
     void getMembers() {
         //given
         when(memberRepository.findAll(Sort.by("id").ascending())).thenReturn(List.of(member));
-        when(memberMapper.toSummaryResponse(member)).thenReturn(summaryResponse);
+        when(memberServiceMapper.toSummaryResponse(member)).thenReturn(summaryResponse);
 
         //when
         List<MemberSummaryResponse> result = memberService.getMembers();
@@ -228,7 +227,7 @@ class MemberServiceTest {
         //then
         assertThat(result).containsExactly(summaryResponse);
         verify(memberRepository).findAll(Sort.by("id").ascending());
-        verify(memberMapper).toSummaryResponse(member);
+        verify(memberServiceMapper).toSummaryResponse(member);
     }
 
 

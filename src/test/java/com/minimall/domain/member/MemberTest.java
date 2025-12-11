@@ -1,8 +1,11 @@
 package com.minimall.domain.member;
 
 import com.minimall.domain.embeddable.Address;
-import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.exception.DomainExceptionMessage;
+import com.minimall.domain.member.exception.InvalidEmailException;
+import com.minimall.domain.member.exception.InvalidLoginIdException;
+import com.minimall.domain.member.exception.InvalidMemberNameException;
+import com.minimall.domain.member.exception.InvalidPasswordException;
 import com.minimall.domain.order.Order;
 import com.minimall.domain.order.OrderItem;
 import com.minimall.domain.product.Product;

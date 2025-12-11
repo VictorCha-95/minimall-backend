@@ -8,7 +8,6 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
 
-      # RDS 연결 정보 (실제 값으로 바꿔야 함)
       SPRING_DATASOURCE_URL: jdbc:mysql://minimall-rds.cbiss8uq8eb8.eu-north-1.rds.amazonaws.com:3306/minimall?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: rootpassword

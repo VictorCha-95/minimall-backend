@@ -1,4 +1,4 @@
-package com.minimall.domain.member;
+package com.minimall.domain.member.exception;
 
 import com.minimall.domain.exception.DomainExceptionMessage;
 import com.minimall.domain.exception.DomainRuleException;

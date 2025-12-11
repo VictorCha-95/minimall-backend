@@ -7,4 +7,14 @@ public record MemberCreateCommand(
         String email,
         MemberAddressCommand addr
 ) {
+
+    public MemberCreateCommand withEncodedPassword(String encodedPassword){
+        return new MemberCreateCommand(
+                this.loginId,
+                encodedPassword,
+                this.name,
+                this.email,
+                this.addr
+        );
+    }
 }

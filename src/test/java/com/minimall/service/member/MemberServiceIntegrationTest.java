@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.MySQLContainer;
@@ -47,6 +48,9 @@ public class MemberServiceIntegrationTest {
 
     @Autowired
     OrderRepository orderRepository;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
 
     private Member member;
     private MemberCreateRequest createRequest;
@@ -116,6 +120,25 @@ public class MemberServiceIntegrationTest {
 
         //then
         assertThrows(DuplicateException.class, () -> memberService.create(duplicateEmailCommand));
+    }
+
+    @Test
+    void createMember_encryptPassword(){
+        //given
+        MemberCreateCommand command = new MemberCreateCommand(
+                "login123",
+                "plainPassword",  // 평문
+                "손흥민",
+                "son@example.com",
+                null
+        );
+
+        //when
+        Member member = memberService.create(command);
+
+        //then
+        assertThat(member.getPassword()).isNotEqualTo("plainPassword");
+        assertThat(passwordEncoder.matches("plainPassword", member.getPassword())).isTrue();
     }
 
     //== update ==//

@@ -11,5 +11,6 @@ public enum ApiErrorCode {
     DOMAIN_RULE_VIOLATION,   // 도메인 규칙 위반(재고부족, 상태전이 불가 등)
     DUPLICATE_VALUE,
     CONFLICT,                // 중복/무결성 위반
-    INTERNAL_ERROR           // 예상 못한 서버 오류
+    INTERNAL_ERROR,          // 예상 못한 서버 오류
+    INVALID_CREDENTIALS      // 로그인 시 비밀번호 오류 등 권한 오류
 }

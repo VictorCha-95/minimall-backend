@@ -2,6 +2,7 @@ package com.minimall.api.exception;
 
 import com.minimall.domain.exception.DomainRuleException;
 import com.minimall.domain.exception.DuplicateException;
+import com.minimall.service.exception.InvalidCredentialException;
 import com.minimall.service.exception.NotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -27,6 +28,19 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 ApiErrorCode.VALIDATION_ERROR,
                 "Validation failed",
+                req.getRequestURI()
+        );
+    }
+
+    // 401: 로그인 시 비밀번호 오류
+    @ExceptionHandler(InvalidCredentialException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredential(
+            InvalidCredentialException ex, HttpServletRequest req) {
+
+        return ErrorResponse.of(
+                HttpStatus.UNAUTHORIZED,
+                ApiErrorCode.INVALID_CREDENTIALS,
+                ex.getMessage(),
                 req.getRequestURI()
         );
     }

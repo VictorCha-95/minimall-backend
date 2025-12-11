@@ -7,8 +7,10 @@ import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.domain.exception.DuplicateException;
+import com.minimall.service.exception.InvalidCredentialException;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.member.dto.MemberCreateCommand;
+import com.minimall.service.member.dto.MemberLoginCommand;
 import com.minimall.service.member.dto.MemberServiceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -26,6 +28,17 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final MemberServiceMapper memberServiceMapper;
     private final PasswordEncoder passwordEncoder;
+
+    //== 로그인 ==//
+    @Transactional
+    public Member login(MemberLoginCommand command) {
+        Member member = findMemberByLoginId(command.loginId());
+        if (!passwordEncoder.matches(command.password(), member.getPassword())){
+            throw new InvalidCredentialException("password not matched");
+        }
+
+        return member;
+    }
 
     //== 생성 ==//
     @Transactional

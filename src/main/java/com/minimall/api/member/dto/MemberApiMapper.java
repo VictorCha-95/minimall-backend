@@ -21,6 +21,7 @@ public interface MemberApiMapper {
     // ===== Request -> Command (API → Service) ===== //
 
     //== Create ==//
+    @Mapping(target = "withEncodedPassword", ignore = true)
     MemberCreateCommand toCreateCommand(MemberCreateRequest request);
 
     //== Update ==//
@@ -37,9 +38,5 @@ public interface MemberApiMapper {
 
     //== List 변환 ==//
     List<MemberSummaryResponse> toListResponseList(List<Member> members);
-
-    // ===== Domain -> Response (Service → API) =====
-
-
 
 }

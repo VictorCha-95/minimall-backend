@@ -12,6 +12,7 @@ import com.minimall.service.member.dto.MemberCreateCommand;
 import com.minimall.service.member.dto.MemberServiceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final MemberServiceMapper memberServiceMapper;
+    private final PasswordEncoder passwordEncoder;
 
     //== 생성 ==//
     @Transactional
@@ -31,7 +33,10 @@ public class MemberService {
         validateDuplicateLoginId(command.loginId());
         validateDuplicateEmail(command.email());
 
-        Member member = memberServiceMapper.toEntity(command);
+        String encodedPassword = passwordEncoder.encode(command.password());
+        MemberCreateCommand encodedCommand = command.withEncodedPassword(encodedPassword);
+
+        Member member = memberServiceMapper.toEntity(encodedCommand);
         return memberRepository.save(member);
     }
 

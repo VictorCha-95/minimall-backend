@@ -2,6 +2,7 @@ package com.minimall.api.member;
 
 import com.minimall.api.member.dto.MemberApiMapper;
 import com.minimall.api.member.dto.request.MemberCreateRequest;
+import com.minimall.api.member.dto.request.MemberLoginRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
@@ -30,6 +31,15 @@ public class MemberController {
     private final MemberService memberService;
     private final OrderService orderService;
     private final MemberApiMapper memberApiMapper;
+
+    //== 로그인 ==//
+    @Operation(summary = "회원 로그인")
+    @PostMapping("/login")
+    public ResponseEntity<MemberSummaryResponse> login(@RequestBody @Valid MemberLoginRequest request){
+        Member member = memberService.login(memberApiMapper.toLoginCommand(request));
+        MemberSummaryResponse response = memberApiMapper.toSummaryResponse(member);
+        return ResponseEntity.ok(response);
+    }
 
     //== 회원 조회 ==//
     @Operation(summary = "회원 전체 조회", description = "모든 회원 요약 조회")
@@ -111,7 +121,8 @@ public class MemberController {
     //== 회원 삭제 ==//
     @Operation(summary = "회원 삭제", description = "기존 회원 삭제")
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         memberService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

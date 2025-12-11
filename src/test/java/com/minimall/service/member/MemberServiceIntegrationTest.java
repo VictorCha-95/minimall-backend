@@ -11,10 +11,15 @@ import com.minimall.domain.member.MemberRepository;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.domain.order.OrderRepository;
+import com.minimall.service.exception.InvalidCredentialException;
+import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.NotFoundException;
 import com.minimall.service.member.dto.MemberAddressCommand;
 import com.minimall.service.member.dto.MemberCreateCommand;
+import com.minimall.service.member.dto.MemberLoginCommand;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -89,218 +94,279 @@ public class MemberServiceIntegrationTest {
         memberRepository.deleteAll();
     }
 
-    //== create ==//
-    @Test
-    void createMember_success() {
-        //when
-        Member created = memberService.create(createCommand);
+    @Nested
+    @DisplayName("login(MemberLoginCommand)")
+    class Login {
+        @Test
+        @DisplayName("로그인 성공: DB 회원 조회 -> 비밀번호 검증")
+        void success() {
+            //given
+            Member member = memberService.create(createCommand);
+            MemberLoginCommand command = new MemberLoginCommand(createCommand.loginId(), createCommand.password());
 
-        //then
-        MemberSummaryResponse found = memberService.getSummary(created.getId());
-        assertThat(found.name()).isEqualTo(created.getName());
+            //when
+            Member result = memberService.login(command);
+
+            //then
+            assertThat(result).isEqualTo(member);
+        }
+
+        @Test
+        @DisplayName("비밀번호 오류 -> InvalidCredentialException 예외 발생")
+        void shouldFail_whenPasswordIsNotMatch() {
+            //given
+            memberService.create(createCommand);
+            MemberLoginCommand command = new MemberLoginCommand(createCommand.loginId(), "wrong_password");
+
+            //when & then
+            assertThatThrownBy(() -> memberService.login(command))
+                    .isInstanceOf(InvalidCredentialException.class);
+        }
+
+        @Test
+        @DisplayName("회원 아이디 오류 -> MemberNotFound 예외 발생")
+        void shouldFail_whenMemberIsNotFound() {
+            //given
+            memberService.create(createCommand);
+            MemberLoginCommand command = new MemberLoginCommand("wrong_loginId", createCommand.password());
+
+            //when & then
+            assertThatThrownBy(() -> memberService.login(command))
+                    .isInstanceOf(MemberNotFoundException.class);
+        }
     }
 
-    @Test
-    void createMember_duplicateLoginId_shouldFail() {
-        //given
-        memberService.create(createCommand);
-        MemberCreateCommand duplicateLoginIdCommand =
-                new MemberCreateCommand(member.getLoginId(), member.getPassword(), "차태승", "example@naver.com", null);
 
-        //then
-        assertThrows(DuplicateException.class, () -> memberService.create(duplicateLoginIdCommand));
+    @Nested
+    @DisplayName("회원 생성")
+    class Create{
+        @Test
+        void createMember_success() {
+            //when
+            Member created = memberService.create(createCommand);
+
+            //then
+            MemberSummaryResponse found = memberService.getSummary(created.getId());
+            assertThat(found.name()).isEqualTo(created.getName());
+        }
+
+        @Test
+        void createMember_duplicateLoginId_shouldFail() {
+            //given
+            memberService.create(createCommand);
+            MemberCreateCommand duplicateLoginIdCommand =
+                    new MemberCreateCommand(member.getLoginId(), member.getPassword(), "차태승", "example@naver.com", null);
+
+            //then
+            assertThrows(DuplicateException.class, () -> memberService.create(duplicateLoginIdCommand));
+        }
+
+        @Test
+        void createMember_duplicateEmail_shouldFail() {
+            //given
+            memberService.create(createCommand);
+            MemberCreateCommand duplicateEmailCommand =
+                    new MemberCreateCommand("exampleLoginId", member.getPassword(), "차태승", member.getEmail(), null);
+
+            //then
+            assertThrows(DuplicateException.class, () -> memberService.create(duplicateEmailCommand));
+        }
+
+        @Test
+        void createMember_encryptPassword(){
+            //given
+            MemberCreateCommand command = new MemberCreateCommand(
+                    "login123",
+                    "plainPassword",  // 평문
+                    "손흥민",
+                    "son@example.com",
+                    null
+            );
+
+            //when
+            Member member = memberService.create(command);
+
+            //then
+            assertThat(member.getPassword()).isNotEqualTo("plainPassword");
+            assertThat(passwordEncoder.matches("plainPassword", member.getPassword())).isTrue();
+        }
     }
 
-    @Test
-    void createMember_duplicateEmail_shouldFail() {
-        //given
-        memberService.create(createCommand);
-        MemberCreateCommand duplicateEmailCommand =
-                new MemberCreateCommand("exampleLoginId", member.getPassword(), "차태승", member.getEmail(), null);
+    @Nested
+    @DisplayName("회원 수정")
+    class Update {
 
-        //then
-        assertThrows(DuplicateException.class, () -> memberService.create(duplicateEmailCommand));
+        @Test
+        void updateMember_success() {
+            //given
+            Member created = memberService.create(createCommand);
+
+            //when
+            MemberDetailResponse updated = memberService.update(created.getId(), updateRequest);
+            MemberDetailResponse found = memberService.getDetail(updated.id());
+
+            //then
+            assertThat(found.id()).isEqualTo(created.getId());
+            assertThat(found.name()).isEqualTo(updateRequest.name());
+            assertThat(found.email()).isEqualTo(updateRequest.email());
+        }
+
+        @Test
+        void updateMember_duplicateEmail_shouldFail() {
+            //given
+            Member original = memberService.create(createCommand);
+            MemberDetailResponse foundOriginal = memberService.getDetail(original.getId());
+            Member newCreated = memberService.create(new MemberCreateCommand(
+                    "example123", "12345", "이름", "example123@naver.com", null));
+
+            //then
+            assertThrows(DuplicateException.class,
+                    () -> memberService.update(newCreated.getId(),
+                            new MemberUpdateRequest(null, null, foundOriginal.email(), null)));
+        }
     }
 
-    @Test
-    void createMember_encryptPassword(){
-        //given
-        MemberCreateCommand command = new MemberCreateCommand(
-                "login123",
-                "plainPassword",  // 평문
-                "손흥민",
-                "son@example.com",
-                null
-        );
+    @Nested
+    @DisplayName("회원 삭제")
+    class Delete {
 
-        //when
-        Member member = memberService.create(command);
+        @Test
+        void deleteMember_success() {
+            //given
+            Member created = memberService.create(createCommand);
 
-        //then
-        assertThat(member.getPassword()).isNotEqualTo("plainPassword");
-        assertThat(passwordEncoder.matches("plainPassword", member.getPassword())).isTrue();
+            //then
+            memberService.delete(created.getId());
+        }
+
+        @Test
+        void deleteMember_deletedMemberFind_shouldFail() {
+            //given
+            Member created = memberService.create(createCommand);
+
+            //when
+            memberService.delete(created.getId());
+
+            //then
+            assertThrows(NotFoundException.class,
+                    () -> memberService.getSummary(created.getId()));
+        }
     }
 
-    //== update ==//
-    @Test
-    void updateMember_success() {
-        //given
-        Member created = memberService.create(createCommand);
+    @Nested
+    @DisplayName("회원 조회")
+    class GetMember{
 
-        //when
-        MemberDetailResponse updated = memberService.update(created.getId(), updateRequest);
-        MemberDetailResponse found = memberService.getDetail(updated.id());
+        @Test
+        void getMemberSummary_success() {
+            //given
+            Member created = memberService.create(createCommand);
 
-        //then
-        assertThat(found.id()).isEqualTo(created.getId());
-        assertThat(found.name()).isEqualTo(updateRequest.name());
-        assertThat(found.email()).isEqualTo(updateRequest.email());
+            //when
+            MemberSummaryResponse memberSummary = memberService.getSummary(created.getId());
+
+            //then
+            assertThat(memberSummary.id()).isEqualTo(created.getId());
+            assertThat(memberSummary.loginId()).isEqualTo(created.getLoginId());
+            assertThat(memberSummary.name()).isEqualTo(created.getName());
+        }
+
+        @Test
+        void getMemberDetail_success() {
+            //given
+            Member created = memberService.create(createCommand);
+
+            //when
+            MemberDetailResponse memberDetail = memberService.getDetail(created.getId());
+
+            //then
+            assertThat(memberDetail.id()).isEqualTo(created.getId());
+            assertThat(memberDetail.loginId()).isEqualTo(created.getLoginId());
+            assertThat(memberDetail.name()).isEqualTo(created.getName());
+        }
+
+        @Test
+        void getMemberDetailWithOrders_success() {
+            //given
+            Member created = memberService.create(createCommand);
+
+            //when
+            MemberDetailWithOrdersResponse memberDetailWithOrders = memberService.getDetailWithOrders(created.getId());
+
+            //then
+            assertThat(memberDetailWithOrders.id()).isEqualTo(created.getId());
+            assertThat(memberDetailWithOrders.loginId()).isEqualTo(created.getLoginId());
+            assertThat(memberDetailWithOrders.name()).isEqualTo(created.getName());
+        }
+
+        @Test
+        void getMemberSummaryByEmail_success() {
+            //given
+            Member created = memberService.create(createCommand);
+
+            //when
+            MemberSummaryResponse memberSummaryByEmail = memberService.getSummaryByEmail(createRequest.email());
+
+            //then
+            assertThat(memberSummaryByEmail.id()).isEqualTo(created.getId());
+            assertThat(memberSummaryByEmail.loginId()).isEqualTo(created.getLoginId());
+            assertThat(memberSummaryByEmail.name()).isEqualTo(created.getName());
+        }
+
+        @Test
+        void getMemberDetailByEmail_success() {
+            //given
+            Member created = memberService.create(createCommand);
+
+            //when
+            MemberDetailResponse memberDetailByEmail = memberService.getDetailByEmail(createRequest.email());
+
+            //then
+            assertThat(memberDetailByEmail.id()).isEqualTo(created.getId());
+            assertThat(memberDetailByEmail.loginId()).isEqualTo(created.getLoginId());
+            assertThat(memberDetailByEmail.name()).isEqualTo(created.getName());
+        }
+
+        @Test
+        void getMemberSummaryByLoginId_success() {
+            //given
+            Member created = memberService.create(createCommand);
+
+            //when
+            MemberSummaryResponse memberSummaryByLoginId = memberService.getSummaryByLoginId(created.getLoginId());
+
+            //then
+            assertThat(memberSummaryByLoginId.id()).isEqualTo(created.getId());
+            assertThat(memberSummaryByLoginId.loginId()).isEqualTo(created.getLoginId());
+            assertThat(memberSummaryByLoginId.name()).isEqualTo(created.getName());
+        }
+
+        @Test
+        void getMemberDetailByLoginId_success() {
+            //given
+            Member created = memberService.create(createCommand);
+
+            //when
+            MemberDetailResponse memberDetailByLoginId = memberService.getDetailByLoginId(created.getLoginId());
+
+            //then
+            assertThat(memberDetailByLoginId.id()).isEqualTo(created.getId());
+            assertThat(memberDetailByLoginId.loginId()).isEqualTo(created.getLoginId());
+            assertThat(memberDetailByLoginId.name()).isEqualTo(created.getName());
+        }
+
+        @Test
+        void getMembers() {
+            //given
+            Member created = memberService.create(createCommand);
+
+            //when
+            List<MemberSummaryResponse> result = memberService.getMembers();
+
+            //then
+            assertThat(result.size()).isEqualTo(1);
+        }
+
     }
 
-    @Test
-    void updateMember_duplicateEmail_shouldFail() {
-        //given
-        Member original = memberService.create(createCommand);
-        MemberDetailResponse foundOriginal = memberService.getDetail(original.getId());
-        Member newCreated = memberService.create(new MemberCreateCommand(
-                "example123", "12345", "이름", "example123@naver.com", null));
-
-        //then
-        assertThrows(DuplicateException.class,
-                () -> memberService.update(newCreated.getId(),
-                        new MemberUpdateRequest(null, null, foundOriginal.email(), null)));
-    }
-
-    //== delete ==//
-    @Test
-    void deleteMember_success() {
-        //given
-        Member created = memberService.create(createCommand);
-
-        //then
-        memberService.delete(created.getId());
-    }
-
-    @Test
-    void deleteMember_deletedMemberFind_shouldFail() {
-        //given
-        Member created = memberService.create(createCommand);
-
-        //when
-        memberService.delete(created.getId());
-
-        //then
-        assertThrows(NotFoundException.class,
-                () -> memberService.getSummary(created.getId()));
-    }
-
-    @Test
-    void getMemberSummary_success() {
-        //given
-        Member created = memberService.create(createCommand);
-
-        //when
-        MemberSummaryResponse memberSummary = memberService.getSummary(created.getId());
-
-        //then
-        assertThat(memberSummary.id()).isEqualTo(created.getId());
-        assertThat(memberSummary.loginId()).isEqualTo(created.getLoginId());
-        assertThat(memberSummary.name()).isEqualTo(created.getName());
-    }
-
-    @Test
-    void getMemberDetail_success() {
-        //given
-        Member created = memberService.create(createCommand);
-
-        //when
-        MemberDetailResponse memberDetail = memberService.getDetail(created.getId());
-
-        //then
-        assertThat(memberDetail.id()).isEqualTo(created.getId());
-        assertThat(memberDetail.loginId()).isEqualTo(created.getLoginId());
-        assertThat(memberDetail.name()).isEqualTo(created.getName());
-    }
-
-    @Test
-    void getMemberDetailWithOrders_success() {
-        //given
-        Member created = memberService.create(createCommand);
-
-        //when
-        MemberDetailWithOrdersResponse memberDetailWithOrders = memberService.getDetailWithOrders(created.getId());
-
-        //then
-        assertThat(memberDetailWithOrders.id()).isEqualTo(created.getId());
-        assertThat(memberDetailWithOrders.loginId()).isEqualTo(created.getLoginId());
-        assertThat(memberDetailWithOrders.name()).isEqualTo(created.getName());
-    }
-
-    @Test
-    void getMemberSummaryByEmail_success() {
-        //given
-        Member created = memberService.create(createCommand);
-
-        //when
-        MemberSummaryResponse memberSummaryByEmail = memberService.getSummaryByEmail(createRequest.email());
-
-        //then
-        assertThat(memberSummaryByEmail.id()).isEqualTo(created.getId());
-        assertThat(memberSummaryByEmail.loginId()).isEqualTo(created.getLoginId());
-        assertThat(memberSummaryByEmail.name()).isEqualTo(created.getName());
-    }
-
-    @Test
-    void getMemberDetailByEmail_success() {
-        //given
-        Member created = memberService.create(createCommand);
-
-        //when
-        MemberDetailResponse memberDetailByEmail = memberService.getDetailByEmail(createRequest.email());
-
-        //then
-        assertThat(memberDetailByEmail.id()).isEqualTo(created.getId());
-        assertThat(memberDetailByEmail.loginId()).isEqualTo(created.getLoginId());
-        assertThat(memberDetailByEmail.name()).isEqualTo(created.getName());
-    }
-
-    @Test
-    void getMemberSummaryByLoginId_success() {
-        //given
-        Member created = memberService.create(createCommand);
-
-        //when
-        MemberSummaryResponse memberSummaryByLoginId = memberService.getSummaryByLoginId(created.getLoginId());
-
-        //then
-        assertThat(memberSummaryByLoginId.id()).isEqualTo(created.getId());
-        assertThat(memberSummaryByLoginId.loginId()).isEqualTo(created.getLoginId());
-        assertThat(memberSummaryByLoginId.name()).isEqualTo(created.getName());
-    }
-
-    @Test
-    void getMemberDetailByLoginId_success() {
-        //given
-        Member created = memberService.create(createCommand);
-
-        //when
-        MemberDetailResponse memberDetailByLoginId = memberService.getDetailByLoginId(created.getLoginId());
-
-        //then
-        assertThat(memberDetailByLoginId.id()).isEqualTo(created.getId());
-        assertThat(memberDetailByLoginId.loginId()).isEqualTo(created.getLoginId());
-        assertThat(memberDetailByLoginId.name()).isEqualTo(created.getName());
-    }
-
-    @Test
-    void getMembers() {
-        //given
-        Member created = memberService.create(createCommand);
-
-        //when
-        List<MemberSummaryResponse> result = memberService.getMembers();
-
-        //then
-        assertThat(result.size()).isEqualTo(1);
-    }
 }

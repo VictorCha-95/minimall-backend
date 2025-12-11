@@ -8,18 +8,22 @@ import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.domain.exception.DuplicateException;
+import com.minimall.service.exception.InvalidCredentialException;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.member.dto.MemberAddressCommand;
 import com.minimall.service.member.dto.MemberCreateCommand;
+import com.minimall.service.member.dto.MemberLoginCommand;
 import com.minimall.service.member.dto.MemberServiceMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -37,6 +41,9 @@ class MemberServiceTest {
 
     @Mock
     MemberRepository memberRepository;
+
+    @Mock
+    PasswordEncoder passwordEncoder;
 
     @InjectMocks
     MemberService memberService;
@@ -77,6 +84,55 @@ class MemberServiceTest {
         detailResponse = new MemberDetailResponse(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getGrade(), member.getAddr());
     }
 
+    //== login ==//
+    @Nested
+    @DisplayName("login(MemberLoginCommand)")
+    class Login {
+        @Test
+        @DisplayName("로그인 성공 -> DB 회원 조회 및 비밀번호 검증")
+        void success() {
+            //given
+            when(memberRepository.findByLoginId(createCommand.loginId())).thenReturn(Optional.of(member));
+            when(passwordEncoder.matches("abc12345", member.getPassword())).thenReturn(true);
+
+            //when
+            Member result = memberService.login(new MemberLoginCommand(createCommand.loginId(), createCommand.password()));
+
+            //then
+            assertThat(result).isEqualTo(member);
+            verify(memberRepository).findByLoginId(createCommand.loginId());
+            verify(passwordEncoder).matches("abc12345", member.getPassword());
+        }
+
+        @Test
+        @DisplayName("비밀번호 오류 -> InvalidCredentialException 예외 발생")
+        void shouldFail_whenPasswordIsNotMatch() {
+            //given
+            when(memberRepository.findByLoginId(createCommand.loginId())).thenReturn(Optional.of(member));
+            when(passwordEncoder.matches("wrong_password", member.getPassword())).thenReturn(false);
+
+            //when & then
+            assertThatThrownBy(() -> memberService.login(new MemberLoginCommand(createCommand.loginId(), "wrong_password")))
+                    .isInstanceOf(InvalidCredentialException.class);
+
+            verify(memberRepository).findByLoginId(createCommand.loginId());
+            verify(passwordEncoder).matches("wrong_password", member.getPassword());
+        }
+
+        @Test
+        @DisplayName("회원 아이디 오류 -> MemberNotFound 예외 발생")
+        void shouldFail_whenMemberIsNotFound() {
+            //given
+            when(memberRepository.findByLoginId("wrong_id")).thenReturn(Optional.empty());
+
+            //when & then
+            assertThatThrownBy(() -> memberService.login(new MemberLoginCommand("wrong_id", createCommand.password())))
+                    .isInstanceOf(MemberNotFoundException.class);
+
+            verify(memberRepository).findByLoginId("wrong_id");
+        }
+
+    }
 
     //== create ==//
     @Test

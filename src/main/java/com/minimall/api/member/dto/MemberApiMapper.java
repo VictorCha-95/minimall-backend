@@ -1,5 +1,6 @@
 package com.minimall.api.member.dto;
 
+import com.minimall.api.member.dto.request.MemberLoginRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.domain.member.Member;
@@ -8,6 +9,7 @@ import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
 import com.minimall.api.order.dto.OrderMapper;
 import com.minimall.service.member.dto.MemberCreateCommand;
+import com.minimall.service.member.dto.MemberLoginCommand;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -19,6 +21,9 @@ import java.util.List;
 public interface MemberApiMapper {
 
     // ===== Request -> Command (API → Service) ===== //
+
+    // == Login == //
+    MemberLoginCommand toLoginCommand(MemberLoginRequest request);
 
     //== Create ==//
     @Mapping(target = "withEncodedPassword", ignore = true)

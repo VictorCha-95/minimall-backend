@@ -3,6 +3,7 @@ package com.minimall.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.api.member.dto.request.MemberAddressRequest;
 import com.minimall.api.member.dto.request.MemberCreateRequest;
+import com.minimall.api.member.dto.request.MemberLoginRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.domain.embeddable.Address;
@@ -19,6 +20,7 @@ import com.minimall.service.product.ProductService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.member.MemberService;
 import com.minimall.service.product.dto.ProductRegisterCommand;
+import org.assertj.core.api.SoftAssertions;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +41,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.SoftAssertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -83,7 +86,65 @@ class MemberControllerTest {
     }
 
     @Nested
-    @DisplayName("getAll()")
+    @DisplayName("POST /members/login")
+    class Login {
+        @Test
+        @DisplayName("회원 로그인 성공 -> 200 OK")
+        void success() throws Exception {
+            //given
+            memberService.create(createCommand("member123", "손흥민"));
+            MemberLoginRequest request = new MemberLoginRequest("member123", "12345");
+
+            //when
+            ResultActions result = mockMvc.perform(post("/members/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            //then
+            result.andExpect(status().isOk())
+                    .andExpect(jsonPath("$.loginId").value("member123"))
+                    .andExpect(jsonPath("$.name").value("손흥민"))
+                    .andExpect(jsonPath("$.password").doesNotExist());
+        }
+
+        @Test
+        @DisplayName("비밀번호 오류 -> 401 isUnauthorized")
+        void shouldReturn401_whenPasswordIsWrong() throws Exception {
+            // given
+            memberService.create(createCommand("member123", "손흥민"));
+            MemberLoginRequest request = new MemberLoginRequest("member123", "wrong-password");
+
+            // when
+            ResultActions result = mockMvc.perform(post("/members/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.errorCode").value("INVALID_CREDENTIALS"));
+        }
+
+        @Test
+        @DisplayName("잘못된 회원아이디 -> 404 NotFound")
+        void shouldReturn404_whenMemberNotFound() throws Exception {
+            // given
+            MemberLoginRequest request = new MemberLoginRequest("no_such_user", "12345");
+
+            // when
+            ResultActions result = mockMvc.perform(post("/members/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
+
+            // then
+            result.andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"));
+        }
+    }
+
+
+
+    @Nested
+    @DisplayName("GET /members")
     class GetAll {
         @Test
         @DisplayName("정상 -> 회원 전체 조회")
@@ -127,7 +188,7 @@ class MemberControllerTest {
     }
 
     @Nested
-    @DisplayName("getDetail(Long)")
+    @DisplayName("GET /members/{id}")
     class GetDetail {
         @Test
         @DisplayName("정상 -> 회원 단건 상세 조회")
@@ -158,7 +219,7 @@ class MemberControllerTest {
     }
 
     @Nested
-    @DisplayName("getSummary(Long)")
+    @DisplayName("GET /members/{id}/summary")
     class GetSummary{
         @Test
         @DisplayName("성공 -> 회원 단건 요약 조회")
@@ -197,7 +258,7 @@ class MemberControllerTest {
     }
 
     @Nested
-    @DisplayName("getDetailByEmail(String)")
+    @DisplayName("GET /members/by-email")
     class GetDetailByEmail {
         @Test
         @DisplayName("정상 -> 회원 상세 조회")
@@ -228,224 +289,222 @@ class MemberControllerTest {
         }
     }
 
-    @Test
-    void getDetailByEmail_success() throws Exception {
-        //given
-        Member createdMember = memberService.create(createCommand("member123", "손흥민"));
+    @Nested
+    @DisplayName("GET /members/by-email/summary")
+    class GetSummaryByEmail{
+        @Test
+        void getSummaryByEmail_success() throws Exception {
+            //given
+            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
 
-        //when
-        ResultActions result = mockMvc.perform(get("/members/by-email")
-                .param("email", createdMember.getLoginId() + "@example.com"));
+            //when
+            ResultActions result = mockMvc.perform(get("/members/by-email/summary")
+                    .param("email", createdMember.getLoginId() + "@example.com"));
 
-        //then
-        assertMemberDetail(createdMember, result);
+            //then
+            assertMemberSummary(createdMember, result);
+        }
+
+        @Test
+        void getSummaryByEmail_failure_notFoundMember() throws Exception {
+            //given
+            String invalidEmail = "invalid@invalid.com";
+
+            //when
+            ResultActions result = mockMvc.perform(get("/members/by-email/summary")
+                    .param("email", invalidEmail));
+
+            //then
+            assertNotFoundMemberError(result, "email", invalidEmail);
+        }
     }
 
-    @Test
-    void getDetailByEmail_failure_notFoundMember() throws Exception {
-        //given
-        String invalidEmail = "invalid@invalid.com";
+    @Nested
+    @DisplayName("GET /members/by-loginId")
+    class GetDetailByLoginId{
+        @Test
+        void getDetailByLoginId_success() throws Exception {
+            //given
+            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
 
-        //when
-        ResultActions result = mockMvc.perform(get("/members/by-email")
-                .param("email", invalidEmail));
+            //when
+            ResultActions result = mockMvc.perform(get("/members/by-loginId")
+                    .param("loginId", createdMember.getLoginId()));
 
-        //then
-        assertNotFoundMemberError(result, "email", invalidEmail);
+            //then
+            assertMemberDetail(createdMember, result);
+        }
+
+        @Test
+        void getDetailByLoginId_failure_notFoundMember() throws Exception {
+            //given
+            String invalidLoginId = "invalidLoginId";
+
+            //when
+            ResultActions result = mockMvc.perform(get("/members/by-loginId")
+                    .param("loginId", invalidLoginId));
+
+            //then
+            assertNotFoundMemberError(result, "loginId", invalidLoginId);
+        }
     }
 
-    @Test
-    void getSummaryByEmail_success() throws Exception {
-        //given
-        Member createdMember = memberService.create(createCommand("member123", "손흥민"));
+    @Nested
+    @DisplayName("GET /members/by-loginId/summary")
+    class GetSummaryByLoginId{
+        @Test
+        void getSummaryByLoginId_success() throws Exception {
+            //given
+            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
 
-        //when
-        ResultActions result = mockMvc.perform(get("/members/by-email/summary")
-                .param("email", createdMember.getLoginId() + "@example.com"));
+            //when
+            ResultActions result = mockMvc.perform(get("/members/by-loginId/summary")
+                    .param("loginId", createdMember.getLoginId()));
 
-        //then
-        assertMemberSummary(createdMember, result);
+            //then
+            assertMemberSummary(createdMember, result);
+
+        }
+
+        @Test
+        void getSummaryByLoginId_failure_notFoundMember() throws Exception {
+            //given
+            String invalidLoginId = "invalidLoginId";
+
+            //when
+            ResultActions result = mockMvc.perform(get("/members/by-loginId/summary")
+                    .param("loginId", invalidLoginId));
+
+            //then
+            assertNotFoundMemberError(result, "loginId", invalidLoginId);
+        }
     }
 
-    @Test
-    void getSummaryByEmail_failure_notFoundMember() throws Exception {
-        //given
-        String invalidEmail = "invalid@invalid.com";
+    @Nested
+    @DisplayName("POST /members")
+    class Create{
+        @Test
+        void create_success() throws Exception {
+            //given
+            MemberCreateRequest request = createRequest("new123", "새로운 회원");
 
-        //when
-        ResultActions result = mockMvc.perform(get("/members/by-email/summary")
-                .param("email", invalidEmail));
+            //when
+            ResultActions result = mockMvc.perform(post("/members")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)));
 
-        //then
-        assertNotFoundMemberError(result, "email", invalidEmail);
+            //then
+            result.andExpect(status().isOk())
+                    .andExpect(jsonPath("$.loginId").value("new123"))
+                    .andExpect(jsonPath("$.name").value("새로운 회원"));
+        }
+
+        @Test
+        void create_shouldFail_whenDuplicateLoginId() throws Exception {
+            //given
+            MemberCreateRequest request1 = createRequest("new123", "새로운 회원1");
+            MemberCreateRequest request2 = createRequest("new123", "새로운 회원2");
+
+            //when
+            mockMvc.perform(post("/members")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request1)));
+
+            ResultActions result = mockMvc.perform(post("/members")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request2)));
+
+            //then
+            result.andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.status").value(409))
+                    .andExpect(jsonPath("$.errorCode").value("DUPLICATE_VALUE"))
+                    .andExpect(jsonPath("$.message", Matchers.containsString("loginId")))
+                    .andExpect(jsonPath("$.message", Matchers.containsString("사용 중")));
+        }
     }
 
-    @Test
-    void getDetailByLoginId_success() throws Exception {
-        //given
-        Member createdMember = memberService.create(createCommand("member123", "손흥민"));
+    @Nested
+    @DisplayName("UPDATE /members/{id}")
+    class Update{
+        @Test
+        void update_success() throws Exception {
+            //given
+            Member createdMember = memberService.create(createCommand("new123", "새로운 회원"));
+            MemberUpdateRequest updateRequest = new MemberUpdateRequest("12345", "수정된 회원", "updated@example.com", null);
 
-        //when
-        ResultActions result = mockMvc.perform(get("/members/by-loginId")
-                .param("loginId", createdMember.getLoginId()));
+            //when
+            ResultActions result = mockMvc.perform(patch("/members/" + createdMember.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(updateRequest)));
 
-        //then
-        assertMemberDetail(createdMember, result);
+            //then
+            result.andExpect(status().isOk())
+                    .andExpect(jsonPath("$.loginId").value(createdMember.getLoginId()))
+                    .andExpect(jsonPath("$.name").value(updateRequest.name()))
+                    .andExpect(jsonPath("$.email").value(updateRequest.email()))
+                    //PATCH: 주소는 수정 요청 없었으므로 기존 값 유지
+                    .andExpect(jsonPath("$.addr.postcode").value("12345"))
+                    .andExpect(jsonPath("$.addr.state").value("서울특별시"))
+                    .andExpect(jsonPath("$.addr.city").value("강남구"))
+                    .andExpect(jsonPath("$.addr.street").value("테헤란로 1"))
+                    .andExpect(jsonPath("$.addr.detail").value("101동 202호"));
+        }
+
+        @Test
+        void update_shouldFail_whenDuplicateEmail() throws Exception {
+            //given
+            memberService.create(new MemberCreateCommand("original123", "12345", "original",
+                    "original123@example.com", null));
+
+            Member otherMember = memberService.create(new MemberCreateCommand("other123", "12345", "other",
+                    "other123@example.com", null));
+
+            MemberUpdateRequest updateRequest = new MemberUpdateRequest("12345", "다른 회원",
+                    "original123@example.com", null);
+
+
+            //when 중복 이메일로 업데이트 시도
+            ResultActions result = mockMvc.perform(patch("/members/" + otherMember.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(updateRequest)));
+
+            //then
+            result.andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.errorCode").value("DUPLICATE_VALUE"))
+                    .andExpect(jsonPath("$.message", Matchers.containsString("email")));
+        }
     }
 
-    @Test
-    void getDetailByLoginId_failure_notFoundMember() throws Exception {
-        //given
-        String invalidLoginId = "invalidLoginId";
+    @Nested
+    @DisplayName("DELETE /members/{id}")
+    class Delete{
+        @Test
+        void delete_success() throws Exception {
+            //given
+            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
 
-        //when
-        ResultActions result = mockMvc.perform(get("/members/by-loginId")
-                .param("loginId", invalidLoginId));
+            //when
+            ResultActions result = mockMvc.perform(delete("/members/" + createdMember.getId()));
 
-        //then
-        assertNotFoundMemberError(result, "loginId", invalidLoginId);
+            //then
+            result.andExpect(status().isOk());
+
+            assertThrows(MemberNotFoundException.class, () -> memberService.getDetail(createdMember.getId()));
+        }
+
+        @Test
+        void delete_shouldFail_whenNotFoundMember() throws Exception {
+            //given
+            long invalidId = 999L;
+
+            //when
+            ResultActions result = mockMvc.perform(delete("/members/" + invalidId));
+
+            //then
+            assertNotFoundMemberError(result, "id", invalidId);
+        }
     }
 
-    @Test
-    void getSummaryByLoginId_success() throws Exception {
-        //given
-        Member createdMember = memberService.create(createCommand("member123", "손흥민"));
-
-        //when
-        ResultActions result = mockMvc.perform(get("/members/by-loginId/summary")
-                .param("loginId", createdMember.getLoginId()));
-
-        //then
-        assertMemberSummary(createdMember, result);
-
-    }
-
-    @Test
-    void getSummaryByLoginId_failure_notFoundMember() throws Exception {
-        //given
-        String invalidLoginId = "invalidLoginId";
-
-        //when
-        ResultActions result = mockMvc.perform(get("/members/by-loginId/summary")
-                .param("loginId", invalidLoginId));
-
-        //then
-        assertNotFoundMemberError(result, "loginId", invalidLoginId);
-    }
-
-    @Test
-    void create_success() throws Exception {
-        //given
-        MemberCreateRequest request = createRequest("new123", "새로운 회원");
-
-        //when
-        ResultActions result = mockMvc.perform(post("/members")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)));
-
-        //then
-        result.andExpect(status().isOk())
-                .andExpect(jsonPath("$.loginId").value("new123"))
-                .andExpect(jsonPath("$.name").value("새로운 회원"));
-    }
-
-    @Test
-    void create_shouldFail_whenDuplicateLoginId() throws Exception {
-        //given
-        MemberCreateRequest request1 = createRequest("new123", "새로운 회원1");
-        MemberCreateRequest request2 = createRequest("new123", "새로운 회원2");
-
-        //when
-        mockMvc.perform(post("/members")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request1)));
-
-        ResultActions result = mockMvc.perform(post("/members")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request2)));
-
-        //then
-        result.andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status").value(409))
-                .andExpect(jsonPath("$.errorCode").value("DUPLICATE_VALUE"))
-                .andExpect(jsonPath("$.message", Matchers.containsString("loginId")))
-                .andExpect(jsonPath("$.message", Matchers.containsString("사용 중")));
-    }
-
-    @Test
-    void update_success() throws Exception {
-        //given
-        Member createdMember = memberService.create(createCommand("new123", "새로운 회원"));
-        MemberUpdateRequest updateRequest = new MemberUpdateRequest("12345", "수정된 회원", "updated@example.com", null);
-
-        //when
-        ResultActions result = mockMvc.perform(patch("/members/" + createdMember.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateRequest)));
-
-        //then
-        result.andExpect(status().isOk())
-                .andExpect(jsonPath("$.loginId").value(createdMember.getLoginId()))
-                .andExpect(jsonPath("$.name").value(updateRequest.name()))
-                .andExpect(jsonPath("$.email").value(updateRequest.email()))
-                //PATCH: 주소는 수정 요청 없었으므로 기존 값 유지
-                .andExpect(jsonPath("$.addr.postcode").value("12345"))
-                .andExpect(jsonPath("$.addr.state").value("서울특별시"))
-                .andExpect(jsonPath("$.addr.city").value("강남구"))
-                .andExpect(jsonPath("$.addr.street").value("테헤란로 1"))
-                .andExpect(jsonPath("$.addr.detail").value("101동 202호"));
-    }
-
-    @Test
-    void update_shouldFail_whenDuplicateEmail() throws Exception {
-        //given
-        memberService.create(new MemberCreateCommand("original123", "12345", "original",
-                "original123@example.com", null));
-
-        Member otherMember = memberService.create(new MemberCreateCommand("other123", "12345", "other",
-                "other123@example.com", null));
-
-        MemberUpdateRequest updateRequest = new MemberUpdateRequest("12345", "다른 회원",
-                "original123@example.com", null);
-
-
-        //when 중복 이메일로 업데이트 시도
-        ResultActions result = mockMvc.perform(patch("/members/" + otherMember.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateRequest)));
-
-        //then
-        result.andExpect(status().isConflict())
-                .andExpect(jsonPath("$.errorCode").value("DUPLICATE_VALUE"))
-                .andExpect(jsonPath("$.message", Matchers.containsString("email")));
-    }
-
-
-    @Test
-    void delete_success() throws Exception {
-        //given
-        Member createdMember = memberService.create(createCommand("member123", "손흥민"));
-
-        //when
-        ResultActions result = mockMvc.perform(delete("/members/" + createdMember.getId()));
-
-        //then
-        result.andExpect(status().isOk());
-
-        assertThrows(MemberNotFoundException.class, () -> memberService.getDetail(createdMember.getId()));
-    }
-
-    @Test
-    void delete_shouldFail_whenNotFoundMember() throws Exception {
-        //given
-        long invalidId = 999L;
-
-        //when
-        ResultActions result = mockMvc.perform(delete("/members/" + invalidId));
-
-        //then
-        assertNotFoundMemberError(result, "id", invalidId);
-    }
 
     @Nested
     @DisplayName("GET /members/{id}/orders")
@@ -491,7 +550,6 @@ class MemberControllerTest {
                     .andExpect(jsonPath("$.length()").value(0));
         }
     }
-
 
 
 

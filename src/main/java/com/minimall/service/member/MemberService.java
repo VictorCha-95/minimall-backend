@@ -1,15 +1,15 @@
-package com.minimall.service;
+package com.minimall.service.member;
 
 import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.api.member.dto.MemberMapper;
-import com.minimall.api.member.dto.request.MemberCreateRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.service.exception.MemberNotFoundException;
+import com.minimall.service.member.dto.MemberCreateCommand;
+import com.minimall.service.member.dto.MemberServiceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -23,18 +23,17 @@ import java.util.List;
 public class MemberService {
 
     private final MemberRepository memberRepository;
-    private final MemberMapper memberMapper;
+    private final MemberServiceMapper memberServiceMapper;
 
     //== 생성 ==//
     @Transactional
-    public MemberSummaryResponse create(MemberCreateRequest request) {
-        validateDuplicateLoginId(request.loginId());
-        validateDuplicateEmail(request.email());
-        //TODO 비밀번호 검증, 암호화 로직 추가
-        Member member = memberRepository.save(memberMapper.toEntity(request));
-        return memberMapper.toSummaryResponse(member);
-    }
+    public Member create(MemberCreateCommand command) {
+        validateDuplicateLoginId(command.loginId());
+        validateDuplicateEmail(command.email());
 
+        Member member = memberServiceMapper.toEntity(command);
+        return memberRepository.save(member);
+    }
 
     //== 수정 ==//
     @Transactional
@@ -43,7 +42,7 @@ public class MemberService {
         //TODO 비밀번호 검증, 암호화 로직 추가
         Member member = findMemberById(memberId);
         member.update(request.password(), request.name(), request.email(), request.addr());
-        return memberMapper.toDetailResponse(member);
+        return memberServiceMapper.toDetailResponse(member);
     }
 
 
@@ -57,31 +56,31 @@ public class MemberService {
 
     //== 단건 조회 ==//
     public MemberSummaryResponse getSummary(Long memberId) {
-        return memberMapper.toSummaryResponse(findMemberById(memberId));
+        return memberServiceMapper.toSummaryResponse(findMemberById(memberId));
     }
     public MemberDetailResponse getDetail(Long memberId) {
-        return memberMapper.toDetailResponse(findMemberById(memberId));
+        return memberServiceMapper.toDetailResponse(findMemberById(memberId));
     }
 
     public MemberDetailWithOrdersResponse getDetailWithOrders(Long memberId) {
-        return memberMapper.toDetailWithOrdersResponse(findMemberById(memberId));
+        return memberServiceMapper.toDetailWithOrdersResponse(findMemberById(memberId));
     }
 
     public MemberSummaryResponse getSummaryByEmail(String email) {
-        return memberMapper.toSummaryResponse(findMemberByEmail(email));
+        return memberServiceMapper.toSummaryResponse(findMemberByEmail(email));
     }
 
     public MemberDetailResponse getDetailByEmail(String email) {
-        return memberMapper.toDetailResponse(findMemberByEmail(email));
+        return memberServiceMapper.toDetailResponse(findMemberByEmail(email));
     }
 
     public MemberSummaryResponse getSummaryByLoginId(String loginId) {
-        return memberMapper.toSummaryResponse(findMemberByLoginId(loginId));
+        return memberServiceMapper.toSummaryResponse(findMemberByLoginId(loginId));
     }
 
 
     public MemberDetailResponse getDetailByLoginId(String loginId) {
-        return memberMapper.toDetailResponse(findMemberByLoginId(loginId));
+        return memberServiceMapper.toDetailResponse(findMemberByLoginId(loginId));
     }
 
 
@@ -90,7 +89,7 @@ public class MemberService {
         //TODO searchDto를 인자로 받아 pageable 등 구현
         return memberRepository.findAll(Sort.by(Sort.Direction.ASC, "id"))
                 .stream()
-                .map(memberMapper::toSummaryResponse)
+                .map(memberServiceMapper::toSummaryResponse)
                 .toList();
     }
 

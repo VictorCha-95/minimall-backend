@@ -7,6 +7,7 @@ import com.minimall.api.member.dto.request.MemberCreateRequest;
 import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
 import com.minimall.api.order.dto.OrderMapper;
+import com.minimall.service.member.dto.MemberCreateCommand;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -15,10 +16,12 @@ import org.mapstruct.ReportingPolicy;
 import java.util.List;
 
 @Mapper(componentModel = "spring", uses = OrderMapper.class, unmappedTargetPolicy = ReportingPolicy.ERROR)
-public interface MemberMapper {
+public interface MemberApiMapper {
+
+    // ===== Request -> Command (API → Service) ===== //
 
     //== Create ==//
-    Member toEntity(MemberCreateRequest request);
+    MemberCreateCommand toCreateCommand(MemberCreateRequest request);
 
     //== Update ==//
     @Mapping(target = "orders", ignore = true)
@@ -34,6 +37,8 @@ public interface MemberMapper {
 
     //== List 변환 ==//
     List<MemberSummaryResponse> toListResponseList(List<Member> members);
+
+    // ===== Domain -> Response (Service → API) =====
 
 
 

@@ -8,12 +8,8 @@ import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.*;
 import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
-import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
-import com.minimall.api.order.dto.response.OrderDetailResponse;
-import com.minimall.api.order.dto.response.OrderSummaryResponse;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
-import com.minimall.service.order.dto.OrderCreateCommand;
-import com.minimall.service.order.dto.OrderItemCreateCommand;
+import com.minimall.service.order.dto.*;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
@@ -23,7 +19,6 @@ import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
-import com.minimall.service.order.dto.PayCommand;
 import jakarta.persistence.EntityManager;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,6 +66,7 @@ public class OrderServiceIntegrationTest {
     EntityManager em;
 
     private Member member;
+    private Member savedMember;
     private Member memberNullAddr;
 
     private Product book;
@@ -107,7 +103,7 @@ public class OrderServiceIntegrationTest {
         book = new Product("도서", 20000, 50);
 
         //== OrderCreateRequest ==//
-        Member savedMember = memberRepository.save(member);
+        savedMember = memberRepository.save(member);
         Member savedMemberAddrNull = memberRepository.save(memberNullAddr);
         Product savedKeyboard = productRepository.save(keyboard);
         Product savedBook = productRepository.save(book);
@@ -239,7 +235,7 @@ public class OrderServiceIntegrationTest {
             Order order = orderService.createOrder(createCommand1);
 
             //when
-            OrderDetailResponse result = orderService.getOrderDetail(order.getId());
+            OrderDetailResult result = orderService.getOrderDetail(order.getId());
 
             //then
             assertSoftly(softly -> {
@@ -275,7 +271,7 @@ public class OrderServiceIntegrationTest {
             orderService.createOrder(createCommand2);
 
             //when
-            List<OrderSummaryResponse> result = orderService.getOrderSummaries(member.getId());
+            List<OrderSummaryResult> result = orderService.getOrderSummaries(member.getId());
 
             //then
             assertSoftly(softly -> {
@@ -296,7 +292,7 @@ public class OrderServiceIntegrationTest {
             Member savedMember = memberRepository.save(member);
 
             //when
-            List<OrderSummaryResponse> result = orderService.getOrderSummaries(savedMember.getId());
+            List<OrderSummaryResult> result = orderService.getOrderSummaries(savedMember.getId());
 
             //then
             assertThat(result).isEmpty();
@@ -369,7 +365,7 @@ public class OrderServiceIntegrationTest {
             Address shipAddr = createSampleAddr();
 
             //when
-            DeliverySummaryResponse result = orderService.prepareDelivery(orderId, shipAddr);
+            DeliverySummaryResult result = orderService.prepareDelivery(orderId, shipAddr);
 
             //then
             assertSoftly(softly -> {
@@ -386,7 +382,7 @@ public class OrderServiceIntegrationTest {
             Long orderId = createOrderAndProcessPayment(createCommand1);
 
             //when
-            DeliverySummaryResponse result = orderService.prepareDelivery(orderId, null);
+            DeliverySummaryResult result = orderService.prepareDelivery(orderId, null);
 
             //then
             assertSoftly(softly -> {

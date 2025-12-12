@@ -3,11 +3,11 @@ package com.minimall.api.member.dto;
 import com.minimall.api.member.dto.request.MemberLoginRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
+import com.minimall.api.order.dto.OrderApiMapper;
 import com.minimall.domain.member.Member;
 import com.minimall.api.member.dto.request.MemberCreateRequest;
 import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
-import com.minimall.api.order.dto.OrderMapper;
 import com.minimall.service.member.dto.MemberCreateCommand;
 import com.minimall.service.member.dto.MemberDetailResult;
 import com.minimall.service.member.dto.MemberLoginCommand;
@@ -19,7 +19,7 @@ import org.mapstruct.ReportingPolicy;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", uses = OrderMapper.class, unmappedTargetPolicy = ReportingPolicy.ERROR)
+@Mapper(componentModel = "spring", uses = OrderApiMapper.class, unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface MemberApiMapper {
 
     // ===== Request -> Command (API → Service) ===== //

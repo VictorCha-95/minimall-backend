@@ -1,9 +1,8 @@
 package com.minimall.service.member.dto;
 
-import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
-import com.minimall.api.order.dto.OrderMapper;
+import com.minimall.api.order.dto.OrderApiMapper;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import org.mapstruct.Mapper;
@@ -14,7 +13,7 @@ import java.util.List;
 
 @Mapper(
         componentModel = "spring",
-        uses = OrderMapper.class,
+        uses = OrderApiMapper.class,
         unmappedTargetPolicy = ReportingPolicy.ERROR
 )
 public interface MemberServiceMapper {

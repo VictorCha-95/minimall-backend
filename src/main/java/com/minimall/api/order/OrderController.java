@@ -1,10 +1,11 @@
 package com.minimall.api.order;
 
+import com.minimall.api.order.delivery.dto.DeliveryApiMapper;
 import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
 import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
-import com.minimall.api.order.dto.OrderMapper;
+import com.minimall.api.order.dto.OrderApiMapper;
 import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
-import com.minimall.api.order.pay.dto.PayMapper;
+import com.minimall.api.order.pay.dto.PayApiMapper;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.api.common.embeddable.AddressDto;
 import com.minimall.api.common.embeddable.AddressMapper;
@@ -15,10 +16,8 @@ import com.minimall.api.order.pay.dto.PayRequest;
 import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.order.Order;
 import com.minimall.domain.order.Pay;
-import com.minimall.service.order.dto.OrderItemCreateCommand;
+import com.minimall.service.order.dto.*;
 import com.minimall.service.order.OrderService;
-import com.minimall.service.order.dto.OrderCreateCommand;
-import com.minimall.service.order.dto.PayCommand;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -38,8 +37,9 @@ import java.net.URI;
 public class OrderController {
 
     private final OrderService orderService;
-    private final OrderMapper orderMapper;
-    private final PayMapper payMapper;
+    private final OrderApiMapper orderApiMapper;
+    private final DeliveryApiMapper deliveryApiMapper;
+    private final PayApiMapper payApiMapper;
     private final AddressMapper addressMapper;
 
     @Operation(summary = "주문 생성")
@@ -59,7 +59,7 @@ public class OrderController {
         );
 
         Order order = orderService.createOrder(command);
-        OrderCreateResponse body = orderMapper.toCreateResponse(order);
+        OrderCreateResponse body = orderApiMapper.toCreateResponse(order);
 
         return ResponseEntity
                 .created(URI.create("/orders/" + body.id()))
@@ -74,7 +74,8 @@ public class OrderController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<OrderDetailResponse> getOrder(@PathVariable Long id) {
-        OrderDetailResponse response = orderService.getOrderDetail(id);
+        OrderDetailResult result = orderService.getOrderDetail(id);
+        OrderDetailResponse response = orderApiMapper.toOrderDetailResponse(result);
         return ResponseEntity.ok(response);
     }
 
@@ -89,7 +90,7 @@ public class OrderController {
                                                       @Valid @RequestBody PayRequest request) {
         PayCommand command = new PayCommand(request.payMethod(), request.payAmount());
         Pay pay = orderService.processPayment(id, command);
-        PayResponse body = payMapper.toPaySummary(pay);
+        PayResponse body = payApiMapper.toPaySummary(pay);
         return ResponseEntity.ok(body);
     }
 
@@ -105,7 +106,8 @@ public class OrderController {
                                                                    @RequestBody(required = false) AddressDto shipAddrDto) {
 
         Address shipAddr = (shipAddrDto != null) ? addressMapper.toEntity(shipAddrDto) : null;
-        DeliverySummaryResponse body = orderService.prepareDelivery(id, shipAddr);
+        DeliverySummaryResult result = orderService.prepareDelivery(id, shipAddr);
+        DeliverySummaryResponse body = deliveryApiMapper.toDeliverySummaryResponse(result);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().build().toUri();
         return ResponseEntity.created(location).body(body);

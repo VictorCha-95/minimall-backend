@@ -4,9 +4,13 @@ import com.minimall.domain.order.OrderItem;
 import com.minimall.api.order.dto.response.OrderItemResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring")
-public interface OrderItemMapper {
+@Mapper(
+        componentModel = "spring",
+        unmappedTargetPolicy = ReportingPolicy.ERROR
+)
+public interface OrderItemApiMapper {
 
     @Mapping(target = "productId", source = "product.id")
     @Mapping(target = "totalAmount", expression = "java(item.getTotalAmount())")

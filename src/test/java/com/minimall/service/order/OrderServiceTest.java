@@ -1,6 +1,6 @@
 package com.minimall.service.order;
 
-import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
+import com.minimall.api.order.pay.dto.PayApiMapper;
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.api.common.embeddable.AddressDto;
@@ -11,28 +11,18 @@ import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.*;
 import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
-import com.minimall.api.order.delivery.dto.DeliveryMapper;
-import com.minimall.api.order.dto.OrderMapper;
+import com.minimall.service.order.dto.*;
 import com.minimall.api.order.dto.request.OrderCreateRequest;
 import com.minimall.api.order.dto.request.OrderItemCreateRequest;
-import com.minimall.api.order.dto.response.OrderDetailResponse;
-import com.minimall.api.order.dto.response.OrderItemResponse;
-import com.minimall.api.order.dto.response.OrderSummaryResponse;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
-import com.minimall.api.order.pay.dto.PayMapper;
-import com.minimall.api.order.pay.dto.PayRequest;
-import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
-import com.minimall.service.order.dto.OrderCreateCommand;
-import com.minimall.service.order.dto.OrderItemCreateCommand;
-import com.minimall.service.order.dto.PayCommand;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -66,13 +56,13 @@ class OrderServiceTest {
     ProductRepository productRepository;
 
     @Mock
-    OrderMapper orderMapper;
+    OrderServiceMapper orderServiceMapper;
 
     @Mock
-    PayMapper payMapper;
+    PayApiMapper payApiMapper;
 
     @Mock
-    DeliveryMapper deliveryMapper;
+    DeliveryServiceMapper deliveryServiceMapper;
 
     @Mock
     AddressMapper addressMapper;
@@ -81,7 +71,6 @@ class OrderServiceTest {
     OrderService orderService;
 
     private OrderCreateRequest orderCreateRequest;
-    private List<OrderItemResponse> orderItemResponses;
 
     private OrderCreateCommand orderCreateCommand;
 
@@ -107,12 +96,6 @@ class OrderServiceTest {
 
         //== OrderCreateRequest ==//
         orderCreateRequest = new OrderCreateRequest(MEMBER_ID, orderItems);
-
-        //== OrderItemResponse ==//
-        orderItemResponses = List.of(
-                new OrderItemResponse(PRODUCT1_ID, "도서", 20000, 30, 600000),
-                new OrderItemResponse(PRODUCT2_ID, "키보드", 100_000, 10, 1_000_000)
-        );
 
 
         //== Member Entity ==//
@@ -227,22 +210,22 @@ class OrderServiceTest {
             Order order = mock(Order.class);
 
             LocalDateTime localDateTime = LocalDateTime.of(2025, 11, 10, 15, 25, 0);
-            OrderDetailResponse dto = new OrderDetailResponse(orderId,
+            OrderDetailResult dto = new OrderDetailResult(orderId,
                     localDateTime,
                     OrderStatus.ORDERED,
                     1_100_000,
                     List.of(), null, null);
 
             given(orderRepository.findById(orderId)).willReturn(Optional.of(order));
-            given(orderMapper.toOrderDetailResponse(order)).willReturn(dto);
+            given(orderServiceMapper.toDetailResult(order)).willReturn(dto);
 
             //when
-            OrderDetailResponse result = orderService.getOrderDetail(orderId);
+            OrderDetailResult result = orderService.getOrderDetail(orderId);
 
             //then
             assertThat(result).isEqualTo(dto);
             then(orderRepository).should(times(1)).findById(orderId);
-            then(orderMapper).should(times(1)).toOrderDetailResponse(order);
+            then(orderServiceMapper).should(times(1)).toDetailResult(order);
             verifyNoInteractions(memberRepository, productRepository);
         }
 
@@ -261,7 +244,7 @@ class OrderServiceTest {
                     );
 
             then(orderRepository).should(times(1)).findById(invalidId);
-            then(orderMapper).shouldHaveNoInteractions();
+            then(orderServiceMapper).shouldHaveNoInteractions();
         }
     }
 
@@ -279,12 +262,12 @@ class OrderServiceTest {
             Long orderId = 1L;
             LocalDateTime localDateTime = LocalDateTime.of(2025, 11, 10, 15, 25, 0);
 
-            List<OrderSummaryResponse> dtoList = List.of(new OrderSummaryResponse(
+            List<OrderSummaryResult> dtoList = List.of(new OrderSummaryResult(
                     orderId,
                     localDateTime,
                     OrderStatus.ORDERED,
                     2,
-                    1_100_000), new OrderSummaryResponse(
+                    1_100_000), new OrderSummaryResult(
                     orderId,
                     localDateTime,
                     OrderStatus.ORDERED,
@@ -294,16 +277,16 @@ class OrderServiceTest {
 
             given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));
             given(orderRepository.findByMember(member)).willReturn(orders);
-            given(orderMapper.toOrderSummaryResponse(orders)).willReturn(dtoList);
+            given(orderServiceMapper.toSummaryResultList(orders)).willReturn(dtoList);
 
             //when
-            List<OrderSummaryResponse> result = orderService.getOrderSummaries(MEMBER_ID);
+            List<OrderSummaryResult> result = orderService.getOrderSummaries(MEMBER_ID);
 
             //then
             assertThat(result).isEqualTo(dtoList);
             then(memberRepository).should(times(1)).findById(MEMBER_ID);
             then(orderRepository).should(times(1)).findByMember(member);
-            then(orderMapper).should(times(1)).toOrderSummaryResponse(orders);
+            then(orderServiceMapper).should(times(1)).toSummaryResultList(orders);
             verifyNoInteractions(productRepository);
         }
 
@@ -313,20 +296,20 @@ class OrderServiceTest {
             //given
             List<Order> emptyOrder = List.of();
 
-            List<OrderSummaryResponse> dtoEmptyList = List.of();
+            List<OrderSummaryResult> dtoEmptyList = List.of();
 
             given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));
             given(orderRepository.findByMember(member)).willReturn(emptyOrder);
-            given(orderMapper.toOrderSummaryResponse(emptyOrder)).willReturn(dtoEmptyList);
+            given(orderServiceMapper.toSummaryResultList(emptyOrder)).willReturn(dtoEmptyList);
 
             //when
-            List<OrderSummaryResponse> result = orderService.getOrderSummaries(MEMBER_ID);
+            List<OrderSummaryResult> result = orderService.getOrderSummaries(MEMBER_ID);
 
             //then
             assertThat(result).isEqualTo(dtoEmptyList);
             then(memberRepository).should(times(1)).findById(MEMBER_ID);
             then(orderRepository).should(times(1)).findByMember(member);
-            then(orderMapper).should(times(1)).toOrderSummaryResponse(emptyOrder);
+            then(orderServiceMapper).should(times(1)).toSummaryResultList(emptyOrder);
             verifyNoInteractions(productRepository);
         }
     }
@@ -344,7 +327,7 @@ class OrderServiceTest {
             Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
             PayCommand command = new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
-            given(payMapper.toEntity(command)).willReturn(pay);
+            given(payApiMapper.toEntity(command)).willReturn(pay);
 
             //when
             Pay result = orderService.processPayment(1L, command);
@@ -355,7 +338,7 @@ class OrderServiceTest {
             });
 
             then(orderRepository).should(times(1)).findById(1L);
-            then(payMapper).should(times(1)).toEntity(command);
+            then(payApiMapper).should(times(1)).toEntity(command);
         }
 
         @Test
@@ -368,7 +351,7 @@ class OrderServiceTest {
             Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
             PayCommand command = new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
-            given(payMapper.toEntity(command)).willReturn(pay);
+            given(payApiMapper.toEntity(command)).willReturn(pay);
 
             orderService.processPayment(1L, command); // 첫 번째 결제
 
@@ -381,7 +364,7 @@ class OrderServiceTest {
                     });
 
             then(orderRepository).should(times(2)).findById(1L);
-            then(payMapper).should(times(2)).toEntity(command);
+            then(payApiMapper).should(times(2)).toEntity(command);
         }
 
         @Test
@@ -396,7 +379,7 @@ class OrderServiceTest {
             Pay pay = new Pay(PayMethod.CARD, invalidAmount);
             PayCommand command = new PayCommand(PayMethod.CARD, invalidAmount);
 
-            given(payMapper.toEntity(command)).willReturn(pay);
+            given(payApiMapper.toEntity(command)).willReturn(pay);
 
             //then
             assertThatThrownBy(() -> orderService.processPayment(1L, command))
@@ -407,7 +390,7 @@ class OrderServiceTest {
                     });
 
             then(orderRepository).should(times(1)).findById(1L);
-            then(payMapper).should(times(1)).toEntity(command);
+            then(payApiMapper).should(times(1)).toEntity(command);
         }
 
         private @NotNull Order createSampleOrder() {
@@ -443,10 +426,10 @@ class OrderServiceTest {
                         );
                     });
 
-            given(deliveryMapper.toDeliverySummary(any(Delivery.class)))
+            given(deliveryServiceMapper.toDeliverySummary(any(Delivery.class)))
                     .willAnswer(invocationOnMock -> {
                         Delivery d = invocationOnMock.getArgument(0);
-                        return new DeliverySummaryResponse(
+                        return new DeliverySummaryResult(
                                 d.getDeliveryStatus(),
                                 d.getTrackingNo(),
                                 addressMapper.toDto(d.getShipAddr()),
@@ -457,7 +440,7 @@ class OrderServiceTest {
             Address sampleAddr = createSampleAddr();
 
             //when
-            DeliverySummaryResponse result = orderService.prepareDelivery(1L, sampleAddr);
+            DeliverySummaryResult result = orderService.prepareDelivery(1L, sampleAddr);
 
             //then
             assertSoftly(softly -> {
@@ -468,7 +451,7 @@ class OrderServiceTest {
 
             then(orderRepository).should(times(1)).findById(1L);
             then(addressMapper).should(times(1)).toDto(any(Address.class));
-            then(deliveryMapper).should(times(1)).toDeliverySummary(any(Delivery.class));
+            then(deliveryServiceMapper).should(times(1)).toDeliverySummary(any(Delivery.class));
         }
 
         @Test
@@ -493,10 +476,10 @@ class OrderServiceTest {
                         );
                     });
 
-            given(deliveryMapper.toDeliverySummary(any(Delivery.class)))
+            given(deliveryServiceMapper.toDeliverySummary(any(Delivery.class)))
                     .willAnswer(invocationOnMock -> {
                         Delivery d = invocationOnMock.getArgument(0);
-                        return new DeliverySummaryResponse(
+                        return new DeliverySummaryResult(
                                 d.getDeliveryStatus(),
                                 d.getTrackingNo(),
                                 addressMapper.toDto(d.getShipAddr()),
@@ -505,7 +488,7 @@ class OrderServiceTest {
                     });
 
             //when
-            DeliverySummaryResponse result = orderService.prepareDelivery(1L, null);
+            DeliverySummaryResult result = orderService.prepareDelivery(1L, null);
 
             //then
             assertSoftly(softly -> {
@@ -516,7 +499,7 @@ class OrderServiceTest {
 
             then(orderRepository).should(times(1)).findById(1L);
             then(addressMapper).should(times(1)).toDto(any(Address.class));
-            then(deliveryMapper).should(times(1)).toDeliverySummary(any(Delivery.class));
+            then(deliveryServiceMapper).should(times(1)).toDeliverySummary(any(Delivery.class));
         }
 
         @Test
@@ -543,7 +526,7 @@ class OrderServiceTest {
                     });
 
             then(orderRepository).should(times(1)).findById(1L);
-            verifyNoInteractions(addressMapper, deliveryMapper);
+            verifyNoInteractions(addressMapper, deliveryServiceMapper);
         }
 
     }

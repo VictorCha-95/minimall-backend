@@ -2,12 +2,11 @@ package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.api.order.OrderController;
-import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
 import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
-import com.minimall.api.order.dto.OrderMapper;
+import com.minimall.api.order.dto.OrderApiMapper;
 import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
 import com.minimall.api.order.dto.response.OrderCreateResponse;
-import com.minimall.api.order.pay.dto.PayMapper;
+import com.minimall.api.order.pay.dto.PayApiMapper;
 import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.api.common.embeddable.AddressDto;
@@ -20,11 +19,9 @@ import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.api.order.dto.request.OrderCreateRequest;
 import com.minimall.api.order.dto.request.OrderItemCreateRequest;
-import com.minimall.api.order.dto.response.OrderDetailResponse;
-import com.minimall.api.order.dto.response.OrderItemResponse;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
 import com.minimall.domain.order.pay.PayStatus;
-import com.minimall.service.order.dto.OrderCreateCommand;
+import com.minimall.service.order.dto.*;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.exception.PaymentRequiredException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
@@ -34,7 +31,6 @@ import com.minimall.service.order.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
-import com.minimall.service.order.dto.PayCommand;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -65,10 +61,10 @@ public class OrderControllerTest {
     ObjectMapper objectMapper;
 
     @MockitoBean
-    OrderMapper orderMapper;
+    OrderApiMapper orderApiMapper;
 
     @MockitoBean
-    PayMapper payMapper;
+    PayApiMapper payApiMapper;
 
     @MockitoBean
     AddressMapper addressMapper;
@@ -77,7 +73,7 @@ public class OrderControllerTest {
     OrderService orderService;
 
     private OrderCreateRequest createRequest;
-    private OrderDetailResponse detailResponse;
+    private OrderDetailResult detailResult;
 
     private static final long NOT_EXIST_ID = 999_999_999L;
 
@@ -88,12 +84,12 @@ public class OrderControllerTest {
                 List.of(new OrderItemCreateRequest(1L, 10),
                         new OrderItemCreateRequest(2L, 20)));
 
-        detailResponse = new OrderDetailResponse(
+        detailResult = new OrderDetailResult(
                 1L,
                 LocalDateTime.of(2025, 11, 11, 12, 30),
                 OrderStatus.ORDERED,
                 100_000,
-                List.of(new OrderItemResponse(
+                List.of(new OrderItemResult(
                         1L,
                         "도서",
                         10_000,
@@ -113,7 +109,7 @@ public class OrderControllerTest {
             given(orderService.createOrder(any(OrderCreateCommand.class)))
                     .willReturn(sutbOrder);
 
-            given(orderMapper.toCreateResponse(sutbOrder))
+            given(orderApiMapper.toCreateResponse(sutbOrder))
                     .willReturn(new OrderCreateResponse(
                             1L,
                             LocalDateTime.now(),
@@ -137,7 +133,7 @@ public class OrderControllerTest {
                     .andExpect(jsonPath("$.itemCount").value(2));
 
             then(orderService).should(times(1)).createOrder(any(OrderCreateCommand.class));
-            then(orderMapper).should(times(1)).toCreateResponse(any(Order.class));
+            then(orderApiMapper).should(times(1)).toCreateResponse(any(Order.class));
         }
 
         @Test
@@ -216,7 +212,7 @@ public class OrderControllerTest {
         @DisplayName("주문 단건 상세 조회 -> 200 + JSON 검증")
         void return200_whenSuccess() throws Exception {
             //given
-            given(orderService.getOrderDetail(1L)).willReturn(detailResponse);
+            given(orderService.getOrderDetail(1L)).willReturn(detailResult);
 
             //when
             ResultActions result = mockMvc.perform(get("/orders/1"));
@@ -266,7 +262,7 @@ public class OrderControllerTest {
             given(orderService.processPayment(eq(orderId), any(PayCommand.class)))
                     .willReturn(pay);
 
-            given(payMapper.toPaySummary(pay))
+            given(payApiMapper.toPaySummary(pay))
                     .willReturn(new PayResponse(
                             PayMethod.CARD,
                             100_000,
@@ -350,8 +346,8 @@ public class OrderControllerTest {
                     });
 
             AddressDto requestAddrDto = createOrderSampleAddrDto();
-            DeliverySummaryResponse expected =
-                    new DeliverySummaryResponse(DeliveryStatus.READY, null,
+            DeliverySummaryResult expected =
+                    new DeliverySummaryResult(DeliveryStatus.READY, null,
                             requestAddrDto, null, null);
 
             given(orderService.prepareDelivery(eq(orderId), any(Address.class)))

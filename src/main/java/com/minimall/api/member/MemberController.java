@@ -8,6 +8,7 @@ import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
+import com.minimall.api.order.dto.OrderApiMapper;
 import com.minimall.api.order.dto.response.OrderSummaryResponse;
 import com.minimall.domain.member.Member;
 import com.minimall.service.member.MemberService;
@@ -33,6 +34,7 @@ public class MemberController {
     private final MemberService memberService;
     private final OrderService orderService;
     private final MemberApiMapper memberApiMapper;
+    private final OrderApiMapper orderApiMapper;
 
     //== 로그인 ==//
     @Operation(summary = "회원 로그인")
@@ -102,7 +104,9 @@ public class MemberController {
     })
     @GetMapping("/{id}/orders")
     public ResponseEntity<List<OrderSummaryResponse>> getOrdersByMember(@PathVariable Long id) {
-        List<OrderSummaryResponse> response = orderService.getOrderSummaries(id);
+        List<OrderSummaryResponse> response = orderService.getOrderSummaries(id).stream()
+                .map(orderApiMapper::toOrderSummaryResponse)
+                .toList();
         return ResponseEntity.ok(response);
     }
 

@@ -12,6 +12,7 @@ import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.OrderRepository;
 import com.minimall.service.member.dto.MemberAddressCommand;
 import com.minimall.service.member.dto.MemberCreateCommand;
+import com.minimall.service.member.dto.MemberSummaryResult;
 import com.minimall.service.order.dto.OrderCreateCommand;
 import com.minimall.service.order.dto.OrderItemCreateCommand;
 import com.minimall.domain.product.Product;
@@ -152,8 +153,8 @@ class MemberControllerTest {
             //given
             memberService.create(createCommand("member1", "손흥민"));
             memberService.create(createCommand("member2", "박지성"));
-            MemberSummaryResponse member1 = memberService.getSummaryByLoginId("member1");
-            MemberSummaryResponse member2 = memberService.getSummaryByLoginId("member2");
+            MemberSummaryResult member1 = memberService.getSummaryByLoginId("member1");
+            MemberSummaryResult member2 = memberService.getSummaryByLoginId("member2");
 
             //when
             ResultActions result = mockMvc.perform(get("/members"));
@@ -487,7 +488,7 @@ class MemberControllerTest {
             ResultActions result = mockMvc.perform(delete("/members/" + createdMember.getId()));
 
             //then
-            result.andExpect(status().isOk());
+            result.andExpect(status().isNoContent());
 
             assertThrows(MemberNotFoundException.class, () -> memberService.getDetail(createdMember.getId()));
         }

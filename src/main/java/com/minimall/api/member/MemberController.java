@@ -1,6 +1,7 @@
 package com.minimall.api.member;
 
 import com.minimall.api.member.dto.MemberApiMapper;
+import com.minimall.api.member.dto.MemberApiMapperImpl;
 import com.minimall.api.member.dto.request.MemberCreateRequest;
 import com.minimall.api.member.dto.request.MemberLoginRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
@@ -10,6 +11,7 @@ import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.api.order.dto.response.OrderSummaryResponse;
 import com.minimall.domain.member.Member;
 import com.minimall.service.member.MemberService;
+import com.minimall.service.member.dto.MemberSummaryResult;
 import com.minimall.service.order.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -45,19 +47,21 @@ public class MemberController {
     @Operation(summary = "회원 전체 조회", description = "모든 회원 요약 조회")
     @GetMapping
     public List<MemberSummaryResponse> getAll() {
-        return memberService.getMembers();
+        return memberService.getMembers().stream()
+                .map(memberApiMapper::toSummaryResponse)
+                .toList();
     }
 
     @Operation(summary = "회원 단건 상세 조회", description = "회원 ID로 상세 조회")
     @GetMapping("/{id}")
     public MemberDetailResponse getDetail(@PathVariable Long id) {
-        return memberService.getDetail(id);
+        return memberApiMapper.toDetailResponse(memberService.getDetail(id));
     }
 
     @Operation(summary = "회원 단건 요약 조회", description = "회원 ID로 요약 조회")
     @GetMapping("/{id}/summary")
     public MemberSummaryResponse getSummary(@PathVariable Long id) {
-        return memberService.getSummary(id);
+        return memberApiMapper.toSummaryResponse(memberService.getSummary(id));
     }
 
     @Operation(summary = "회원 단건 상세 조회(주문 포함)", description = "회원 ID로 상세 조회하며 주문내역 포함")
@@ -69,25 +73,25 @@ public class MemberController {
     @Operation(summary = "회원 상세 조회 by Email", description = "이메일로 회원 상세 조회")
     @GetMapping("/by-email")
     public MemberDetailResponse getDetailByEmail(@RequestParam String email) {
-        return memberService.getDetailByEmail(email);
+        return memberApiMapper.toDetailResponse(memberService.getDetailByEmail(email));
     }
 
     @Operation(summary = "회원 요약 조회 by Email", description = "이메일로 회원 요약 조회")
     @GetMapping("/by-email/summary")
     public MemberSummaryResponse getSummaryByEmail(@RequestParam String email) {
-        return memberService.getSummaryByEmail(email);
+        return memberApiMapper.toSummaryResponse(memberService.getSummaryByEmail(email));
     }
 
     @Operation(summary = "회원 상세 조회 by LoginId", description = "로그인 ID로 회원 상세 조회")
     @GetMapping("/by-loginId")
     public MemberDetailResponse getDetailByLoginId(@RequestParam String loginId) {
-        return memberService.getDetailByLoginId(loginId);
+        return memberApiMapper.toDetailResponse(memberService.getDetailByLoginId(loginId));
     }
 
     @Operation(summary = "회원 요약 조회 by LoginId", description = "로그인 ID로 회원 요약 조회")
     @GetMapping("/by-loginId/summary")
     public MemberSummaryResponse getSummaryByLoginId(@RequestParam String loginId) {
-        return memberService.getSummaryByLoginId(loginId);
+        return memberApiMapper.toSummaryResponse(memberService.getSummaryByLoginId(loginId));
     }
 
     //== 주문 조회 ==//
@@ -115,7 +119,7 @@ public class MemberController {
     @PatchMapping("/{id}")
     public MemberDetailResponse update(@PathVariable Long id,
                                        @Valid @RequestBody MemberUpdateRequest request) {
-        return memberService.update(id, request);
+        return memberApiMapper.toDetailResponse(memberService.update(id, request));
     }
 
     //== 회원 삭제 ==//

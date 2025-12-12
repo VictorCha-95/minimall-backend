@@ -43,11 +43,11 @@ public interface MemberServiceMapper {
     }
 
     // == Domain -> Response == //
-    MemberSummaryResponse toSummaryResponse(Member member);
+    MemberSummaryResult toSummaryResult(Member member);
 
     List<MemberSummaryResponse> toSummaryResponseList(List<Member> members);
 
-    MemberDetailResponse toDetailResponse(Member member);
+    MemberDetailResult toDetailResult(Member member);
 
     @Mapping(target = "orders", source = "orders")
     MemberDetailWithOrdersResponse toDetailWithOrdersResponse(Member member);

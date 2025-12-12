@@ -1,7 +1,5 @@
 package com.minimall.service.member;
 
-import com.minimall.api.member.dto.response.MemberDetailResponse;
-import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
@@ -10,10 +8,7 @@ import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.service.exception.InvalidCredentialException;
 import com.minimall.service.exception.MemberNotFoundException;
-import com.minimall.service.member.dto.MemberAddressCommand;
-import com.minimall.service.member.dto.MemberCreateCommand;
-import com.minimall.service.member.dto.MemberLoginCommand;
-import com.minimall.service.member.dto.MemberServiceMapper;
+import com.minimall.service.member.dto.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -51,8 +46,8 @@ class MemberServiceTest {
     private Member member;
     private MemberCreateCommand createCommand;
     private MemberUpdateRequest updateRequest;
-    private MemberDetailResponse detailResponse;
-    private MemberSummaryResponse summaryResponse;
+    private MemberDetailResult detailResult;
+    private MemberSummaryResult summaryResult;
 
 
     @BeforeEach
@@ -79,9 +74,9 @@ class MemberServiceTest {
         );
 
         //== Response DTOs ==//
-        summaryResponse = new MemberSummaryResponse(member.getId(), member.getLoginId(), member.getName());
+        summaryResult = new MemberSummaryResult(member.getId(), member.getLoginId(), member.getName());
 
-        detailResponse = new MemberDetailResponse(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getGrade(), member.getAddr());
+        detailResult = new MemberDetailResult(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getGrade(), member.getAddr());
     }
 
     //== login ==//
@@ -140,7 +135,8 @@ class MemberServiceTest {
         //given
         when(memberRepository.existsByLoginId(createCommand.loginId())).thenReturn(false);
         when(memberRepository.existsByEmail(createCommand.email())).thenReturn(false);
-        when(memberServiceMapper.toEntity(createCommand)).thenReturn(member);
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+        when(memberServiceMapper.toEntity(any(MemberCreateCommand.class))).thenReturn(member);
         when(memberRepository.save(member)).thenReturn(member);
 
         //when
@@ -150,7 +146,8 @@ class MemberServiceTest {
         assertThat(result).isEqualTo(member);
         verify(memberRepository).existsByLoginId(createCommand.loginId());
         verify(memberRepository).existsByEmail(createCommand.email());
-        verify(memberServiceMapper).toEntity(createCommand);
+        verify(passwordEncoder).encode(anyString());
+        verify(memberServiceMapper).toEntity(any(MemberCreateCommand.class));
         verify(memberRepository).save(member);
     }
 
@@ -188,16 +185,16 @@ class MemberServiceTest {
         //given
         when(memberRepository.findByEmail(updateRequest.email())).thenReturn(Optional.empty());
         when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
-        when(memberServiceMapper.toDetailResponse(member)).thenReturn(detailResponse);
+        when(memberServiceMapper.toDetailResult(member)).thenReturn(detailResult);
 
         //when
-        MemberDetailResponse result = memberService.update(1L, updateRequest);
+        MemberDetailResult result = memberService.update(1L, updateRequest);
 
         //then
-        assertThat(result).isEqualTo(detailResponse);
+        assertThat(result).isEqualTo(detailResult);
         verify(memberRepository).findByEmail(updateRequest.email());
         verify(memberRepository).findById(1L);
-        verify(memberServiceMapper).toDetailResponse(member);
+        verify(memberServiceMapper).toDetailResult(member);
     }
 
     @Test
@@ -275,15 +272,15 @@ class MemberServiceTest {
     void getMembers() {
         //given
         when(memberRepository.findAll(Sort.by("id").ascending())).thenReturn(List.of(member));
-        when(memberServiceMapper.toSummaryResponse(member)).thenReturn(summaryResponse);
+        when(memberServiceMapper.toSummaryResult(member)).thenReturn(summaryResult);
 
         //when
-        List<MemberSummaryResponse> result = memberService.getMembers();
+        List<MemberSummaryResult> result = memberService.getMembers();
 
         //then
-        assertThat(result).containsExactly(summaryResponse);
+        assertThat(result).containsExactly(summaryResult);
         verify(memberRepository).findAll(Sort.by("id").ascending());
-        verify(memberServiceMapper).toSummaryResponse(member);
+        verify(memberServiceMapper).toSummaryResult(member);
     }
 
 

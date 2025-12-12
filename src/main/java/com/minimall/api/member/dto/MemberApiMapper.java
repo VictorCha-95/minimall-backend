@@ -9,7 +9,9 @@ import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
 import com.minimall.api.order.dto.OrderMapper;
 import com.minimall.service.member.dto.MemberCreateCommand;
+import com.minimall.service.member.dto.MemberDetailResult;
 import com.minimall.service.member.dto.MemberLoginCommand;
+import com.minimall.service.member.dto.MemberSummaryResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -35,11 +37,15 @@ public interface MemberApiMapper {
 
     //== Response ==//
     MemberDetailResponse toDetailResponse(Member member);
+    MemberDetailResponse toDetailResponse(MemberDetailResult result);
 
     @Mapping(target = "orders", source = "orders")
     MemberDetailWithOrdersResponse toDetailWithOrdersResponse(Member member);
 
     MemberSummaryResponse toSummaryResponse(Member member);
+    MemberSummaryResponse toSummaryResponse(MemberSummaryResult result);
+
+
 
     //== List 변환 ==//
     List<MemberSummaryResponse> toListResponseList(List<Member> members);

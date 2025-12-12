@@ -14,9 +14,7 @@ import com.minimall.domain.order.OrderRepository;
 import com.minimall.service.exception.InvalidCredentialException;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.NotFoundException;
-import com.minimall.service.member.dto.MemberAddressCommand;
-import com.minimall.service.member.dto.MemberCreateCommand;
-import com.minimall.service.member.dto.MemberLoginCommand;
+import com.minimall.service.member.dto.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -146,7 +144,7 @@ public class MemberServiceIntegrationTest {
             Member created = memberService.create(createCommand);
 
             //then
-            MemberSummaryResponse found = memberService.getSummary(created.getId());
+            MemberSummaryResult found = memberService.getSummary(created.getId());
             assertThat(found.name()).isEqualTo(created.getName());
         }
 
@@ -202,8 +200,8 @@ public class MemberServiceIntegrationTest {
             Member created = memberService.create(createCommand);
 
             //when
-            MemberDetailResponse updated = memberService.update(created.getId(), updateRequest);
-            MemberDetailResponse found = memberService.getDetail(updated.id());
+            MemberDetailResult updated = memberService.update(created.getId(), updateRequest);
+            MemberDetailResult found = memberService.getDetail(updated.id());
 
             //then
             assertThat(found.id()).isEqualTo(created.getId());
@@ -215,7 +213,7 @@ public class MemberServiceIntegrationTest {
         void updateMember_duplicateEmail_shouldFail() {
             //given
             Member original = memberService.create(createCommand);
-            MemberDetailResponse foundOriginal = memberService.getDetail(original.getId());
+            MemberDetailResult foundOriginal = memberService.getDetail(original.getId());
             Member newCreated = memberService.create(new MemberCreateCommand(
                     "example123", "12345", "이름", "example123@naver.com", null));
 
@@ -263,7 +261,7 @@ public class MemberServiceIntegrationTest {
             Member created = memberService.create(createCommand);
 
             //when
-            MemberSummaryResponse memberSummary = memberService.getSummary(created.getId());
+            MemberSummaryResult memberSummary = memberService.getSummary(created.getId());
 
             //then
             assertThat(memberSummary.id()).isEqualTo(created.getId());
@@ -277,7 +275,7 @@ public class MemberServiceIntegrationTest {
             Member created = memberService.create(createCommand);
 
             //when
-            MemberDetailResponse memberDetail = memberService.getDetail(created.getId());
+            MemberDetailResult memberDetail = memberService.getDetail(created.getId());
 
             //then
             assertThat(memberDetail.id()).isEqualTo(created.getId());
@@ -305,7 +303,7 @@ public class MemberServiceIntegrationTest {
             Member created = memberService.create(createCommand);
 
             //when
-            MemberSummaryResponse memberSummaryByEmail = memberService.getSummaryByEmail(createRequest.email());
+            MemberSummaryResult memberSummaryByEmail = memberService.getSummaryByEmail(createRequest.email());
 
             //then
             assertThat(memberSummaryByEmail.id()).isEqualTo(created.getId());
@@ -319,7 +317,7 @@ public class MemberServiceIntegrationTest {
             Member created = memberService.create(createCommand);
 
             //when
-            MemberDetailResponse memberDetailByEmail = memberService.getDetailByEmail(createRequest.email());
+            MemberDetailResult memberDetailByEmail = memberService.getDetailByEmail(createRequest.email());
 
             //then
             assertThat(memberDetailByEmail.id()).isEqualTo(created.getId());
@@ -333,7 +331,7 @@ public class MemberServiceIntegrationTest {
             Member created = memberService.create(createCommand);
 
             //when
-            MemberSummaryResponse memberSummaryByLoginId = memberService.getSummaryByLoginId(created.getLoginId());
+            MemberSummaryResult memberSummaryByLoginId = memberService.getSummaryByLoginId(created.getLoginId());
 
             //then
             assertThat(memberSummaryByLoginId.id()).isEqualTo(created.getId());
@@ -347,7 +345,7 @@ public class MemberServiceIntegrationTest {
             Member created = memberService.create(createCommand);
 
             //when
-            MemberDetailResponse memberDetailByLoginId = memberService.getDetailByLoginId(created.getLoginId());
+            MemberDetailResult memberDetailByLoginId = memberService.getDetailByLoginId(created.getLoginId());
 
             //then
             assertThat(memberDetailByLoginId.id()).isEqualTo(created.getId());
@@ -361,7 +359,7 @@ public class MemberServiceIntegrationTest {
             Member created = memberService.create(createCommand);
 
             //when
-            List<MemberSummaryResponse> result = memberService.getMembers();
+            List<MemberSummaryResult> result = memberService.getMembers();
 
             //then
             assertThat(result.size()).isEqualTo(1);

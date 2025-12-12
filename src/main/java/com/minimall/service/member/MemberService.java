@@ -9,9 +9,7 @@ import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.service.exception.InvalidCredentialException;
 import com.minimall.service.exception.MemberNotFoundException;
-import com.minimall.service.member.dto.MemberCreateCommand;
-import com.minimall.service.member.dto.MemberLoginCommand;
-import com.minimall.service.member.dto.MemberServiceMapper;
+import com.minimall.service.member.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -55,12 +53,12 @@ public class MemberService {
 
     //== 수정 ==//
     @Transactional
-    public MemberDetailResponse update(Long memberId, MemberUpdateRequest request) {
+    public MemberDetailResult update(Long memberId, MemberUpdateRequest request) {
         validateDuplicateEmailForUpdate(memberId, request.email());
         //TODO 비밀번호 검증, 암호화 로직 추가
         Member member = findMemberById(memberId);
         member.update(request.password(), request.name(), request.email(), request.addr());
-        return memberServiceMapper.toDetailResponse(member);
+        return memberServiceMapper.toDetailResult(member);
     }
 
 
@@ -73,41 +71,41 @@ public class MemberService {
     }
 
     //== 단건 조회 ==//
-    public MemberSummaryResponse getSummary(Long memberId) {
-        return memberServiceMapper.toSummaryResponse(findMemberById(memberId));
+    public MemberSummaryResult getSummary(Long memberId) {
+        return memberServiceMapper.toSummaryResult(findMemberById(memberId));
     }
-    public MemberDetailResponse getDetail(Long memberId) {
-        return memberServiceMapper.toDetailResponse(findMemberById(memberId));
+    public MemberDetailResult getDetail(Long memberId) {
+        return memberServiceMapper.toDetailResult(findMemberById(memberId));
     }
 
     public MemberDetailWithOrdersResponse getDetailWithOrders(Long memberId) {
         return memberServiceMapper.toDetailWithOrdersResponse(findMemberById(memberId));
     }
 
-    public MemberSummaryResponse getSummaryByEmail(String email) {
-        return memberServiceMapper.toSummaryResponse(findMemberByEmail(email));
+    public MemberSummaryResult getSummaryByEmail(String email) {
+        return memberServiceMapper.toSummaryResult(findMemberByEmail(email));
     }
 
-    public MemberDetailResponse getDetailByEmail(String email) {
-        return memberServiceMapper.toDetailResponse(findMemberByEmail(email));
+    public MemberDetailResult getDetailByEmail(String email) {
+        return memberServiceMapper.toDetailResult(findMemberByEmail(email));
     }
 
-    public MemberSummaryResponse getSummaryByLoginId(String loginId) {
-        return memberServiceMapper.toSummaryResponse(findMemberByLoginId(loginId));
+    public MemberSummaryResult getSummaryByLoginId(String loginId) {
+        return memberServiceMapper.toSummaryResult(findMemberByLoginId(loginId));
     }
 
 
-    public MemberDetailResponse getDetailByLoginId(String loginId) {
-        return memberServiceMapper.toDetailResponse(findMemberByLoginId(loginId));
+    public MemberDetailResult getDetailByLoginId(String loginId) {
+        return memberServiceMapper.toDetailResult(findMemberByLoginId(loginId));
     }
 
 
     //== 목록 조회==//
-    public List<MemberSummaryResponse> getMembers() {
+    public List<MemberSummaryResult> getMembers() {
         //TODO searchDto를 인자로 받아 pageable 등 구현
         return memberRepository.findAll(Sort.by(Sort.Direction.ASC, "id"))
                 .stream()
-                .map(memberServiceMapper::toSummaryResponse)
+                .map(memberServiceMapper::toSummaryResult)
                 .toList();
     }
 

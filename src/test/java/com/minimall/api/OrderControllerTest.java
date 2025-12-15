@@ -2,10 +2,14 @@ package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.api.order.OrderController;
+import com.minimall.api.order.delivery.dto.DeliveryApiMapper;
+import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
 import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
 import com.minimall.api.order.dto.OrderApiMapper;
 import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
 import com.minimall.api.order.dto.response.OrderCreateResponse;
+import com.minimall.api.order.dto.response.OrderDetailResponse;
+import com.minimall.api.order.dto.response.OrderItemResponse;
 import com.minimall.api.order.pay.dto.PayApiMapper;
 import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.embeddable.Address;
@@ -64,6 +68,9 @@ public class OrderControllerTest {
     OrderApiMapper orderApiMapper;
 
     @MockitoBean
+    DeliveryApiMapper deliveryApiMapper;
+
+    @MockitoBean
     PayApiMapper payApiMapper;
 
     @MockitoBean
@@ -74,6 +81,7 @@ public class OrderControllerTest {
 
     private OrderCreateRequest createRequest;
     private OrderDetailResult detailResult;
+    private OrderDetailResponse detailResponse;
 
     private static final long NOT_EXIST_ID = 999_999_999L;
 
@@ -90,6 +98,19 @@ public class OrderControllerTest {
                 OrderStatus.ORDERED,
                 100_000,
                 List.of(new OrderItemResult(
+                        1L,
+                        "도서",
+                        10_000,
+                        10,
+                        100_000)),
+                null, null);
+
+        detailResponse = new OrderDetailResponse(
+                1L,
+                LocalDateTime.of(2025, 11, 11, 12, 30),
+                OrderStatus.ORDERED,
+                100_000,
+                List.of(new OrderItemResponse(
                         1L,
                         "도서",
                         10_000,
@@ -213,6 +234,7 @@ public class OrderControllerTest {
         void return200_whenSuccess() throws Exception {
             //given
             given(orderService.getOrderDetail(1L)).willReturn(detailResult);
+            given(orderApiMapper.toOrderDetailResponse(detailResult)).willReturn(detailResponse);
 
             //when
             ResultActions result = mockMvc.perform(get("/orders/1"));
@@ -352,6 +374,10 @@ public class OrderControllerTest {
 
             given(orderService.prepareDelivery(eq(orderId), any(Address.class)))
                     .willReturn(expected);
+
+            given(deliveryApiMapper.toDeliverySummaryResponse(expected))
+                    .willReturn(new DeliverySummaryResponse(DeliveryStatus.READY, null,
+                            requestAddrDto, null, null));
 
             // when
             ResultActions result = mockMvc.perform(post("/orders/{id}/delivery", orderId)

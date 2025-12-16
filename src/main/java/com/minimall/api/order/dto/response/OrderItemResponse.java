@@ -1,4 +1,4 @@
-package com.minimall.api.order.dto.response;
+package com.minimall.controller.api.order.dto.response;
 
 public record OrderItemResponse(
         Long productId,

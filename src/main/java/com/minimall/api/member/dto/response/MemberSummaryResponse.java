@@ -1,4 +1,4 @@
-package com.minimall.api.member.dto.response;
+package com.minimall.controller.api.member.dto.response;
 
 public record MemberSummaryResponse(
         Long id,

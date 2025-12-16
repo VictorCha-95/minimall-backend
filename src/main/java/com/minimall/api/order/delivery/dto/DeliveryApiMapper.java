@@ -1,7 +1,7 @@
-package com.minimall.api.order.delivery.dto;
+package com.minimall.controller.api.order.delivery.dto;
 
-import com.minimall.api.common.embeddable.AddressMapper;
-import com.minimall.service.order.dto.DeliverySummaryResult;
+import com.minimall.controller.api.common.embeddable.AddressMapper;
+import com.minimall.service.order.dto.result.DeliverySummaryResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 

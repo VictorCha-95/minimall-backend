@@ -1,4 +1,4 @@
-package com.minimall.api.exception;
+package com.minimall.controller.api.exception;
 
 import com.minimall.domain.exception.DomainRuleException;
 import com.minimall.domain.exception.DuplicateException;

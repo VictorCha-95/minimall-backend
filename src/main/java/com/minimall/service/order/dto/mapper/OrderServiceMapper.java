@@ -9,7 +9,7 @@ import java.util.List;
 
 @Mapper(
         componentModel = "spring",
-        uses = {OrderItemServiceMapper.class, DeliveryServiceMapper.class, PayMapper.class},
+        uses = {OrderItemServiceMapper.class, DeliveryServiceMapper.class, PayServiceMapper.class},
         unmappedTargetPolicy = ReportingPolicy.ERROR
 )
 public interface OrderServiceMapper {

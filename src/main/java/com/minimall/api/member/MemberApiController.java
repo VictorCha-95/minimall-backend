@@ -1,7 +1,6 @@
 package com.minimall.api.member;
 
 import com.minimall.api.member.dto.MemberApiMapper;
-import com.minimall.api.member.dto.MemberApiMapperImpl;
 import com.minimall.api.member.dto.request.MemberCreateRequest;
 import com.minimall.api.member.dto.request.MemberLoginRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
@@ -12,7 +11,7 @@ import com.minimall.api.order.dto.OrderApiMapper;
 import com.minimall.api.order.dto.response.OrderSummaryResponse;
 import com.minimall.domain.member.Member;
 import com.minimall.service.member.MemberService;
-import com.minimall.service.member.dto.MemberSummaryResult;
+import com.minimall.service.member.dto.MemberUpdateCommand;
 import com.minimall.service.order.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -123,7 +122,8 @@ public class MemberController {
     @PatchMapping("/{id}")
     public MemberDetailResponse update(@PathVariable Long id,
                                        @Valid @RequestBody MemberUpdateRequest request) {
-        return memberApiMapper.toDetailResponse(memberService.update(id, request));
+        MemberUpdateCommand command = memberApiMapper.toUpdateCommand(request);
+        return memberApiMapper.toDetailResponse(memberService.update(id, command));
     }
 
     //== 회원 삭제 ==//

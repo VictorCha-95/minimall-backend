@@ -1,7 +1,7 @@
-package com.minimall.api.order.pay.dto;
+package com.minimall.controller.api.order.pay.dto;
 
 import com.minimall.domain.order.Pay;
-import com.minimall.service.order.dto.PayCommand;
+import com.minimall.service.order.dto.command.PayCommand;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 

@@ -8,7 +8,9 @@ import org.mapstruct.ReportingPolicy;
         componentModel = "spring",
         unmappedTargetPolicy = ReportingPolicy.ERROR
 )
-public interface PayMapper {
+public interface PayServiceMapper {
 
     PayResult toResult(Pay pay);
+
+    Pay toEntity(PayCommand command);
 }

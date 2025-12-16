@@ -1,4 +1,4 @@
-package com.minimall.api.order.dto;
+package com.minimall.controller.api.order.dto;
 
 import java.time.LocalDateTime;
 

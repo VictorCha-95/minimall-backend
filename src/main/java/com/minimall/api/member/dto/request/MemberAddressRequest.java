@@ -1,4 +1,4 @@
-package com.minimall.api.member.dto.request;
+package com.minimall.controller.api.member.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.lang.Nullable;

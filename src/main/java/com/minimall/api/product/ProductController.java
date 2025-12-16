@@ -1,6 +1,6 @@
-package com.minimall.api.product;
+package com.minimall.controller.api.product;
 
-import com.minimall.api.product.dto.request.ProductRegisterRequest;
+import com.minimall.controller.api.product.dto.request.ProductRegisterRequest;
 import com.minimall.domain.product.Product;
 import com.minimall.service.product.ProductService;
 import com.minimall.service.product.dto.ProductRegisterCommand;
@@ -8,10 +8,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;

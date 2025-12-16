@@ -5,23 +5,20 @@ import com.minimall.api.member.dto.request.MemberAddressRequest;
 import com.minimall.api.member.dto.request.MemberCreateRequest;
 import com.minimall.api.member.dto.request.MemberLoginRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
-import com.minimall.api.member.dto.response.MemberSummaryResponse;
-import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.OrderRepository;
 import com.minimall.service.member.dto.MemberAddressCommand;
 import com.minimall.service.member.dto.MemberCreateCommand;
 import com.minimall.service.member.dto.MemberSummaryResult;
-import com.minimall.service.order.dto.OrderCreateCommand;
-import com.minimall.service.order.dto.OrderItemCreateCommand;
+import com.minimall.service.order.dto.command.OrderCreateCommand;
+import com.minimall.service.order.dto.command.OrderItemCreateCommand;
 import com.minimall.domain.product.Product;
 import com.minimall.service.order.OrderService;
 import com.minimall.service.product.ProductService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.member.MemberService;
 import com.minimall.service.product.dto.ProductRegisterCommand;
-import org.assertj.core.api.SoftAssertions;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,7 +39,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.SoftAssertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -52,7 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers
 @Transactional
-class MemberControllerTest {
+class MemberControllerIntegrationTest {
 
     @ServiceConnection
     static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
@@ -78,7 +74,6 @@ class MemberControllerTest {
 
     @Autowired
     ProductService productService;
-
 
     @BeforeEach
     void setUp() {

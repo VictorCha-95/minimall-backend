@@ -1,4 +1,4 @@
-package com.minimall.api.exception;
+package com.minimall.controller.api.exception;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

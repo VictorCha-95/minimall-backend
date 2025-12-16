@@ -1,4 +1,4 @@
-package com.minimall.api.order.dto.request;
+package com.minimall.controller.api.order.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 

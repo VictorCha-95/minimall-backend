@@ -1,18 +1,9 @@
-name: CI
+name: CI-PR
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
 
 jobs:
   test:
@@ -45,7 +36,7 @@ jobs:
         with:
           name: test-reports
           path: |
-            build/reports/tests/test
+            build/reports/tests/testF
             build/test-results/test
           if-no-files-found: warn
 

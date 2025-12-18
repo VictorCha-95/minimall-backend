@@ -1,3 +1,5 @@
+[![CI](https://github.com/VictorCha-95/minimall-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/VictorCha-95/minimall-backend/actions/workflows/ci.yml)
+
 # MiniMall – 전자상거래 백엔드 서비스
 
 Spring Boot 3.5 / JPA 기반으로 **회원·상품·주문·결제·배송** 등  

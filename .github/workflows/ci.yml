@@ -21,7 +21,6 @@ jobs:
     env:
       TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: test
-      GRADLE_OPTS: -Dfile.encoding=UTF-8 -Dorg.gradle.jvmargs=-Xmx2g
 
     steps:
       - name: Checkout
@@ -39,11 +38,8 @@ jobs:
 
       - name: Debug environment
         run: |
-          echo "== java =="
           java -version
-          echo "== gradle wrapper =="
           ./gradlew -v
-          echo "== docker =="
           docker version
           docker info
 

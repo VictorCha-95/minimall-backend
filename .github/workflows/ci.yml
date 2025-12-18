@@ -49,4 +49,11 @@ jobs:
             build/test-results/test
           if-no-files-found: warn
 
-      - name: Upload jacoco report (always
+      - name: Upload jacoco report (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: |
+            **/build/reports/jacoco/test/html/**
+          if-no-files-found: warn

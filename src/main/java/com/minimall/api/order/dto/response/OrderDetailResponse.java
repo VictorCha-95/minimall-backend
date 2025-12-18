@@ -1,8 +1,8 @@
-package com.minimall.controller.api.order.dto.response;
+package com.minimall.api.order.dto.response;
 
 import com.minimall.domain.order.OrderStatus;
-import com.minimall.controller.api.order.delivery.dto.DeliverySummaryResponse;
-import com.minimall.controller.api.order.pay.dto.PayResponse;
+import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
+import com.minimall.api.order.pay.dto.PayResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;

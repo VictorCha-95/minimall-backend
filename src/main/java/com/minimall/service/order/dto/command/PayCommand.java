@@ -1,4 +1,4 @@
-package com.minimall.service.order.dto;
+package com.minimall.service.order.dto.command;
 
 import com.minimall.domain.order.pay.PayMethod;
 import jakarta.validation.constraints.NotNull;

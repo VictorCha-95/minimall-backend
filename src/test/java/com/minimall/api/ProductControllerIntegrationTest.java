@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.api.product.dto.request.ProductRegisterRequest;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
-import com.minimall.service.exception.ProductNotFoundException;
 import com.minimall.service.product.ProductService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -1,6 +1,6 @@
-package com.minimall.controller.api.order.delivery.dto;
+package com.minimall.api.order.delivery.dto;
 
-import com.minimall.controller.api.common.embeddable.AddressDto;
+import com.minimall.api.common.embeddable.AddressDto;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 
 import java.time.LocalDateTime;

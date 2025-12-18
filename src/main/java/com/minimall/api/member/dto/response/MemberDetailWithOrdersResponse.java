@@ -1,8 +1,8 @@
-package com.minimall.controller.api.member.dto.response;
+package com.minimall.api.member.dto.response;
 
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Grade;
-import com.minimall.controller.api.order.dto.OrderSummaryDto;
+import com.minimall.api.order.dto.OrderSummaryDto;
 
 import java.util.List;
 

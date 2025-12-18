@@ -1,4 +1,4 @@
-package com.minimall.controller.api.common.embeddable;
+package com.minimall.api.common.embeddable;
 
 import com.minimall.domain.embeddable.Address;
 import org.mapstruct.Mapper;

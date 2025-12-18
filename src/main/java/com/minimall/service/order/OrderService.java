@@ -1,6 +1,5 @@
 package com.minimall.service.order;
 
-import com.minimall.api.order.pay.dto.PayApiMapper;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.embeddable.InvalidAddressException;
 import com.minimall.domain.exception.Guards;
@@ -9,13 +8,20 @@ import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.*;
 import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
-import com.minimall.service.order.dto.DeliveryServiceMapper;
-import com.minimall.service.order.dto.*;
+import com.minimall.service.order.dto.command.OrderCreateCommand;
+import com.minimall.service.order.dto.command.OrderItemCreateCommand;
+import com.minimall.service.order.dto.command.PayCommand;
+import com.minimall.service.order.dto.mapper.DeliveryServiceMapper;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
+import com.minimall.service.order.dto.mapper.OrderServiceMapper;
+import com.minimall.service.order.dto.mapper.PayServiceMapper;
+import com.minimall.service.order.dto.result.DeliverySummaryResult;
+import com.minimall.service.order.dto.result.OrderDetailResult;
+import com.minimall.service.order.dto.result.OrderSummaryResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +38,7 @@ public class OrderService {
     private final MemberRepository memberRepository;
     private final ProductRepository productRepository;
     private final OrderServiceMapper orderServiceMapper;
-    private final PayApiMapper payApiMapper;
+    private final PayServiceMapper payMapper;
     private final DeliveryServiceMapper deliveryServiceMapper;
     
     //== 주문 생성 ==//
@@ -57,6 +63,13 @@ public class OrderService {
         return OrderItem.createOrderItem(product, command.quantity());
     }
 
+
+    //== 주문 취소 ==//
+    public void cancelOrder(Long id) {
+        Order order = findOrderById(id);
+        order.cancel();
+    }
+
     //== 주문 조회 ==//
     @Transactional(readOnly = true)
     public OrderDetailResult getOrderDetail(Long id) {
@@ -74,7 +87,7 @@ public class OrderService {
     //== 결제 ==//
     public Pay processPayment(Long id, PayCommand command) {
         Order order = findOrderById(id);
-        Pay pay = order.processPayment(payApiMapper.toEntity(command));
+        Pay pay = order.processPayment(payMapper.toEntity(command));
         return pay;
     }
 

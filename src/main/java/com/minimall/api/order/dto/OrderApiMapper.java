@@ -1,11 +1,11 @@
-package com.minimall.controller.api.order.dto;
+package com.minimall.api.order.dto;
 
-import com.minimall.controller.api.order.pay.dto.PayApiMapper;
+import com.minimall.api.order.pay.dto.PayApiMapper;
 import com.minimall.domain.order.Order;
 import com.minimall.service.order.dto.mapper.DeliveryServiceMapper;
-import com.minimall.controller.api.order.dto.response.OrderCreateResponse;
-import com.minimall.controller.api.order.dto.response.OrderDetailResponse;
-import com.minimall.controller.api.order.dto.response.OrderSummaryResponse;
+import com.minimall.api.order.dto.response.OrderCreateResponse;
+import com.minimall.api.order.dto.response.OrderDetailResponse;
+import com.minimall.api.order.dto.response.OrderSummaryResponse;
 import com.minimall.service.order.dto.result.OrderDetailResult;
 import com.minimall.service.order.dto.result.OrderSummaryResult;
 import org.mapstruct.Mapper;

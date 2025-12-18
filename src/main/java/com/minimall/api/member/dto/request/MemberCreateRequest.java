@@ -1,4 +1,4 @@
-package com.minimall.controller.api.member.dto.request;
+package com.minimall.api.member.dto.request;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;

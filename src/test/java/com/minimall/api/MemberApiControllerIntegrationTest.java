@@ -48,7 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers
 @Transactional
-class MemberControllerIntegrationTest {
+class MemberApiControllerIntegrationTest {
 
     @ServiceConnection
     static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")

@@ -1,4 +1,4 @@
-package com.minimall.service.order.dto;
+package com.minimall.service.order.dto.command;
 
 import jakarta.validation.constraints.NotNull;
 

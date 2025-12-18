@@ -9,7 +9,6 @@ import com.minimall.domain.order.*;
 import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
-import com.minimall.service.order.dto.*;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
@@ -19,6 +18,12 @@ import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
+import com.minimall.service.order.dto.command.OrderCreateCommand;
+import com.minimall.service.order.dto.command.OrderItemCreateCommand;
+import com.minimall.service.order.dto.command.PayCommand;
+import com.minimall.service.order.dto.result.DeliverySummaryResult;
+import com.minimall.service.order.dto.result.OrderDetailResult;
+import com.minimall.service.order.dto.result.OrderSummaryResult;
 import jakarta.persistence.EntityManager;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,9 +41,15 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.SoftAssertions.*;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 
 @SpringBootTest
 @ActiveProfiles("integration-test")
@@ -139,7 +150,7 @@ public class OrderServiceIntegrationTest {
             Order order = orderService.createOrder(createCommand1);
             flushClear();
 
-            //then: DB 조회해서 검증
+            //then: DB 조회해서 실제 생성된 주문 검증
             Order found = orderRepository.findById(order.getId())
                     .orElseThrow(() -> new AssertionError("주문이 저장되지 않음"));
 
@@ -190,7 +201,7 @@ public class OrderServiceIntegrationTest {
 
             flushClear();
 
-            //then: 롤백: 주문 미생성, 주문 상품 재고 변화 없음
+            //then: 롤백 -> 주문 미생성, 주문 상품 재고 변화 없음
             assertSoftly(softly -> {
                 softly.assertThat(orderRepository.count()).isEqualTo(beforeOrderCount);
                 softly.assertThat(productRepository.findById(product.getId()).orElseThrow().getStockQuantity())
@@ -222,6 +233,36 @@ public class OrderServiceIntegrationTest {
                 softly.assertThat(productRepository.findById(exists.getId()).orElseThrow().getStockQuantity())
                         .isEqualTo(beforeStock);
             });
+        }
+    }
+
+    @Nested
+    @DisplayName("cancelOrder(Long)")
+    class CancelOrder{
+        @DisplayName("주문 취소: DB 주문 조회 -> 취소")
+        @Test
+        void success(){
+            //given
+            Order order = orderService.createOrder(createCommand1);
+
+            //when
+            orderService.cancelOrder(order.getId());
+
+            //then
+            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCELED);
+        }
+
+        @DisplayName("주문 미존재 -> Not Found 예외 발생")
+        @Test
+        void shouldFail_whenOrderNotFound() {
+            //given
+            Long wrongId = 9999999L;
+
+            //when - then
+            assertThatThrownBy(() -> orderService.cancelOrder(wrongId))
+                    .isInstanceOfSatisfying(OrderNotFoundException.class, e -> {
+                        assertThat(e.getMessage()).contains("id");
+                    });
         }
     }
 

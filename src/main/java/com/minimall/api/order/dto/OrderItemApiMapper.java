@@ -1,7 +1,7 @@
-package com.minimall.controller.api.order.dto;
+package com.minimall.api.order.dto;
 
 import com.minimall.domain.order.OrderItem;
-import com.minimall.controller.api.order.dto.response.OrderItemResponse;
+import com.minimall.api.order.dto.response.OrderItemResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;

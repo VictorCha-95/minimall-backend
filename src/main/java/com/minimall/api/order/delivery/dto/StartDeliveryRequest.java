@@ -1,4 +1,4 @@
-package com.minimall.controller.api.order.delivery.dto;
+package com.minimall.api.order.delivery.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.lang.Nullable;

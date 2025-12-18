@@ -1,4 +1,4 @@
-package com.minimall.service.order.dto;
+package com.minimall.service.order.dto.result;
 
 import com.minimall.domain.order.OrderStatus;
 

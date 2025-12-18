@@ -1,19 +1,19 @@
-package com.minimall.controller.api.order;
+package com.minimall.api.order;
 
-import com.minimall.controller.api.order.delivery.dto.DeliveryApiMapper;
-import com.minimall.controller.api.order.delivery.dto.DeliverySummaryResponse;
-import com.minimall.controller.api.order.delivery.dto.StartDeliveryRequest;
-import com.minimall.controller.api.order.dto.OrderApiMapper;
-import com.minimall.controller.api.order.dto.request.CompleteDeliveryRequest;
-import com.minimall.controller.api.order.pay.dto.PayApiMapper;
+import com.minimall.api.order.delivery.dto.DeliveryApiMapper;
+import com.minimall.api.order.delivery.dto.DeliverySummaryResponse;
+import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
+import com.minimall.api.order.dto.OrderApiMapper;
+import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
+import com.minimall.api.order.pay.dto.PayApiMapper;
 import com.minimall.domain.embeddable.Address;
-import com.minimall.controller.api.common.embeddable.AddressDto;
-import com.minimall.controller.api.common.embeddable.AddressMapper;
-import com.minimall.controller.api.order.dto.request.OrderCreateRequest;
-import com.minimall.controller.api.order.dto.response.OrderCreateResponse;
-import com.minimall.controller.api.order.dto.response.OrderDetailResponse;
-import com.minimall.controller.api.order.pay.dto.PayRequest;
-import com.minimall.controller.api.order.pay.dto.PayResponse;
+import com.minimall.api.common.embeddable.AddressDto;
+import com.minimall.api.common.embeddable.AddressMapper;
+import com.minimall.api.order.dto.request.OrderCreateRequest;
+import com.minimall.api.order.dto.response.OrderCreateResponse;
+import com.minimall.api.order.dto.response.OrderDetailResponse;
+import com.minimall.api.order.pay.dto.PayRequest;
+import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.order.Order;
 import com.minimall.domain.order.Pay;
 import com.minimall.service.order.OrderService;
@@ -68,6 +68,18 @@ public class OrderController {
         return ResponseEntity
                 .created(URI.create("/orders/" + body.id()))
                 .body(body);
+    }
+
+    @Operation(summary = "주문 취소")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "주문 취소 성공"),
+            @ApiResponse(responseCode = "400", description = "요청 검증 오류"),
+            @ApiResponse(responseCode = "404", description = "취소할 수 없는 상태(이미 완료된 주문, 배송 중인 주문 등) or 주문 미존재")
+    })
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<Void> cancelOrder(@PathVariable Long id) {
+        orderService.cancelOrder(id);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "주문 단건 상세 조회")

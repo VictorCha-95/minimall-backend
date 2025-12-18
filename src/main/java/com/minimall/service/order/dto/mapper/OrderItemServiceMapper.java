@@ -1,6 +1,7 @@
-package com.minimall.service.order.dto;
+package com.minimall.service.order.dto.mapper;
 
 import com.minimall.domain.order.OrderItem;
+import com.minimall.service.order.dto.result.OrderItemResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;

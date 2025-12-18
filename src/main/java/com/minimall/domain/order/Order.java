@@ -64,7 +64,7 @@ public class Order extends BaseEntity {
     public static Order createOrder(Member member, OrderItem... items) {
         Objects.requireNonNull(member, OrderMessage.MEMBER_REQUIRED_FOR_ORDER_CREATION.text());
 
-        validateOrderItems(items);
+        nullCheckOrderItems(items);
 
         Order order = new Order(member, LocalDateTime.now(),
                 OrderStatus.ORDERED, new OrderAmount(getTotalAmount(items)));
@@ -168,7 +168,7 @@ public class Order extends BaseEntity {
 
 
     //==검증 로직==//
-    private static void validateOrderItems(OrderItem[] items) {
+    private static void nullCheckOrderItems(OrderItem[] items) {
         if (items == null || items.length == 0) {
             throw InvalidOrderItemException.require();
         }

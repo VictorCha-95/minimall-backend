@@ -1,13 +1,13 @@
-package com.minimall.controller.api.member.dto;
+package com.minimall.api.member.dto;
 
-import com.minimall.controller.api.member.dto.request.MemberLoginRequest;
-import com.minimall.controller.api.member.dto.request.MemberUpdateRequest;
-import com.minimall.controller.api.member.dto.response.MemberSummaryResponse;
-import com.minimall.controller.api.order.dto.OrderApiMapper;
+import com.minimall.api.member.dto.request.MemberLoginRequest;
+import com.minimall.api.member.dto.request.MemberUpdateRequest;
+import com.minimall.api.member.dto.response.MemberSummaryResponse;
+import com.minimall.api.order.dto.OrderApiMapper;
 import com.minimall.domain.member.Member;
-import com.minimall.controller.api.member.dto.request.MemberCreateRequest;
-import com.minimall.controller.api.member.dto.response.MemberDetailResponse;
-import com.minimall.controller.api.member.dto.response.MemberDetailWithOrdersResponse;
+import com.minimall.api.member.dto.request.MemberCreateRequest;
+import com.minimall.api.member.dto.response.MemberDetailResponse;
+import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
 import com.minimall.service.member.dto.*;
 import jakarta.validation.Valid;
 import org.mapstruct.Mapper;

@@ -2,17 +2,15 @@ spring:
   application:
     name: MiniMall
 
-  datasource:
-    url: jdbc:mysql://localhost:3306/minimall?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
-    username: root
-    password: 1234
-    driver-class-name: com.mysql.cj.jdbc.Driver
+  profiles:
+    default: local
 
   jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+
+logging:
+  level:
+    org.hibernate.SQL: debug

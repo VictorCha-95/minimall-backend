@@ -1,4 +1,4 @@
-package com.minimall.controller.api.member.dto.request;
+package com.minimall.api.member.dto.request;
 
 import com.minimall.domain.embeddable.Address;
 import org.springframework.lang.Nullable;

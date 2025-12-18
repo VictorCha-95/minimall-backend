@@ -1,6 +1,6 @@
-package com.minimall.controller.api.product;
+package com.minimall.api.product;
 
-import com.minimall.controller.api.product.dto.request.ProductRegisterRequest;
+import com.minimall.api.product.dto.request.ProductRegisterRequest;
 import com.minimall.domain.product.Product;
 import com.minimall.service.product.ProductService;
 import com.minimall.service.product.dto.ProductRegisterCommand;

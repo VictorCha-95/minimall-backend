@@ -25,7 +25,6 @@ import com.minimall.api.order.dto.request.OrderCreateRequest;
 import com.minimall.api.order.dto.request.OrderItemCreateRequest;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
 import com.minimall.domain.order.pay.PayStatus;
-import com.minimall.service.order.dto.*;
 import com.minimall.domain.order.exception.OrderStatusException;
 import com.minimall.domain.order.exception.PaymentRequiredException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
@@ -35,6 +34,11 @@ import com.minimall.service.order.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
+import com.minimall.service.order.dto.command.OrderCreateCommand;
+import com.minimall.service.order.dto.command.PayCommand;
+import com.minimall.service.order.dto.result.DeliverySummaryResult;
+import com.minimall.service.order.dto.result.OrderDetailResult;
+import com.minimall.service.order.dto.result.OrderItemResult;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +50,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -121,7 +126,7 @@ public class OrderControllerTest {
 
     @Nested
     @DisplayName("POST /orders")
-    class Create {
+    class CreateOrder {
         @Test
         @DisplayName("주문 생성 -> 201 + JSON 검증")
         void return201_whenSuccess() throws Exception {
@@ -225,6 +230,42 @@ public class OrderControllerTest {
                     .andExpect(jsonPath("$.timestamp").exists());
         }
     }
+
+    @Nested
+    @DisplayName("PATCH /orders/{id}/cancel")
+    class CancelOrder {
+        @DisplayName("주문 취소: 204 검증")
+        @Test
+        void return204_whenSuccess() throws Exception {
+            //when
+            ResultActions result = mockMvc.perform(patch("/orders/1/cancel"));
+
+            //then
+            result.andExpect(status().isNoContent());
+        }
+
+        @DisplayName("주문 미존재 -> 404 NotFound 예외 발생")
+        @Test
+        void return404_whenOrderNotFound() throws Exception {
+            //given
+            willThrow(new OrderNotFoundException("id", NOT_EXIST_ID))
+                    .given(orderService).cancelOrder(NOT_EXIST_ID);
+
+            //when
+            ResultActions result = mockMvc.perform(patch("/orders/" + NOT_EXIST_ID + "/cancel"));
+
+            //then
+            result.andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.status").value(404))
+                    .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
+                    .andExpect(jsonPath("$.message", Matchers.containsString("주문")))
+                    .andExpect(jsonPath("$.message", Matchers.containsString("id")))
+                    .andExpect(jsonPath("$.message", Matchers.containsString(String.valueOf(NOT_EXIST_ID))))
+                    .andExpect(jsonPath("$.timestamp").exists());
+
+        }
+    }
+
 
     @Nested
     @DisplayName("GET /orders/{id}")

@@ -1,4 +1,12 @@
 package com.minimall.service.member.dto;
 
-public record MemberUpdateCommand() {
+import com.minimall.domain.embeddable.Address;
+import org.springframework.lang.Nullable;
+
+public record MemberUpdateCommand(
+        String password,
+        String name,
+        String email,
+        Address addr
+) {
 }

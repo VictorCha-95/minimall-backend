@@ -1,21 +1,11 @@
 package com.minimall.service.product;
 
-import com.minimall.api.order.dto.request.OrderCreateRequest;
-import com.minimall.api.order.dto.request.OrderItemCreateRequest;
-import com.minimall.api.order.dto.response.OrderItemResponse;
-import com.minimall.domain.embeddable.Address;
-import com.minimall.domain.member.Member;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
-import com.minimall.service.order.dto.OrderCreateCommand;
-import com.minimall.service.order.dto.OrderItemCreateCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 public class ProductServiceTest {

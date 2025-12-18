@@ -1,4 +1,4 @@
-package com.minimall.controller.api.exception;
+package com.minimall.api.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

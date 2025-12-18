@@ -1,11 +1,8 @@
 package com.minimall.service.member;
 
-import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
-import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.service.exception.InvalidCredentialException;
 import com.minimall.service.exception.MemberNotFoundException;
@@ -53,11 +50,11 @@ public class MemberService {
 
     //== 수정 ==//
     @Transactional
-    public MemberDetailResult update(Long memberId, MemberUpdateRequest request) {
-        validateDuplicateEmailForUpdate(memberId, request.email());
+    public MemberDetailResult update(Long memberId, MemberUpdateCommand command) {
+        validateDuplicateEmailForUpdate(memberId, command.email());
         //TODO 비밀번호 검증, 암호화 로직 추가
         Member member = findMemberById(memberId);
-        member.update(request.password(), request.name(), request.email(), request.addr());
+        member.update(command.password(), command.name(), command.email(), command.addr());
         return memberServiceMapper.toDetailResult(member);
     }
 

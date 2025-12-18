@@ -3,12 +3,10 @@ package com.minimall.service.member;
 import com.minimall.api.member.dto.request.MemberAddressRequest;
 import com.minimall.api.member.dto.request.MemberCreateRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
-import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.domain.order.OrderRepository;
 import com.minimall.service.exception.InvalidCredentialException;
@@ -59,6 +57,7 @@ public class MemberServiceIntegrationTest {
     private MemberCreateRequest createRequest;
     private MemberCreateCommand createCommand;
     private MemberUpdateRequest updateRequest;
+    private MemberUpdateCommand updateCommand;
 
 
     @BeforeEach
@@ -82,6 +81,13 @@ public class MemberServiceIntegrationTest {
 
         //== UpdateRequest DTO ==//
         updateRequest = new MemberUpdateRequest(
+                "newPassword456",
+                "차태승2",
+                "cts9458+update@naver.com",
+                member.getAddr()
+        );
+
+        updateCommand = new MemberUpdateCommand(
                 "newPassword456",
                 "차태승2",
                 "cts9458+update@naver.com",
@@ -200,7 +206,7 @@ public class MemberServiceIntegrationTest {
             Member created = memberService.create(createCommand);
 
             //when
-            MemberDetailResult updated = memberService.update(created.getId(), updateRequest);
+            MemberDetailResult updated = memberService.update(created.getId(), updateCommand);
             MemberDetailResult found = memberService.getDetail(updated.id());
 
             //then
@@ -220,7 +226,7 @@ public class MemberServiceIntegrationTest {
             //then
             assertThrows(DuplicateException.class,
                     () -> memberService.update(newCreated.getId(),
-                            new MemberUpdateRequest(null, null, foundOriginal.email(), null)));
+                            new MemberUpdateCommand(null, null, foundOriginal.email(), null)));
         }
     }
 
@@ -356,7 +362,7 @@ public class MemberServiceIntegrationTest {
         @Test
         void getMembers() {
             //given
-            Member created = memberService.create(createCommand);
+            memberService.create(createCommand);
 
             //when
             List<MemberSummaryResult> result = memberService.getMembers();

@@ -1,6 +1,5 @@
 package com.minimall.service.order;
 
-import com.minimall.api.order.pay.dto.PayApiMapper;
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.api.common.embeddable.AddressDto;
@@ -11,7 +10,6 @@ import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.*;
 import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
-import com.minimall.service.order.dto.*;
 import com.minimall.api.order.dto.request.OrderCreateRequest;
 import com.minimall.api.order.dto.request.OrderItemCreateRequest;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
@@ -23,6 +21,15 @@ import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
 import com.minimall.service.exception.ProductNotFoundException;
+import com.minimall.service.order.dto.command.OrderCreateCommand;
+import com.minimall.service.order.dto.command.OrderItemCreateCommand;
+import com.minimall.service.order.dto.command.PayCommand;
+import com.minimall.service.order.dto.mapper.DeliveryServiceMapper;
+import com.minimall.service.order.dto.mapper.OrderServiceMapper;
+import com.minimall.service.order.dto.mapper.PayServiceMapper;
+import com.minimall.service.order.dto.result.DeliverySummaryResult;
+import com.minimall.service.order.dto.result.OrderDetailResult;
+import com.minimall.service.order.dto.result.OrderSummaryResult;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -59,7 +66,7 @@ class OrderServiceTest {
     OrderServiceMapper orderServiceMapper;
 
     @Mock
-    PayApiMapper payApiMapper;
+    PayServiceMapper payMapper;
 
     @Mock
     DeliveryServiceMapper deliveryServiceMapper;
@@ -199,6 +206,38 @@ class OrderServiceTest {
     }
 
     @Nested
+    @DisplayName("cancelOrder(Long)")
+    class CancelOrder{
+        @DisplayName("주문 취소: 주문 조회 -> 취소")
+        @Test
+        void success(){
+            //given
+            Order order = mock(Order.class);
+            given(orderRepository.findById(anyLong())).willReturn(Optional.of(order));
+
+            //when
+            orderService.cancelOrder(12345L);
+
+            //then
+            then(orderRepository).should(times(1)).findById(anyLong());
+        }
+
+        @DisplayName("주문 미존재: Not Found 예외 발생")
+        @Test
+        void shouldFail_whenOrderNotFound() {
+            //given
+            given(orderRepository.findById(anyLong())).willReturn(Optional.empty());
+
+            //when - then
+            assertThatThrownBy(() -> orderService.cancelOrder(12345L))
+                    .isInstanceOfSatisfying(OrderNotFoundException.class, e -> {
+                        assertThat(e.getMessage()).contains("id");
+                    });
+            then(orderRepository).should(times(1)).findById(anyLong());
+        }
+    }
+
+    @Nested
     @DisplayName("getOrderDetail(Long)")
     class GetOrderDetail{
         @Test
@@ -327,7 +366,7 @@ class OrderServiceTest {
             Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
             PayCommand command = new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
-            given(payApiMapper.toEntity(command)).willReturn(pay);
+            given(payMapper.toEntity(command)).willReturn(pay);
 
             //when
             Pay result = orderService.processPayment(1L, command);
@@ -338,7 +377,7 @@ class OrderServiceTest {
             });
 
             then(orderRepository).should(times(1)).findById(1L);
-            then(payApiMapper).should(times(1)).toEntity(command);
+            then(payMapper).should(times(1)).toEntity(command);
         }
 
         @Test
@@ -351,7 +390,7 @@ class OrderServiceTest {
             Pay pay = new Pay(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
             PayCommand command = new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
-            given(payApiMapper.toEntity(command)).willReturn(pay);
+            given(payMapper.toEntity(command)).willReturn(pay);
 
             orderService.processPayment(1L, command); // 첫 번째 결제
 
@@ -364,7 +403,7 @@ class OrderServiceTest {
                     });
 
             then(orderRepository).should(times(2)).findById(1L);
-            then(payApiMapper).should(times(2)).toEntity(command);
+            then(payMapper).should(times(2)).toEntity(command);
         }
 
         @Test
@@ -379,7 +418,7 @@ class OrderServiceTest {
             Pay pay = new Pay(PayMethod.CARD, invalidAmount);
             PayCommand command = new PayCommand(PayMethod.CARD, invalidAmount);
 
-            given(payApiMapper.toEntity(command)).willReturn(pay);
+            given(payMapper.toEntity(command)).willReturn(pay);
 
             //then
             assertThatThrownBy(() -> orderService.processPayment(1L, command))
@@ -390,7 +429,7 @@ class OrderServiceTest {
                     });
 
             then(orderRepository).should(times(1)).findById(1L);
-            then(payApiMapper).should(times(1)).toEntity(command);
+            then(payMapper).should(times(1)).toEntity(command);
         }
 
         private @NotNull Order createSampleOrder() {

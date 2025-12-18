@@ -46,6 +46,7 @@ class MemberServiceTest {
     private Member member;
     private MemberCreateCommand createCommand;
     private MemberUpdateRequest updateRequest;
+    private MemberUpdateCommand updateCommand;
     private MemberDetailResult detailResult;
     private MemberSummaryResult summaryResult;
 
@@ -67,6 +68,13 @@ class MemberServiceTest {
 
         //== UpdateRequest DTO ==//
         updateRequest = new MemberUpdateRequest(
+                "newPassword456",
+                "차태승2",
+                "cts9458+update@naver.com",
+                member.getAddr()
+        );
+
+        updateCommand = new MemberUpdateCommand(
                 "newPassword456",
                 "차태승2",
                 "cts9458+update@naver.com",
@@ -188,7 +196,7 @@ class MemberServiceTest {
         when(memberServiceMapper.toDetailResult(member)).thenReturn(detailResult);
 
         //when
-        MemberDetailResult result = memberService.update(1L, updateRequest);
+        MemberDetailResult result = memberService.update(1L, updateCommand);
 
         //then
         assertThat(result).isEqualTo(detailResult);
@@ -209,7 +217,7 @@ class MemberServiceTest {
 
         //when
         DuplicateException ex = assertThrows(DuplicateException.class,
-                () -> memberService.update(1L, updateRequest)
+                () -> memberService.update(1L, updateCommand)
         );
 
         //then
@@ -228,7 +236,7 @@ class MemberServiceTest {
 
         //when
         MemberNotFoundException ex =
-                assertThrows(MemberNotFoundException.class, () -> memberService.update(1L, updateRequest));
+                assertThrows(MemberNotFoundException.class, () -> memberService.update(1L, updateCommand));
 
         //then
         assertThat(ex.getMessage())

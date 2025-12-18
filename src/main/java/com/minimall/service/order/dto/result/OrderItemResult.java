@@ -1,4 +1,4 @@
-package com.minimall.service.order.dto;
+package com.minimall.service.order.dto.result;
 
 public record OrderItemResult(
         Long productId,

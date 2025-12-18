@@ -1,4 +1,4 @@
-package com.minimall.controller.api.common.embeddable;
+package com.minimall.api.common.embeddable;
 
 public record AddressDto(
     String postcode,

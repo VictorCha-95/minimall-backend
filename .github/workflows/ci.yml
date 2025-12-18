@@ -5,10 +5,23 @@ on:
     branches: [ "main", "master", "develop" ]
   pull_request:
     branches: [ "main", "master", "develop" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    env:
+      TZ: Asia/Seoul
+      SPRING_PROFILES_ACTIVE: test
+      GRADLE_OPTS: -Dfile.encoding=UTF-8 -Dorg.gradle.jvmargs=-Xmx2g
 
     steps:
       - name: Checkout
@@ -24,8 +37,18 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
+      - name: Debug environment
+        run: |
+          echo "== java =="
+          java -version
+          echo "== gradle wrapper =="
+          ./gradlew -v
+          echo "== docker =="
+          docker version
+          docker info
+
       - name: Run tests + Jacoco report
-        run: ./gradlew clean test jacocoTestReport --no-daemon
+        run: ./gradlew clean test jacocoTestReport --no-daemon --stacktrace --info
 
       - name: Upload test reports (always)
         if: always()

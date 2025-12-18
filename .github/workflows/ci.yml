@@ -63,3 +63,26 @@ jobs:
           path: |
             **/build/reports/jacoco/test/html/**
           if-no-files-found: warn
+
+      - name: Print failed tests (only when test fails)
+        if: failure()
+        run: |
+          echo "== build/test-results/test =="
+          ls -la build/test-results/test || true
+
+          echo "== Failed test cases (parsed from JUnit XML) =="
+          python - <<'PY'
+          import glob
+          import xml.etree.ElementTree as ET
+
+          failed = []
+          for f in glob.glob("build/test-results/test/*.xml"):
+              root = ET.parse(f).getroot()
+              for tc in root.iter("testcase"):
+                  if tc.find("failure") is not None or tc.find("error") is not None:
+                      failed.append(f"{tc.attrib.get('classname')}#{tc.attrib.get('name')}")
+          if failed:
+              print("\n".join(failed))
+          else:
+              print("No failed tests found in XML (check logs above).")
+          PY

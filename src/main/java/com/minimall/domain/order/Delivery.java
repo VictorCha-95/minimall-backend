@@ -32,9 +32,10 @@ public class Delivery extends BaseEntity {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
+    @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;
 
+    @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private DeliveryStatus deliveryStatus;
 
@@ -44,10 +45,10 @@ public class Delivery extends BaseEntity {
     @Embedded
     private Address shipAddr;
 
-    private Integer deliveryFee; //TODO DB 컬럼 추가
+    private Integer deliveryFee;
 
-    private LocalDateTime shippedAt;     //TODO DB 컬럼 추가
-    private LocalDateTime arrivedAt;     //TODO DB 컬럼 추가
+    private LocalDateTime shippedAt;
+    private LocalDateTime arrivedAt;
 
 
 

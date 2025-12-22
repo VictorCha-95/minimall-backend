@@ -22,16 +22,21 @@ public class OrderItem extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
+    @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @Column(nullable = false, length = 100)
     private String productName;
-    private Integer orderPrice;
-    private Integer orderQuantity;
+
+    @Column(nullable = false)
+    private int orderPrice;
+
+    @Column(nullable = false)
+    private int orderQuantity;
 
 
     //== 생성자 메서드 ==//

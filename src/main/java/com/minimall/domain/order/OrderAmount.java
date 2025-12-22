@@ -3,6 +3,7 @@ package com.minimall.domain.order;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.order.discount.DiscountException;
 import com.minimall.domain.order.discount.MemberDiscountPolicy;
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -16,9 +17,15 @@ import java.util.Optional;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderAmount {
 
-    private Integer originalAmount;        // 할인 적용 전 금액
-    private Integer discountAmount;
-    private Integer finalAmount;        // 할인 적용 후 금액
+    @Column(nullable = false)
+    private int originalAmount;        // 할인 적용 전 금액
+
+    @Column(nullable = false)
+    private int discountAmount;
+
+    @Column(nullable = false)
+    private int finalAmount;        // 할인 적용 후 금액
+
     private boolean isDiscounted = false;
 
     //== 생성자 ==//

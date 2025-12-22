@@ -28,7 +28,7 @@ public class MemberService {
     @Transactional
     public Member login(MemberLoginCommand command) {
         Member member = findMemberByLoginId(command.loginId());
-        if (!passwordEncoder.matches(command.password(), member.getPassword())){
+        if (!passwordEncoder.matches(command.password(), member.getPasswordHash())){
             throw new InvalidCredentialException("password not matched");
         }
 

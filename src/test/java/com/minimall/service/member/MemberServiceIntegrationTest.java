@@ -72,11 +72,11 @@ public class MemberServiceIntegrationTest {
                 .build();
 
         //== CreateRequest DTO ==//
-        createRequest = new MemberCreateRequest(member.getLoginId(), member.getPassword(), member.getName(), member.getEmail(),
+        createRequest = new MemberCreateRequest(member.getLoginId(), member.getPasswordHash(), member.getName(), member.getEmail(),
                 new MemberAddressRequest(member.getAddr().getPostcode(), member.getAddr().getState(), member.getAddr().getCity(), member.getAddr().getStreet(), member.getAddr().getDetail()));
 
         //== CreateCommand DTO ==//
-        createCommand = new MemberCreateCommand(member.getLoginId(), member.getPassword(), member.getName(), member.getEmail(),
+        createCommand = new MemberCreateCommand(member.getLoginId(), member.getPasswordHash(), member.getName(), member.getEmail(),
                 new MemberAddressCommand(member.getAddr().getPostcode(), member.getAddr().getState(), member.getAddr().getCity(), member.getAddr().getStreet(), member.getAddr().getDetail()));
 
         //== UpdateRequest DTO ==//
@@ -159,7 +159,7 @@ public class MemberServiceIntegrationTest {
             //given
             memberService.create(createCommand);
             MemberCreateCommand duplicateLoginIdCommand =
-                    new MemberCreateCommand(member.getLoginId(), member.getPassword(), "차태승", "example@naver.com", null);
+                    new MemberCreateCommand(member.getLoginId(), member.getPasswordHash(), "차태승", "example@naver.com", null);
 
             //then
             assertThrows(DuplicateException.class, () -> memberService.create(duplicateLoginIdCommand));
@@ -170,7 +170,7 @@ public class MemberServiceIntegrationTest {
             //given
             memberService.create(createCommand);
             MemberCreateCommand duplicateEmailCommand =
-                    new MemberCreateCommand("exampleLoginId", member.getPassword(), "차태승", member.getEmail(), null);
+                    new MemberCreateCommand("exampleLoginId", member.getPasswordHash(), "차태승", member.getEmail(), null);
 
             //then
             assertThrows(DuplicateException.class, () -> memberService.create(duplicateEmailCommand));
@@ -191,8 +191,8 @@ public class MemberServiceIntegrationTest {
             Member member = memberService.create(command);
 
             //then
-            assertThat(member.getPassword()).isNotEqualTo("plainPassword");
-            assertThat(passwordEncoder.matches("plainPassword", member.getPassword())).isTrue();
+            assertThat(member.getPasswordHash()).isNotEqualTo("plainPassword");
+            assertThat(passwordEncoder.matches("plainPassword", member.getPasswordHash())).isTrue();
         }
     }
 

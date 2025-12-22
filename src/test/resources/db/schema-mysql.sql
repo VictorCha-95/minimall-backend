@@ -1,12 +1,4 @@
-USE minimall;
-
--- FK 순서 고려: 자식 테이블부터 드랍
-DROP TABLE IF EXISTS pay;
-DROP TABLE IF EXISTS delivery;
-DROP TABLE IF EXISTS order_item;
-DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS product;
-DROP TABLE IF EXISTS member;
+SET FOREIGN_KEY_CHECKS = 0;
 
 -- =========================
 -- 1) member
@@ -180,3 +172,6 @@ CREATE TABLE pay (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
+
+
+SET FOREIGN_KEY_CHECKS = 1;

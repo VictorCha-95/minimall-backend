@@ -1,6 +1,7 @@
 package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minimall.AbstractIntegrationTest;
 import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
 import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
 import com.minimall.domain.embeddable.Address;
@@ -47,15 +48,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
-@ActiveProfiles("integration-test")
 @AutoConfigureMockMvc
-@Testcontainers
 @Transactional
-class OrderControllerIntegrationTest {
-
-    @ServiceConnection
-    static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
-            .withReuse(true);
+class OrderControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     MockMvc mockMvc;

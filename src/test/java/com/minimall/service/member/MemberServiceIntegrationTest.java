@@ -1,5 +1,6 @@
 package com.minimall.service.member;
 
+import com.minimall.AbstractIntegrationTest;
 import com.minimall.api.member.dto.request.MemberAddressRequest;
 import com.minimall.api.member.dto.request.MemberCreateRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
@@ -32,14 +33,8 @@ import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-@ActiveProfiles("integration-test")
-@Testcontainers
 @Transactional
-public class MemberServiceIntegrationTest {
-
-    @ServiceConnection
-    static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
-            .withReuse(true);
+public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     MemberService memberService;

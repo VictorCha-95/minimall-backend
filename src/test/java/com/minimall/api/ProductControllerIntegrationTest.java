@@ -1,6 +1,7 @@
 package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minimall.AbstractIntegrationTest;
 import com.minimall.api.product.dto.request.ProductRegisterRequest;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
@@ -27,15 +28,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
-@ActiveProfiles("integration-test")
 @AutoConfigureMockMvc
-@Testcontainers
 @Transactional
-public class ProductControllerIntegrationTest {
-
-    @ServiceConnection
-    static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
-            .withReuse(true);
+public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     MockMvc mockMvc;

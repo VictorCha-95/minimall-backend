@@ -4,7 +4,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update   # 통합 테스트는 스키마 유지되는게 편함
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true

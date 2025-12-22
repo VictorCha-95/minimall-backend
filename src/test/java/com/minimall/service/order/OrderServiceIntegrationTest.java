@@ -1,5 +1,6 @@
 package com.minimall.service.order;
 
+import com.minimall.AbstractIntegrationTest;
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.embeddable.InvalidAddressException;
@@ -52,14 +53,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 
 @SpringBootTest
-@ActiveProfiles("integration-test")
-@Testcontainers
 @Transactional
-public class OrderServiceIntegrationTest {
-
-    @ServiceConnection
-    static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
-            .withReuse(true);
+public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     OrderService orderService;

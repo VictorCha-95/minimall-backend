@@ -14,6 +14,5 @@ public abstract class AbstractIntegrationTest {
             new MySQLContainer<>("mysql:8.0")
                     .withDatabaseName("minimall")
                     .withUsername("test")
-                    .withPassword("test")
-                    .withInitScript("db/schema-mysql.sql");
+                    .withPassword("test");
 }

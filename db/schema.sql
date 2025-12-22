@@ -23,13 +23,13 @@ CREATE TABLE member (
   create_by      VARCHAR(50) DEFAULT NULL,
   update_by      VARCHAR(50) DEFAULT NULL,
 
-  city           VARCHAR(50)  NOT NULL,
-  detail         VARCHAR(255) DEFAULT NULL,
-  postcode       VARCHAR(20)  NOT NULL,
-  state          VARCHAR(50)  NOT NULL,
-  street         VARCHAR(255) NOT NULL,
+  city           VARCHAR(50),
+  detail         VARCHAR(255),
+  postcode       VARCHAR(20),
+  state          VARCHAR(50),
+  street         VARCHAR(255),
 
-  grade          VARCHAR(20)  NOT NULL,
+  grade          VARCHAR(20)  NOT NULL DEFAULT 'BRONZE',
 
   PRIMARY KEY (member_id),
   UNIQUE KEY uq_member_login_id (login_id),
@@ -136,11 +136,11 @@ CREATE TABLE delivery (
   arrived_at       DATETIME(6) DEFAULT NULL,
   delivery_fee     INT NOT NULL DEFAULT 0,
 
-  city             VARCHAR(50)  NOT NULL,
-  detail           VARCHAR(255) DEFAULT NULL,
-  postcode         VARCHAR(20)  NOT NULL,
-  state            VARCHAR(50)  NOT NULL,
-  street           VARCHAR(255) NOT NULL,
+  city           VARCHAR(50),
+  detail         VARCHAR(255),
+  postcode       VARCHAR(20),
+  state          VARCHAR(50),
+  street         VARCHAR(255),
 
   shipped_at       DATETIME(6) DEFAULT NULL,
 

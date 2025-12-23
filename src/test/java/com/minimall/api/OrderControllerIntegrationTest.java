@@ -99,10 +99,10 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
                 .build();
 
         Member memberAddrIsNull = Member.builder()
-                .loginId("user1")
+                .loginId("user2")
                 .password("abc12345")
                 .name("차태승")
-                .email("cts9458@naver.com")
+                .email("cts5109@naver.com")
                 .addr(null)
                 .build();
 

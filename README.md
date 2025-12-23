@@ -519,4 +519,4 @@ docker compose -f docker/docker-compose.dev.yml down -v
 - Reverse Proxy 적용 (Nginx) 및 HTTPS(SSL) 적용
 - 주문/결제/배송 주요 흐름 모니터링 지표 추가 (로그/메트릭)
 - 관리자 기능 확장 (상품/주문 관리 API 및 필요 시 Admin 화면)
-- 트래픽 발생 후 성능 측정 및 성능 튜닝 (병목 지점 식별 → 개선 전/후 결과 비교)
+- 트래픽 발생 후 성능 측정 및 성능 튜닝 (병목 지점 식별 → 개선 전/후 결과 비교)# docs-erd

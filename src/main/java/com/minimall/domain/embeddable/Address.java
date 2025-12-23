@@ -10,16 +10,15 @@ import lombok.*;
 @RequiredArgsConstructor
 public class Address {
 
-    @Column(nullable = false, length = 20)
+    @Column(length = 20)
     private final String postcode;
 
-    @Column(nullable = false, length = 50)
+    @Column(length = 50)
     private final String state;
 
-    @Column(nullable = false, length = 50)
+    @Column(length = 50)
     private final String city;
 
-    @Column(nullable = false)
     private final String street;
 
     private final String detail;

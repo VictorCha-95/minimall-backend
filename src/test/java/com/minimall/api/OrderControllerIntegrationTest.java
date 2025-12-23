@@ -1,6 +1,7 @@
 package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minimall.AbstractIntegrationTest;
 import com.minimall.api.order.delivery.dto.StartDeliveryRequest;
 import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
 import com.minimall.domain.embeddable.Address;
@@ -47,15 +48,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
-@ActiveProfiles("integration-test")
 @AutoConfigureMockMvc
-@Testcontainers
 @Transactional
-class OrderControllerIntegrationTest {
-
-    @ServiceConnection
-    static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
-            .withReuse(true);
+class OrderControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     MockMvc mockMvc;
@@ -104,10 +99,10 @@ class OrderControllerIntegrationTest {
                 .build();
 
         Member memberAddrIsNull = Member.builder()
-                .loginId("user1")
+                .loginId("user2")
                 .password("abc12345")
                 .name("차태승")
-                .email("cts9458@naver.com")
+                .email("cts5109@naver.com")
                 .addr(null)
                 .build();
 

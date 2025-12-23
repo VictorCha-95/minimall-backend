@@ -63,7 +63,7 @@ class MemberServiceTest {
                 .build();
 
         //== CreateRequest DTO ==//
-        createCommand = new MemberCreateCommand(member.getLoginId(), member.getPassword(), member.getName(), member.getEmail(),
+        createCommand = new MemberCreateCommand(member.getLoginId(), member.getPasswordHash(), member.getName(), member.getEmail(),
                 new MemberAddressCommand(member.getAddr().getPostcode(), member.getAddr().getState(), member.getAddr().getCity(), member.getAddr().getStreet(), member.getAddr().getDetail()));
 
         //== UpdateRequest DTO ==//
@@ -96,7 +96,7 @@ class MemberServiceTest {
         void success() {
             //given
             when(memberRepository.findByLoginId(createCommand.loginId())).thenReturn(Optional.of(member));
-            when(passwordEncoder.matches("abc12345", member.getPassword())).thenReturn(true);
+            when(passwordEncoder.matches("abc12345", member.getPasswordHash())).thenReturn(true);
 
             //when
             Member result = memberService.login(new MemberLoginCommand(createCommand.loginId(), createCommand.password()));
@@ -104,7 +104,7 @@ class MemberServiceTest {
             //then
             assertThat(result).isEqualTo(member);
             verify(memberRepository).findByLoginId(createCommand.loginId());
-            verify(passwordEncoder).matches("abc12345", member.getPassword());
+            verify(passwordEncoder).matches("abc12345", member.getPasswordHash());
         }
 
         @Test
@@ -112,14 +112,14 @@ class MemberServiceTest {
         void shouldFail_whenPasswordIsNotMatch() {
             //given
             when(memberRepository.findByLoginId(createCommand.loginId())).thenReturn(Optional.of(member));
-            when(passwordEncoder.matches("wrong_password", member.getPassword())).thenReturn(false);
+            when(passwordEncoder.matches("wrong_password", member.getPasswordHash())).thenReturn(false);
 
             //when & then
             assertThatThrownBy(() -> memberService.login(new MemberLoginCommand(createCommand.loginId(), "wrong_password")))
                     .isInstanceOf(InvalidCredentialException.class);
 
             verify(memberRepository).findByLoginId(createCommand.loginId());
-            verify(passwordEncoder).matches("wrong_password", member.getPassword());
+            verify(passwordEncoder).matches("wrong_password", member.getPasswordHash());
         }
 
         @Test

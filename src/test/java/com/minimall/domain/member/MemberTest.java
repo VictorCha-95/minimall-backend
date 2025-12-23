@@ -44,7 +44,7 @@ public class MemberTest {
         void success() {
             assertSoftly(softly -> {
                 softly.assertThat(member.getLoginId()).isEqualTo(DEFAULT_LOGIN_ID);
-                softly.assertThat(member.getPassword()).isEqualTo(DEFAULT_PASSWORD);
+                softly.assertThat(member.getPasswordHash()).isEqualTo(DEFAULT_PASSWORD);
                 softly.assertThat(member.getEmail()).isEqualTo(DEFAULT_EMAIL);
                 softly.assertThat(member.getName()).isEqualTo(DEFAULT_NAME);
                 softly.assertThat(member.getAddr()).isNotNull();
@@ -213,7 +213,7 @@ public class MemberTest {
             //then
             assertSoftly(softly -> {
                 softly.assertThat(member.getName()).isEqualTo("손흥민");
-                softly.assertThat(member.getPassword()).isEqualTo(DEFAULT_PASSWORD);
+                softly.assertThat(member.getPasswordHash()).isEqualTo(DEFAULT_PASSWORD);
                 softly.assertThat(member.getEmail()).isEqualTo(DEFAULT_EMAIL);
             });
         }
@@ -228,7 +228,7 @@ public class MemberTest {
             member.changePassword("p2");
 
             //then
-            assertThat(member.getPassword()).isEqualTo("p2");
+            assertThat(member.getPasswordHash()).isEqualTo("p2");
         }
     }
 

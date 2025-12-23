@@ -24,31 +24,32 @@ public class Member extends BaseEntity {
     @Column(name = "member_id")
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String loginId;
 
     @Column(nullable = false)
-    private String password;
+    private String passwordHash;
 
-    @Column(name = "member_name", nullable = false)
+    @Column(name = "member_name", nullable = false, length = 50)
     private String name;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true, length = 100)
     private String email;
 
     @Embedded
     private Address addr;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
     private Grade grade; //TODO 할인등급 적용(DB 추가)
 
     @OneToMany(mappedBy = "member")
     private List<Order> orders = new ArrayList<>();
 
     //== 생성자 ==//
-    private Member(String loginId, String password, String name, String email, Address addr, Grade grade) {
+    private Member(String loginId, String passwordHash, String name, String email, Address addr, Grade grade) {
         this.loginId = loginId;
-        this.password = password;
+        this.passwordHash = passwordHash;
         this.name = name;
         this.email = email;
         this.addr = addr;
@@ -75,14 +76,14 @@ public class Member extends BaseEntity {
     //== 필드 수정용 메서드 ==//
     public void update(String password, String name, String email, Address addr) {
         //TODO password, Address 형식 검증 추가
-        if (password != null) this.password = password;
+        if (password != null) this.passwordHash = password;
         if (name != null) this.name = name;
         if (email != null) this.email = email;
         if (addr != null) this.addr = addr;
     }
 
     public void changePassword(String newPassword) {
-        this.password = newPassword;
+        this.passwordHash = newPassword;
     }
 
     public void changeGrade(Grade newGrade) {

@@ -43,11 +43,6 @@ public class Order extends BaseEntity {
     private OrderStatus orderStatus;
 
     @Embedded
-    @AttributeOverrides({
-            @AttributeOverride(name = "originalAmount", column = @Column(name = "original_amount", nullable = false)),
-            @AttributeOverride(name = "discountAmount", column = @Column(name = "discount_amount", nullable = false)),
-            @AttributeOverride(name = "finalAmount",    column = @Column(name = "final_amount", nullable = false))
-    })
     private OrderAmount orderAmount;
 
     @OneToOne(fetch = FetchType.LAZY, mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)

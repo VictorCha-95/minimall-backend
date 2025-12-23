@@ -1,5 +1,6 @@
 package com.minimall.service.order;
 
+import com.minimall.AbstractIntegrationTest;
 import com.minimall.domain.common.DomainType;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.embeddable.InvalidAddressException;
@@ -25,6 +26,7 @@ import com.minimall.service.order.dto.result.DeliverySummaryResult;
 import com.minimall.service.order.dto.result.OrderDetailResult;
 import com.minimall.service.order.dto.result.OrderSummaryResult;
 import jakarta.persistence.EntityManager;
+import org.hibernate.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,34 +34,20 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.context.transaction.TestTransaction;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.SoftAssertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 
 @SpringBootTest
-@ActiveProfiles("integration-test")
-@Testcontainers
 @Transactional
-public class OrderServiceIntegrationTest {
-
-    @ServiceConnection
-    static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
-            .withReuse(true);
+public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     OrderService orderService;
@@ -93,19 +81,21 @@ public class OrderServiceIntegrationTest {
     @BeforeEach
     void setUp() {
         //== Member Entity ==//
+        String loginId1 = UUID.randomUUID().toString();
         member = Member.builder()
-                .loginId("user1")
+                .loginId(loginId1)
                 .password("abc12345")
                 .name("차태승")
-                .email("cts9458@naver.com")
+                .email(loginId1 + "@naver.com")
                 .addr(new Address("12345", "광주광역시", "광산구", "수등로76번길 40", "123동 1501호"))
                 .build();
 
+        String loginId2 = UUID.randomUUID().toString();
         memberNullAddr = Member.builder()
-                .loginId("user1")
+                .loginId(loginId2)
                 .password("abc12345")
                 .name("차태승")
-                .email("cts9458@naver.com")
+                .email(loginId2 + "@naver.com")
                 .addr(null)
                 .build();
 
@@ -211,28 +201,59 @@ public class OrderServiceIntegrationTest {
 
         @Test
         @DisplayName("상품 미존재 -> 예외 + 롤백(주문 미생성)")
-        @Transactional(propagation = Propagation.NOT_SUPPORTED)
         void shouldRollBack_whenProductNotFound() {
             //given
+            //=====================
+            //(Tx1: Setup -> Commit)
+            //=====================
             Product exists = productRepository.save(new Product("p", 10_000, 50));
+
+            Long existsId = exists.getId();
+            Long memberId = member.getId();
+
+            TestTransaction.flagForCommit();
+            TestTransaction.end();
+
+            //=====================
+            //(Tx2: Action -> Rollback)
+            //=====================
+            TestTransaction.start();
+
             long beforeOrderCount = orderRepository.count();
-            Integer beforeStock = exists.getStockQuantity();
+
+            Integer beforeStock = productRepository.findById(existsId)
+                    .orElseThrow()
+                    .getStockQuantity(); // 50
 
             OrderCreateCommand command = new OrderCreateCommand(
-                    member.getId(),
-                    List.of(new OrderItemCreateCommand(exists.getId(), ORDER_QUANTITY),
-                            new OrderItemCreateCommand(NOT_EXISTS_ID, ORDER_QUANTITY)));
+                    memberId,
+                    List.of(new OrderItemCreateCommand(existsId, ORDER_QUANTITY), // 존재 ID로 주문 생성
+                            new OrderItemCreateCommand(NOT_EXISTS_ID, ORDER_QUANTITY))); // 미존재 ID로 주문 생성
+
 
             //when
             assertThatThrownBy(() -> orderService.createOrder(command))
                     .isInstanceOf(ProductNotFoundException.class);
 
+            //예외 발생했으니 롤백으로 종료
+            TestTransaction.flagForRollback();
+            TestTransaction.end();
+
+            //=====================
+            //(Tx3: Verify)
+            //=====================
+            TestTransaction.start();
+
             //then: 롤백: 주문 미생성, 실제 존재하는 주문 상품 재고 변화 없음
             assertSoftly(softly -> {
                 softly.assertThat(orderRepository.count()).isEqualTo(beforeOrderCount);
-                softly.assertThat(productRepository.findById(exists.getId()).orElseThrow().getStockQuantity())
+                softly.assertThat(productRepository.findById(existsId).orElseThrow().getStockQuantity())
                         .isEqualTo(beforeStock);
             });
+
+            // 검증용 트랜잭션도 DB 오염 방지 위해 롤백 종료
+            TestTransaction.flagForRollback();
+            TestTransaction.end();
         }
     }
 

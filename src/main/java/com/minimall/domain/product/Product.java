@@ -17,7 +17,7 @@ public class Product extends BaseEntity {
     @Column(name = "product_id")
     private Long id;
 
-    @Column(name = "product_name", nullable = false)
+    @Column(name = "product_name", nullable = false, length = 100)
     private String name;
 
     @Column(name = "product_price", nullable = false)

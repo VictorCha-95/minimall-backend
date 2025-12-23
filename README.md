@@ -280,75 +280,28 @@ RESTful API 스타일을 기반으로, 리소스 중심 URL과 HTTP 메서드를
 - “@SpringBootTest + Testcontainers(MySQL) 기반으로 HTTP→Service→DB까지 검증”
 - “단위(MockMvc+Mock)와 역할이 겹치지 않도록, E2E는 핵심 시나리오(주문→결제→배송) 위주로 최소 개수만 유지”
 
-
 ---
 
-
-## 9. 프로젝트 구조
-
-```text
-src
-└── main
-    ├── java
-    │   └── com.minimall
-    │       ├── api
-    │       │   ├── common
-    │       │   │   └── embeddable
-    │       │   ├── exception
-    │       │   ├── member
-    │       │   │   └── dto
-    │       │   ├── product
-    │       │   │   └── dto
-    │       │   └── order
-    │       │       ├── dto
-    │       │       ├── pay
-    │       │       └── delivery
-    │       ├── domain
-    │       │   ├── common
-    │       │   ├── embeddable
-    │       │   ├── exception
-    │       │   ├── member
-    │       │   │   └── exception
-    │       │   ├── product
-    │       │   └── order
-    │       │       ├── exception
-    │       │       ├── pay
-    │       │       ├── delivery
-    │       │       └── discount
-    │       ├── service
-    │       │   ├── exception
-    │       │   ├── member
-    │       │   │   └── dto
-    │       │   ├── product
-    │       │   │   └── dto
-    │       │   └── order
-    │       │       └── dto
-    │       └── config
-    └── resources
-        └── application.yml
-```
----
-
-## 10. 실행 방법 (Docker Compose 기준)
+## 9. 실행 방법 (Docker Compose 기준)
 
 이 프로젝트는 **환경별 설정을 분리**하여(dev/test/prod) 실행합니다.  
 실제 비밀번호/접속정보는 **절대 저장소에 커밋하지 않으며**, `.env.example`만 예시로 제공합니다.
 
 ---
 
-### 10.1 사전 준비
+### 9.1 사전 준비
 
 - Docker Desktop 설치 및 실행
 - (권장) 로컬에서 실행 표준을 “dev/test/prod”로 고정
 
 ---
 
-### 10.2 환경 변수 파일(.env) 정책
+### 9.2 환경 변수 파일(.env) 정책
 
 - ✅ 커밋 허용: `.env.example`
 - ❌ 커밋 금지: `.env` (반드시 `.gitignore`)
 
-#### 10.2.1 `.env.example` 생성(예시 값만)
+#### 9.2.1 `.env.example` 생성(예시 값만)
 
 프로젝트 루트에 `.env.example`를 생성합니다.
 
@@ -368,7 +321,7 @@ MYSQL_PASSWORD=minimall
 MYSQL_ROOT_PASSWORD=change-me
 ```
 
-### 10.2.2 실제 `.env` 생성(실값은 로컬에만)
+### 9.2.2 실제 `.env` 생성(실값은 로컬에만)
 
 ```bash
 cp .env.example .env
@@ -378,7 +331,7 @@ cp .env.example .env
 
 ---
 
-### 10.3 실행 표준 (dev / test / prod)
+### 9.3 실행 표준 (dev / test / prod)
 
 아래 3개 명령만 기억하면 됩니다.
 
@@ -396,7 +349,7 @@ docker compose -f <compose-file> up -d
 - `-d`: 백그라운드(detached) 실행
 ---
 
-#### 10.3.1 dev 실행 (로컬 개발: App + DB)
+#### 9.3.1 dev 실행 (로컬 개발: App + DB)
 
 **실행 예시**
 ```bash
@@ -414,7 +367,7 @@ docker compose -f docker/docker-compose.dev.yml logs -f app
 
 ---
 
-#### 10.3.2 test 실행 (테스트 격리 환경)
+#### 9.3.2 test 실행 (테스트 격리 환경)
 
 **실행 예시**
 ```bash
@@ -425,7 +378,7 @@ docker compose -f docker/docker-compose.test.yml up -d
 
 ---
 
-#### 10.3.3 prod 실행 (운영/배포)
+#### 9.3.3 prod 실행 (운영/배포)
 
 **실행 예시**
 ```bash
@@ -436,9 +389,9 @@ docker compose -f docker-compose.prod.yml up -d
 
 ---
 
-### 10.4 중지 / 정리
+### 9.4 중지 / 정리
 
-#### 10.4.1 dev 중지
+#### 9.4.1 dev 중지
 
 **명령어 전체 문법**
 ```bash
@@ -453,7 +406,7 @@ docker compose -f docker/docker-compose.dev.yml down
 ```
 ---
 
-#### 10.4.2 볼륨까지 제거(데이터 초기화)
+#### 9.4.2 볼륨까지 제거(데이터 초기화)
 
 **명령어 전체 문법**
 ```bash
@@ -469,7 +422,7 @@ docker compose -f docker/docker-compose.dev.yml down -v
 ```
 
 
-## 11. Spring 프로필 구성 (local / docker / prod)
+## 10. Spring 프로필 구성 (local / docker / prod)
 
 이 프로젝트는 설정 충돌 방지를 위해 **프로필별 설정 파일**을 분리합니다.
 
@@ -480,7 +433,7 @@ docker compose -f docker/docker-compose.dev.yml down -v
 
 ---
 
-### 11.1 공통: open-in-view 비활성화
+### 10.1 공통: open-in-view 비활성화
 
 `spring.jpa.open-in-view=false`로 설정하여
 
@@ -489,13 +442,13 @@ docker compose -f docker/docker-compose.dev.yml down -v
 
 ---
 
-### 11.2 Hibernate Dialect 설정
+### 10.2 Hibernate Dialect 설정
 
 `hibernate.dialect`(예: `MySQL8Dialect`)는 최신 Hibernate에서 자동 선택되므로 불필요한 경고를 피하기 위해 **명시 지정하지 않는 것을 권장**합니다.
 
 ---
 
-## 12. 보안 정책 (필수)
+## 11. 보안 정책 (필수)
 
 - `.env`는 절대 커밋하지 않습니다.
 - 실수로 커밋한 비밀번호/토큰은 “삭제”가 아니라 “노출”로 취급합니다.
@@ -505,7 +458,7 @@ docker compose -f docker/docker-compose.dev.yml down -v
 
 ---
 
-## 13. API 문서(Swagger) 확인
+## 12. API 문서(Swagger) 확인
 
 애플리케이션 실행 후 브라우저에서 아래 주소로 접속하면 Swagger UI를 통해 API 명세를 확인할 수 있습니다.
 
@@ -513,10 +466,11 @@ docker compose -f docker/docker-compose.dev.yml down -v
 
 ---
 
-## 14. 향후 계획
+## 13. 향후 계획
 
 - 운영 환경 배포 구성 고도화 (EC2 + 외부 DB(RDS 등) + 환경변수 기반 설정 정리)
 - Reverse Proxy 적용 (Nginx) 및 HTTPS(SSL) 적용
 - 주문/결제/배송 주요 흐름 모니터링 지표 추가 (로그/메트릭)
 - 관리자 기능 확장 (상품/주문 관리 API 및 필요 시 Admin 화면)
 - 트래픽 발생 후 성능 측정 및 성능 튜닝 (병목 지점 식별 → 개선 전/후 결과 비교)# docs-erd
+

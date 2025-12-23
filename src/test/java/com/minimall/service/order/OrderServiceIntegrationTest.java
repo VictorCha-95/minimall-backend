@@ -40,14 +40,10 @@ import org.springframework.test.context.transaction.TestTransaction;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.SoftAssertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 
 @SpringBootTest
 @Transactional
@@ -85,19 +81,21 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         //== Member Entity ==//
+        String loginId1 = UUID.randomUUID().toString();
         member = Member.builder()
-                .loginId("user1")
+                .loginId(loginId1)
                 .password("abc12345")
                 .name("차태승")
-                .email("cts9458@naver.com")
+                .email(loginId1 + "@naver.com")
                 .addr(new Address("12345", "광주광역시", "광산구", "수등로76번길 40", "123동 1501호"))
                 .build();
 
+        String loginId2 = UUID.randomUUID().toString();
         memberNullAddr = Member.builder()
-                .loginId("user2")
+                .loginId(loginId2)
                 .password("abc12345")
                 .name("차태승")
-                .email("cts5109@naver.com")
+                .email(loginId2 + "@naver.com")
                 .addr(null)
                 .build();
 

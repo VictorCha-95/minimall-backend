@@ -26,6 +26,7 @@ import com.minimall.service.order.dto.result.DeliverySummaryResult;
 import com.minimall.service.order.dto.result.OrderDetailResult;
 import com.minimall.service.order.dto.result.OrderSummaryResult;
 import jakarta.persistence.EntityManager;
+import org.hibernate.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,12 +34,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.context.transaction.TestTransaction;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -206,28 +203,59 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
 
         @Test
         @DisplayName("상품 미존재 -> 예외 + 롤백(주문 미생성)")
-        @Transactional(propagation = Propagation.NOT_SUPPORTED)
         void shouldRollBack_whenProductNotFound() {
             //given
+            //=====================
+            //(Tx1: Setup -> Commit)
+            //=====================
             Product exists = productRepository.save(new Product("p", 10_000, 50));
+
+            Long existsId = exists.getId();
+            Long memberId = member.getId();
+
+            TestTransaction.flagForCommit();
+            TestTransaction.end();
+
+            //=====================
+            //(Tx2: Action -> Rollback)
+            //=====================
+            TestTransaction.start();
+
             long beforeOrderCount = orderRepository.count();
-            Integer beforeStock = exists.getStockQuantity();
+
+            Integer beforeStock = productRepository.findById(existsId)
+                    .orElseThrow()
+                    .getStockQuantity(); // 50
 
             OrderCreateCommand command = new OrderCreateCommand(
-                    member.getId(),
-                    List.of(new OrderItemCreateCommand(exists.getId(), ORDER_QUANTITY),
-                            new OrderItemCreateCommand(NOT_EXISTS_ID, ORDER_QUANTITY)));
+                    memberId,
+                    List.of(new OrderItemCreateCommand(existsId, ORDER_QUANTITY), // 존재 ID로 주문 생성
+                            new OrderItemCreateCommand(NOT_EXISTS_ID, ORDER_QUANTITY))); // 미존재 ID로 주문 생성
+
 
             //when
             assertThatThrownBy(() -> orderService.createOrder(command))
                     .isInstanceOf(ProductNotFoundException.class);
 
+            //예외 발생했으니 롤백으로 종료
+            TestTransaction.flagForRollback();
+            TestTransaction.end();
+
+            //=====================
+            //(Tx3: Verify)
+            //=====================
+            TestTransaction.start();
+
             //then: 롤백: 주문 미생성, 실제 존재하는 주문 상품 재고 변화 없음
             assertSoftly(softly -> {
                 softly.assertThat(orderRepository.count()).isEqualTo(beforeOrderCount);
-                softly.assertThat(productRepository.findById(exists.getId()).orElseThrow().getStockQuantity())
+                softly.assertThat(productRepository.findById(existsId).orElseThrow().getStockQuantity())
                         .isEqualTo(beforeStock);
             });
+
+            // 검증용 트랜잭션도 DB 오염 방지 위해 롤백 종료
+            TestTransaction.flagForRollback();
+            TestTransaction.end();
         }
     }
 

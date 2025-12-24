@@ -48,7 +48,7 @@ public class MemberTest {
                 softly.assertThat(member.getEmail()).isEqualTo(DEFAULT_EMAIL);
                 softly.assertThat(member.getName()).isEqualTo(DEFAULT_NAME);
                 softly.assertThat(member.getAddr()).isNotNull();
-                softly.assertThat(member.getGrade()).isEqualTo(Grade.BRONZE);
+                softly.assertThat(member.getCustomerGrade()).isEqualTo(CustomerGrade.BRONZE);
             });
         }
 
@@ -238,10 +238,10 @@ public class MemberTest {
         @DisplayName("정상 -> 변경")
         void upgrade_grade() {
             //when
-            member.changeGrade(Grade.VIP);
+            member.changeGrade(CustomerGrade.VIP);
 
             //then
-            assertThat(member.getGrade()).isEqualTo(Grade.VIP);
+            assertThat(member.getCustomerGrade()).isEqualTo(CustomerGrade.VIP);
         }
     }
 

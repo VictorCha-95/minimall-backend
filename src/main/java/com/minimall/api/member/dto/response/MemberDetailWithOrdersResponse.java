@@ -1,7 +1,7 @@
 package com.minimall.api.member.dto.response;
 
 import com.minimall.domain.embeddable.Address;
-import com.minimall.domain.member.Grade;
+import com.minimall.domain.member.CustomerGrade;
 import com.minimall.api.order.dto.OrderSummaryDto;
 
 import java.util.List;
@@ -11,7 +11,7 @@ public record MemberDetailWithOrdersResponse(
         String loginId,
         String name,
         String email,
-        Grade grade,
+        CustomerGrade customerGrade,
         Address addr,
         List<OrderSummaryDto> orders
 ) {}

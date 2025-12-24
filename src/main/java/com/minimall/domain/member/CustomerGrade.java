@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum Grade {
+public enum CustomerGrade {
 
     BRONZE,
     SILVER,

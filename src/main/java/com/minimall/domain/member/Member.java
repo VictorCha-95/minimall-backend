@@ -13,6 +13,7 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Getter
@@ -39,32 +40,55 @@ public class Member extends BaseEntity {
     @Embedded
     private Address addr;
 
+    @Column(name = "status", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    private MemberStatus status;
+
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
-    private Grade grade; //TODO 할인등급 적용(DB 추가)
+    private Role role;
+
+    @OneToOne(mappedBy = "member", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private CustomerProfile customerProfile;
+
+    @OneToOne(mappedBy = "member", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private SellerProfile sellerProfile;
 
     @OneToMany(mappedBy = "member")
     private List<Order> orders = new ArrayList<>();
 
     //== 생성자 ==//
-    private Member(String loginId, String passwordHash, String name, String email, Address addr, Grade grade) {
+    private Member(String loginId, String passwordHash, String name, String email, Address addr, Role role) {
+        validateCreate(loginId, passwordHash, name, email);
         this.loginId = loginId;
         this.passwordHash = passwordHash;
         this.name = name;
         this.email = email;
         this.addr = addr;
-        this.grade = grade;
+        this.role = Objects.requireNonNullElse(role, Role.CUSTOMER);
+        this.status = MemberStatus.ACTIVE;
     }
 
-    @Builder
-    public static Member create(String loginId, String password, String name, String email, Address addr) {
-        validateCreate(loginId, password, name, email);
-
-        Grade defaultGrade = Grade.BRONZE;
-
-        return new Member(loginId, password, name, email, addr, defaultGrade);
+    public static Member registerCustomer(String loginId, String passwordHash, String memberName, String email, Address address){
+        Member member = new Member(loginId, passwordHash, memberName, email, address, Role.CUSTOMER);
+        member.customerProfile = CustomerProfile.create(member);
+        member.validateProfileConsistency();
+        return member;
     }
 
+    public static Member registerSeller(String loginId, String passwordHash, String memberName, String email, Address address,
+                                        String storeName, String businessNumber, String settlementAccount) {
+        Member member = new Member(loginId, passwordHash, memberName, email, address, Role.SELLER);
+        SellerProfile profile = SellerProfile.create(member, storeName, businessNumber, settlementAccount);
+        member.sellerProfile = profile;
+        member.validateProfileConsistency();
+        return member;
+    }
+
+    static Member registerAdmin(String loginId, String passwordHash, String memberName, String email, Address address){
+        Member member = new Member(loginId, passwordHash, memberName, email, address, Role.ADMIN);
+        return member;
+    }
 
     //== 연관관계 편의 메서드 ==//
     public void addOrder(Order order) {
@@ -86,10 +110,6 @@ public class Member extends BaseEntity {
         this.passwordHash = newPassword;
     }
 
-    public void changeGrade(Grade newGrade) {
-        this.grade = newGrade;
-    }
-
     //== 검증 메서드 ==//
     private static void validateCreate(String loginId, String password, String name, String email) {
         Guards.requireNotNullAndNotBlank(loginId,
@@ -107,5 +127,17 @@ public class Member extends BaseEntity {
         Guards.requireNotNullAndNotBlank(email,
                 InvalidEmailException::required,
                 InvalidEmailException::blank);
+    }
+
+    public void validateProfileConsistency() {
+        if (role == Role.CUSTOMER) {
+            if (customerProfile == null) throw new IllegalStateException("CUSTOMER requires CustomerProfile");
+            if (sellerProfile != null) throw new IllegalStateException("CUSTOMER must not have SellerProfile");
+        }
+        if (role == Role.SELLER) {
+            if (sellerProfile == null) throw new IllegalStateException("SELLER requires SellerProfile");
+            if (customerProfile != null) throw new IllegalStateException("SELLER must not have CustomerProfile");
+        }
+        // ADMIN 정책은 너가 정하면 됨(보통 둘 다 없음)
     }
 }

@@ -84,7 +84,7 @@ class MemberServiceTest {
         //== Response DTOs ==//
         summaryResult = new MemberSummaryResult(member.getId(), member.getLoginId(), member.getName());
 
-        detailResult = new MemberDetailResult(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getGrade(), member.getAddr());
+        detailResult = new MemberDetailResult(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getCustomerGrade(), member.getAddr());
     }
 
     //== login ==//

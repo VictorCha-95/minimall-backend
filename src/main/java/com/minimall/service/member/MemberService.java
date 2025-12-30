@@ -37,7 +37,19 @@ public class MemberService {
 
     //== 생성 ==//
     @Transactional
-    public Member create(MemberCreateCommand command) {
+    public Member createCustomer(MemberCreateCommand command) {
+        validateDuplicateLoginId(command.loginId());
+        validateDuplicateEmail(command.email());
+
+        String encodedPassword = passwordEncoder.encode(command.password());
+        MemberCreateCommand encodedCommand = command.withEncodedPassword(encodedPassword);
+
+        Member member = memberServiceMapper.toEntity(encodedCommand);
+        return memberRepository.save(member);
+    }
+
+    @Transactional
+    public Member createSeller(MemberCreateCommand command) {
         validateDuplicateLoginId(command.loginId());
         validateDuplicateEmail(command.email());
 

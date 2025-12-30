@@ -78,26 +78,19 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
     static final int ORDER_QUANTITY = 10;
     static final long NOT_EXISTS_ID = 999_999_999_999_999L;
 
+    private static final String DEFAULT_PASSWORD_HASH = "12345678";
+    private static final String DEFAULT_NAME = "차태승";
+    private static final Address DEFAULT_ADDRESS =
+            Address.createAddress("62550", "광주광역시", "광산구", "수등로76번길 40", "123동 456호");
+
     @BeforeEach
     void setUp() {
         //== Member Entity ==//
         String loginId1 = UUID.randomUUID().toString();
-        member = Member.builder()
-                .loginId(loginId1)
-                .password("abc12345")
-                .name("차태승")
-                .email(loginId1 + "@naver.com")
-                .addr(new Address("12345", "광주광역시", "광산구", "수등로76번길 40", "123동 1501호"))
-                .build();
+        member = Member.registerCustomer(loginId1, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, loginId1 + "naver.com", DEFAULT_ADDRESS);
 
         String loginId2 = UUID.randomUUID().toString();
-        memberNullAddr = Member.builder()
-                .loginId(loginId2)
-                .password("abc12345")
-                .name("차태승")
-                .email(loginId2 + "@naver.com")
-                .addr(null)
-                .build();
+        memberNullAddr = Member.registerCustomer(loginId2, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, loginId2 + "naver.com", DEFAULT_ADDRESS);
 
         //== Product Entity ==//
         keyboard = new Product("키보드", 100000, 20);
@@ -350,7 +343,7 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("회원 주문 없음: 빈 리스트 반환")
         void returnEmpty_whenOrderIsEmpty() {
             //given
-            Member member = Member.create("user12345", "12345", "박지성", "ex@ex.com", null);
+            Member member = Member.registerCustomer("user12345", "12345", "박지성", "ex@ex.com", null);
             Member savedMember = memberRepository.save(member);
 
             //when

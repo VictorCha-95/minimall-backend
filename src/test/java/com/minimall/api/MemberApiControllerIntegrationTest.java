@@ -28,14 +28,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 
@@ -83,7 +79,7 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("회원 로그인 성공 -> 200 OK")
         void success() throws Exception {
             //given
-            memberService.create(createCommand("member123", "손흥민"));
+            memberService.createCustomer(createCommand("member123", "손흥민"));
             MemberLoginRequest request = new MemberLoginRequest("member123", "12345");
 
             //when
@@ -102,7 +98,7 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("비밀번호 오류 -> 401 isUnauthorized")
         void shouldReturn401_whenPasswordIsWrong() throws Exception {
             // given
-            memberService.create(createCommand("member123", "손흥민"));
+            memberService.createCustomer(createCommand("member123", "손흥민"));
             MemberLoginRequest request = new MemberLoginRequest("member123", "wrong-password");
 
             // when
@@ -141,8 +137,8 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("정상 -> 회원 전체 조회")
         void success() throws Exception {
             //given
-            memberService.create(createCommand("member1", "손흥민"));
-            memberService.create(createCommand("member2", "박지성"));
+            memberService.createCustomer(createCommand("member1", "손흥민"));
+            memberService.createCustomer(createCommand("member2", "박지성"));
             MemberSummaryResult member1 = memberService.getSummaryByLoginId("member1");
             MemberSummaryResult member2 = memberService.getSummaryByLoginId("member2");
 
@@ -185,7 +181,7 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("정상 -> 회원 단건 상세 조회")
         void success() throws Exception {
             //given
-            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
+            Member createdMember = memberService.createCustomer(createCommand("member123", "손흥민"));
 
             //when
             ResultActions result = mockMvc.perform(get("/members/" + createdMember.getId()));
@@ -216,7 +212,7 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("성공 -> 회원 단건 요약 조회")
         void success() throws Exception {
             //given
-            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
+            Member createdMember = memberService.createCustomer(createCommand("member123", "손흥민"));
 
             //when
             ResultActions result = mockMvc.perform(get("/members/" + createdMember.getId() + "/summary"));
@@ -255,7 +251,7 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("정상 -> 회원 상세 조회")
         void success() throws Exception {
             //given
-            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
+            Member createdMember = memberService.createCustomer(createCommand("member123", "손흥민"));
 
             //when
             ResultActions result = mockMvc.perform(get("/members/by-email")
@@ -286,7 +282,7 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         void getSummaryByEmail_success() throws Exception {
             //given
-            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
+            Member createdMember = memberService.createCustomer(createCommand("member123", "손흥민"));
 
             //when
             ResultActions result = mockMvc.perform(get("/members/by-email/summary")
@@ -316,7 +312,7 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         void getDetailByLoginId_success() throws Exception {
             //given
-            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
+            Member createdMember = memberService.createCustomer(createCommand("member123", "손흥민"));
 
             //when
             ResultActions result = mockMvc.perform(get("/members/by-loginId")
@@ -346,7 +342,7 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         void getSummaryByLoginId_success() throws Exception {
             //given
-            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
+            Member createdMember = memberService.createCustomer(createCommand("member123", "손흥민"));
 
             //when
             ResultActions result = mockMvc.perform(get("/members/by-loginId/summary")
@@ -420,7 +416,7 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         void update_success() throws Exception {
             //given
-            Member createdMember = memberService.create(createCommand("new123", "새로운 회원"));
+            Member createdMember = memberService.createCustomer(createCommand("new123", "새로운 회원"));
             MemberUpdateRequest updateRequest = new MemberUpdateRequest("12345", "수정된 회원", "updated@example.com", null);
 
             //when
@@ -444,10 +440,10 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         void update_shouldFail_whenDuplicateEmail() throws Exception {
             //given
-            memberService.create(new MemberCreateCommand("original123", "12345", "original",
+            memberService.createCustomer(new MemberCreateCommand("original123", "12345", "original",
                     "original123@example.com", null));
 
-            Member otherMember = memberService.create(new MemberCreateCommand("other123", "12345", "other",
+            Member otherMember = memberService.createCustomer(new MemberCreateCommand("other123", "12345", "other",
                     "other123@example.com", null));
 
             MemberUpdateRequest updateRequest = new MemberUpdateRequest("12345", "다른 회원",
@@ -472,7 +468,7 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         void delete_success() throws Exception {
             //given
-            Member createdMember = memberService.create(createCommand("member123", "손흥민"));
+            Member createdMember = memberService.createCustomer(createCommand("member123", "손흥민"));
 
             //when
             ResultActions result = mockMvc.perform(delete("/members/" + createdMember.getId()));
@@ -508,7 +504,7 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
             Product mouse = productService.register(new ProductRegisterCommand("마우스", 20_000, 50));
 
             Member member =
-                    memberService.create(new MemberCreateCommand("loginId123", "12345", "박지성", "ex@ex.com", null));
+                    memberService.createCustomer(new MemberCreateCommand("loginId123", "12345", "박지성", "ex@ex.com", null));
             Member foundMember = memberRepository.findById(member.getId()).get();
 
             orderService.createOrder(new OrderCreateCommand(foundMember.getId(),
@@ -530,7 +526,7 @@ class MemberApiControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("회원 주문 없음: 빈 리스트 반환")
         void returnEmpty_whenOrderIsEmpty() throws Exception {
             //given
-            Member member = memberService.create(new MemberCreateCommand("loginId123", "12345", "박지성", "ex@ex.com", null));
+            Member member = memberService.createCustomer(new MemberCreateCommand("loginId123", "12345", "박지성", "ex@ex.com", null));
             Member foundMember = memberRepository.findById(member.getId()).get();
 
             //when

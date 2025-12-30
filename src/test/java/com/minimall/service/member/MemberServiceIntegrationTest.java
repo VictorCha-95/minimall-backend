@@ -20,12 +20,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 
@@ -54,17 +50,18 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
     private MemberUpdateRequest updateRequest;
     private MemberUpdateCommand updateCommand;
 
+    private static final String DEFAULT_LOGIN_ID = "user123";
+    private static final String DEFAULT_PASSWORD_HASH = "12345678";
+    private static final String DEFAULT_NAME = "차태승";
+    private static final String DEFAULT_EMAIL = "user123@example.com";
+    private static final Address DEFAULT_ADDRESS =
+            Address.createAddress("62550", "광주광역시", "광산구", "수등로76번길 40", "123동 456호");
+
 
     @BeforeEach
     void setUp() {
         //== Member Entity ==//
-        member = Member.builder()
-                .loginId("user1")
-                .password("abc12345")
-                .name("차태승")
-                .email("cts9458@naver.com")
-                .addr(new Address("12345", "광주광역시", "광산구", "수등로76번길 40", "123동 1501호"))
-                .build();
+        member = Member.registerCustomer(DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS);
 
         //== CreateRequest DTO ==//
         createRequest = new MemberCreateRequest(member.getLoginId(), member.getPasswordHash(), member.getName(), member.getEmail(),
@@ -100,7 +97,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("로그인 성공: DB 회원 조회 -> 비밀번호 검증")
         void success() {
             //given
-            Member member = memberService.create(createCommand);
+            Member member = memberService.createCustomer(createCommand);
             MemberLoginCommand command = new MemberLoginCommand(createCommand.loginId(), createCommand.password());
 
             //when
@@ -114,7 +111,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("비밀번호 오류 -> InvalidCredentialException 예외 발생")
         void shouldFail_whenPasswordIsNotMatch() {
             //given
-            memberService.create(createCommand);
+            memberService.createCustomer(createCommand);
             MemberLoginCommand command = new MemberLoginCommand(createCommand.loginId(), "wrong_password");
 
             //when & then
@@ -126,7 +123,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("회원 아이디 오류 -> MemberNotFound 예외 발생")
         void shouldFail_whenMemberIsNotFound() {
             //given
-            memberService.create(createCommand);
+            memberService.createCustomer(createCommand);
             MemberLoginCommand command = new MemberLoginCommand("wrong_loginId", createCommand.password());
 
             //when & then
@@ -142,7 +139,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void createMember_success() {
             //when
-            Member created = memberService.create(createCommand);
+            Member created = memberService.createCustomer(createCommand);
 
             //then
             MemberSummaryResult found = memberService.getSummary(created.getId());
@@ -152,23 +149,23 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void createMember_duplicateLoginId_shouldFail() {
             //given
-            memberService.create(createCommand);
+            memberService.createCustomer(createCommand);
             MemberCreateCommand duplicateLoginIdCommand =
                     new MemberCreateCommand(member.getLoginId(), member.getPasswordHash(), "차태승", "example@naver.com", null);
 
             //then
-            assertThrows(DuplicateException.class, () -> memberService.create(duplicateLoginIdCommand));
+            assertThrows(DuplicateException.class, () -> memberService.createCustomer(duplicateLoginIdCommand));
         }
 
         @Test
         void createMember_duplicateEmail_shouldFail() {
             //given
-            memberService.create(createCommand);
+            memberService.createCustomer(createCommand);
             MemberCreateCommand duplicateEmailCommand =
                     new MemberCreateCommand("exampleLoginId", member.getPasswordHash(), "차태승", member.getEmail(), null);
 
             //then
-            assertThrows(DuplicateException.class, () -> memberService.create(duplicateEmailCommand));
+            assertThrows(DuplicateException.class, () -> memberService.createCustomer(duplicateEmailCommand));
         }
 
         @Test
@@ -183,7 +180,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
             );
 
             //when
-            Member member = memberService.create(command);
+            Member member = memberService.createCustomer(command);
 
             //then
             assertThat(member.getPasswordHash()).isNotEqualTo("plainPassword");
@@ -198,7 +195,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void updateMember_success() {
             //given
-            Member created = memberService.create(createCommand);
+            Member created = memberService.createCustomer(createCommand);
 
             //when
             MemberDetailResult updated = memberService.update(created.getId(), updateCommand);
@@ -213,9 +210,9 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void updateMember_duplicateEmail_shouldFail() {
             //given
-            Member original = memberService.create(createCommand);
+            Member original = memberService.createCustomer(createCommand);
             MemberDetailResult foundOriginal = memberService.getDetail(original.getId());
-            Member newCreated = memberService.create(new MemberCreateCommand(
+            Member newCreated = memberService.createCustomer(new MemberCreateCommand(
                     "example123", "12345", "이름", "example123@naver.com", null));
 
             //then
@@ -232,7 +229,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void deleteMember_success() {
             //given
-            Member created = memberService.create(createCommand);
+            Member created = memberService.createCustomer(createCommand);
 
             //then
             memberService.delete(created.getId());
@@ -241,7 +238,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void deleteMember_deletedMemberFind_shouldFail() {
             //given
-            Member created = memberService.create(createCommand);
+            Member created = memberService.createCustomer(createCommand);
 
             //when
             memberService.delete(created.getId());
@@ -259,7 +256,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void getMemberSummary_success() {
             //given
-            Member created = memberService.create(createCommand);
+            Member created = memberService.createCustomer(createCommand);
 
             //when
             MemberSummaryResult memberSummary = memberService.getSummary(created.getId());
@@ -273,7 +270,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void getMemberDetail_success() {
             //given
-            Member created = memberService.create(createCommand);
+            Member created = memberService.createCustomer(createCommand);
 
             //when
             MemberDetailResult memberDetail = memberService.getDetail(created.getId());
@@ -287,7 +284,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void getMemberDetailWithOrders_success() {
             //given
-            Member created = memberService.create(createCommand);
+            Member created = memberService.createCustomer(createCommand);
 
             //when
             MemberDetailWithOrdersResponse memberDetailWithOrders = memberService.getDetailWithOrders(created.getId());
@@ -301,7 +298,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void getMemberSummaryByEmail_success() {
             //given
-            Member created = memberService.create(createCommand);
+            Member created = memberService.createCustomer(createCommand);
 
             //when
             MemberSummaryResult memberSummaryByEmail = memberService.getSummaryByEmail(createRequest.email());
@@ -315,7 +312,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void getMemberDetailByEmail_success() {
             //given
-            Member created = memberService.create(createCommand);
+            Member created = memberService.createCustomer(createCommand);
 
             //when
             MemberDetailResult memberDetailByEmail = memberService.getDetailByEmail(createRequest.email());
@@ -329,7 +326,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void getMemberSummaryByLoginId_success() {
             //given
-            Member created = memberService.create(createCommand);
+            Member created = memberService.createCustomer(createCommand);
 
             //when
             MemberSummaryResult memberSummaryByLoginId = memberService.getSummaryByLoginId(created.getLoginId());
@@ -343,7 +340,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void getMemberDetailByLoginId_success() {
             //given
-            Member created = memberService.create(createCommand);
+            Member created = memberService.createCustomer(createCommand);
 
             //when
             MemberDetailResult memberDetailByLoginId = memberService.getDetailByLoginId(created.getLoginId());
@@ -357,7 +354,7 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void getMembers() {
             //given
-            memberService.create(createCommand);
+            memberService.createCustomer(createCommand);
 
             //when
             List<MemberSummaryResult> result = memberService.getMembers();

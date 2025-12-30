@@ -36,11 +36,13 @@ public interface MemberApiMapper {
     MemberUpdateCommand toUpdateCommand(@Valid MemberUpdateRequest request);
 
     //== Response ==//
+    @Mapping(target = "grade", expression = "java(member.getCustomerProfile().getGrade())")
     MemberDetailResponse toDetailResponse(Member member);
 
     MemberDetailResponse toDetailResponse(MemberDetailResult result);
 
     @Mapping(target = "orders", source = "orders")
+    @Mapping(target = "grade", expression = "java(member.getCustomerProfile().getGrade())")
     MemberDetailWithOrdersResponse toDetailWithOrdersResponse(Member member);
     MemberSummaryResponse toSummaryResponse(Member member);
 

@@ -86,25 +86,24 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
 
     private static final long NOT_EXIST_ID = 999_999_999L;
 
+    private static final String DEFAULT_LOGIN_ID = "user123";
+    private static final String DEFAULT_PASSWORD_HASH = "12345678";
+    private static final String DEFAULT_NAME = "차태승";
+    private static final String DEFAULT_EMAIL = "user123@example.com";
+    private static final Address DEFAULT_ADDRESS =
+            Address.createAddress("62550", "광주광역시", "광산구", "수등로76번길 40", "123동 456호");
+
 
     @BeforeEach
     void setUp() {
         //== Member Entity ==//
-        Member member = Member.builder()
-                .loginId("user1")
-                .password("abc12345")
-                .name("차태승")
-                .email("cts9458@naver.com")
-                .addr(new Address("12345", "광주광역시", "광산구", "수등로76번길 40", "123동 1501호"))
-                .build();
+        Member member = Member.registerCustomer(
+                DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS
+        );
 
-        Member memberAddrIsNull = Member.builder()
-                .loginId("user2")
-                .password("abc12345")
-                .name("차태승")
-                .email("cts5109@naver.com")
-                .addr(null)
-                .build();
+        Member memberAddrIsNull = Member.registerCustomer(
+                "abc" + DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, "abc" + DEFAULT_NAME, "abc" + DEFAULT_EMAIL, DEFAULT_ADDRESS
+        );
 
         savedMember = memberRepository.save(member);
         savedMemberAddrIsNull = memberRepository.save(memberAddrIsNull);

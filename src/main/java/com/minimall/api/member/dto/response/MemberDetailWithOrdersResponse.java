@@ -11,7 +11,7 @@ public record MemberDetailWithOrdersResponse(
         String loginId,
         String name,
         String email,
-        CustomerGrade customerGrade,
+        CustomerGrade grade,
         Address addr,
         List<OrderSummaryDto> orders
 ) {}

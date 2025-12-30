@@ -50,17 +50,17 @@ class MemberServiceTest {
     private MemberDetailResult detailResult;
     private MemberSummaryResult summaryResult;
 
+    private static final String DEFAULT_LOGIN_ID = "user123";
+    private static final String DEFAULT_PASSWORD_HASH = "12345678";
+    private static final String DEFAULT_NAME = "차태승";
+    private static final String DEFAULT_EMAIL = "user123@example.com";
+    private static final Address DEFAULT_ADDRESS =
+            Address.createAddress("62550", "광주광역시", "광산구", "수등로76번길 40", "123동 456호");
 
     @BeforeEach
     void setUp() {
         //== Member Entity ==//
-        member = Member.builder()
-                .loginId("user1")
-                .password("abc12345")
-                .name("차태승")
-                .email("cts9458@naver.com")
-                .addr(new Address("12345", "광주광역시", "광산구", "수등로76번길 40", "123동 1501호"))
-                .build();
+        member = Member.registerCustomer(DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS);
 
         //== CreateRequest DTO ==//
         createCommand = new MemberCreateCommand(member.getLoginId(), member.getPasswordHash(), member.getName(), member.getEmail(),
@@ -84,7 +84,7 @@ class MemberServiceTest {
         //== Response DTOs ==//
         summaryResult = new MemberSummaryResult(member.getId(), member.getLoginId(), member.getName());
 
-        detailResult = new MemberDetailResult(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getCustomerGrade(), member.getAddr());
+        detailResult = new MemberDetailResult(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getCustomerProfile().getGrade(), member.getAddr());
     }
 
     //== login ==//
@@ -148,7 +148,7 @@ class MemberServiceTest {
         when(memberRepository.save(member)).thenReturn(member);
 
         //when
-        Member result = memberService.create(createCommand);
+        Member result = memberService.createCustomer(createCommand);
 
         //then
         assertThat(result).isEqualTo(member);
@@ -167,7 +167,7 @@ class MemberServiceTest {
 
         //then
         DuplicateException duplicateException =
-                assertThrows(DuplicateException.class, () -> memberService.create(createCommand));
+                assertThrows(DuplicateException.class, () -> memberService.createCustomer(createCommand));
         assertThat(duplicateException.getMessage()).contains("loginId", "사용 중", member.getLoginId());
         verify(memberRepository).existsByLoginId(createCommand.loginId());
     }
@@ -181,7 +181,7 @@ class MemberServiceTest {
 
         //then
         DuplicateException duplicateException =
-                assertThrows(DuplicateException.class, () -> memberService.create(createCommand));
+                assertThrows(DuplicateException.class, () -> memberService.createCustomer(createCommand));
         assertThat(duplicateException.getMessage()).contains("email", "사용 중", member.getEmail());
         verify(memberRepository).existsByLoginId(createCommand.loginId());
         verify(memberRepository).existsByEmail(createCommand.email());
@@ -210,7 +210,7 @@ class MemberServiceTest {
     void updateMember_duplicateEmail_shouldFail() {
         //given
         ReflectionTestUtils.setField(member, "id", 1L); // 수정 대상 회원
-        Member existed = Member.create("other", "1234", "중복회원", updateRequest.email(), null);
+        Member existed = Member.registerCustomer("other", "1234", "중복회원", updateRequest.email(), null);
         ReflectionTestUtils.setField(existed, "id", 2L); // 중복 이메일 보유자
 
         when(memberRepository.findByEmail(updateRequest.email())).thenReturn(Optional.of(existed));

@@ -113,7 +113,7 @@ public class MemberApiController {
     @Operation(summary = "회원 생성")
     @PostMapping
     public MemberSummaryResponse create(@Valid @RequestBody MemberCreateRequest request) {
-        Member member = memberService.create(memberApiMapper.toCreateCommand(request));
+        Member member = memberService.createCustomer(memberApiMapper.toCreateCommand(request));
         return memberApiMapper.toSummaryResponse(member);
     }
 

@@ -28,10 +28,27 @@ MiniMall은 다음을 목표로 합니다.
 | ORM           | JPA / Hibernate                            |
 | Database      | MySQL 8.x                                  |
 | Build Tool    | Gradle                                     |
-| Infra / Dev   | Docker, Testcontainers                     |
+| CI            | GitHub Actions (빌드/테스트 자동화)         |
+| Docs          | 용어사전, 테이블 정의서(변경 이력 관리)     |
+| Infra / Dev   | Docker, Docker Compose, Testcontainers      |
 | API 문서      | Swagger(OpenAPI)                           |
 | Test          | JUnit 5, Mockito, Spring Boot Test         |
 
+---
+
+## 2.1 CI / 문서화
+
+이 저장소는 “기능 구현”뿐 아니라 **운영/유지보수에 필요한 신뢰도와 인수인계 가능성**을 함께 확보하는 것을 목표로 합니다.
+
+### CI (GitHub Actions)
+- PR/Push 시 **빌드 및 테스트를 자동 실행**하여 변경으로 인한 회귀를 조기에 탐지합니다.
+- 상단의 CI 배지로 최근 워크플로 상태를 확인할 수 있습니다.
+
+### DB 문서(용어사전/테이블 정의서)
+- 도메인 용어(예: Member, Order 등)를 **용어사전으로 통일**하여 코드/DB/문서 간 불일치를 줄입니다.
+- 테이블 정의서로 컬럼 의미/제약조건을 명확히 하여, 스키마 변경 시 영향 범위를 빠르게 파악할 수 있도록 합니다.
+- 링크: [용어 사전](https://gratis-closet-772.notion.site/29140a3906a580c797bcfc9c60cd9eab?v=29140a3906a58049b367000cb0086f90&pvs=74)
+, [테이블 정의서](https://gratis-closet-772.notion.site/29140a3906a580fc831ac69dc09a9997?pvs=74)
 ---
 
 ## 3. 아키텍처 개요
@@ -39,21 +56,21 @@ MiniMall은 다음을 목표로 합니다.
 레이어드 아키텍처를 바탕으로, 도메인 중심 구조를 사용합니다.
 
 - **API 레이어 (`api`)**
-    - HTTP 요청/응답 처리
-    - Request/Response DTO 정의
-    - GlobalExceptionHandler를 통해 일관된 오류 코드 및 메시지 전달
-    - Swagger 기반 API 문서화
+  - HTTP 요청/응답 처리
+  - Request/Response DTO 정의
+  - GlobalExceptionHandler를 통해 일관된 오류 코드 및 메시지 전달
+  - Swagger 기반 API 문서화
 - **서비스 레이어 (`service`)**
-    - 트랜잭션 경계 설정
-    - Command/Result DTO 정의
-    - 도메인 객체 조합 및 유스케이스 구현
+  - 트랜잭션 경계 설정
+  - Command/Result DTO 정의
+  - 도메인 객체 조합 및 유스케이스 구현
 - **도메인 레이어 (`domain`)**
-    - 엔티티, 값 객체(Value Object), 도메인 서비스 정의
-    - 도메인 별 예외 정의 및 Guards 클래스 활용하여 일관된 예외 처리
-    - 비즈니스 규칙·상태 전이 책임
+  - 엔티티, 값 객체(Value Object), 도메인 서비스 정의
+  - 도메인 별 예외 정의 및 Guards 클래스 활용하여 일관된 예외 처리
+  - 비즈니스 규칙·상태 전이 책임
 - **인프라 레이어 (`repository`, `config`)**
-    - Spring Data JPA Repository
-    - DB 설정, 애플리케이션 공통 설정
+  - Spring Data JPA Repository
+  - DB 설정, 애플리케이션 공통 설정
 
 ---
 
@@ -99,8 +116,8 @@ MiniMall은 다음을 목표로 합니다.
 - 주문 취소는 **아직 배송이 시작되지 않은 상태**에서만 가능
 - 주문 금액 = 각 주문 상품의 (단가 × 수량) 합계로 계산
 - 주문 생성 시
-    - 상품 재고 차감
-    - 주문 금액 계산 및 검증
+  - 상품 재고 차감
+  - 주문 금액 계산 및 검증
 
 ---
 
@@ -127,21 +144,21 @@ MiniMall은 다음을 목표로 합니다.
 
 - `DeliveryStatus`: `READY` → `SHIPPING` → `COMPLETED` (기타: `FAILED, CANCELED`)
 - 배송 시작 시
-    - 운송장 번호 필수
-    - 이미 배송 중/완료 상태면 시작 불가
+  - 운송장 번호 필수
+  - 이미 배송 중/완료 상태면 시작 불가
 
 ---
 
 ## 5. 도메인 설계 특징
 
 - **값 객체(Value Object) 활용**
-    - `Address`, `OrderAmount` 등 의미 있는 값 타입으로 캡슐화
+  - `Address`, `OrderAmount` 등 의미 있는 값 타입으로 캡슐화
 - **풍부한 Enum과 메시지 정의**
-    - `OrderStatus`, `DeliveryStatus`, `PayStatus` 등 상태를 Enum으로 관리
-    - 도메인·예외 메시지를 Enum으로 분리해 재사용
+  - `OrderStatus`, `DeliveryStatus`, `PayStatus` 등 상태를 Enum으로 관리
+  - 도메인·예외 메시지를 Enum으로 분리해 재사용
 - **도메인 예외 계층**
-    - `DuplicateException`, `NotFoundException`, `DomainRuleException` 등
-    - 예외에 도메인 타입, 필드명, 사유 등을 담아 **원인 추적이 용이**하도록 설계
+  - `DuplicateException`, `NotFoundException`, `DomainRuleException` 등
+  - 예외에 도메인 타입, 필드명, 사유 등을 담아 **원인 추적이 용이**하도록 설계
 
 ---
 
@@ -192,13 +209,13 @@ RESTful API 스타일을 기반으로, 리소스 중심 URL과 HTTP 메서드를
 - 오류 유형은 `ApiErrorCode`로 표준화하며, 응답의 `code` 필드로 전달합니다.
 
 ### 오류 코드(ApiErrorCode)
-  - VALIDATION_ERROR
-  - NOT_FOUND
-  - DOMAIN_RULE_VIOLATION
-  - DUPLICATE_VALUE
-  - CONFLICT
-  - INVALID_CREDENTIALS
-  - INTERNAL_ERROR
+- VALIDATION_ERROR
+- NOT_FOUND
+- DOMAIN_RULE_VIOLATION
+- DUPLICATE_VALUE
+- CONFLICT
+- INVALID_CREDENTIALS
+- INTERNAL_ERROR
 
 ### HTTP 상태 코드 매핑
 
@@ -280,6 +297,12 @@ RESTful API 스타일을 기반으로, 리소스 중심 URL과 HTTP 메서드를
 - “@SpringBootTest + Testcontainers(MySQL) 기반으로 HTTP→Service→DB까지 검증”
 - “단위(MockMvc+Mock)와 역할이 겹치지 않도록, E2E는 핵심 시나리오(주문→결제→배송) 위주로 최소 개수만 유지”
 
+
+### 8.4 트러블슈팅(통합 테스트 트랜잭션 경계)
+
+통합 테스트에서 “설정 단계는 커밋, 실행 단계는 롤백” 같은 **트랜잭션 경계 분리**가 필요할 때가 있습니다.  
+이 경우 `TestTransaction`을 활용해 테스트를 2개의 트랜잭션으로 분리하여, 데이터 오염 없이 재현/검증이 가능하도록 정리했습니다.
+
 ---
 
 ## 9. 실행 방법 (Docker Compose 기준)
@@ -338,7 +361,7 @@ cp .env.example .env
 - **dev(개발 기본)**: `docker/docker-compose.dev.yml`
 - **test(테스트 전용)**: `docker/docker-compose.test.yml`
 - **prod(운영/배포)**: `docker-compose.prod.yml`
-  
+
 
 **명령어 전체 문법**
 ```bash
@@ -473,4 +496,3 @@ docker compose -f docker/docker-compose.dev.yml down -v
 - 주문/결제/배송 주요 흐름 모니터링 지표 추가 (로그/메트릭)
 - 관리자 기능 확장 (상품/주문 관리 API 및 필요 시 Admin 화면)
 - 트래픽 발생 후 성능 측정 및 성능 튜닝 (병목 지점 식별 → 개선 전/후 결과 비교)# docs-erd
-

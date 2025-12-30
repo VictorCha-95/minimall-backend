@@ -138,6 +138,5 @@ public class Member extends BaseEntity {
             if (sellerProfile == null) throw new IllegalStateException("SELLER requires SellerProfile");
             if (customerProfile != null) throw new IllegalStateException("SELLER must not have CustomerProfile");
         }
-        // ADMIN 정책은 너가 정하면 됨(보통 둘 다 없음)
     }
 }

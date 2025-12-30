@@ -32,7 +32,7 @@ public interface MemberServiceMapper {
             );
         }
 
-        return Member.create(
+        return Member.registerCustomer(
                 command.loginId(),
                 command.password(),
                 command.name(),
@@ -46,8 +46,10 @@ public interface MemberServiceMapper {
 
     List<MemberSummaryResponse> toSummaryResponseList(List<Member> members);
 
+    @Mapping(target = "grade", expression = "java(member.getCustomerProfile().getGrade())")
     MemberDetailResult toDetailResult(Member member);
 
     @Mapping(target = "orders", source = "orders")
+    @Mapping(target = "grade", expression = "java(member.getCustomerProfile().getGrade())")
     MemberDetailWithOrdersResponse toDetailWithOrdersResponse(Member member);
 }

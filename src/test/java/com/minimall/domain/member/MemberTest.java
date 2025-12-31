@@ -17,10 +17,10 @@ import static org.assertj.core.api.SoftAssertions.*;
 @DisplayName("Member 도메인")
 public class MemberTest {
 
-    Member member;
+    Member customer;
 
     private static final String DEFAULT_LOGIN_ID = "user123";
-    private static final String DEFAULT_PASSWORD = "12345678";
+    private static final String DEFAULT_PASSWORD_HASH = "12345678";
     private static final String DEFAULT_NAME = "차태승";
     private static final String DEFAULT_EMAIL = "user123@example.com";
     private static final Address DEFAULT_ADDRESS =
@@ -28,28 +28,43 @@ public class MemberTest {
 
     @BeforeEach
     void setUp() {
-        member = Member.builder()
-                .loginId(DEFAULT_LOGIN_ID)
-                .password(DEFAULT_PASSWORD)
-                .name(DEFAULT_NAME)
-                .email(DEFAULT_EMAIL)
-                .addr(DEFAULT_ADDRESS)
-                .build();
+        customer = Member.registerCustomer(DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS);
     }
 
     @Nested
     class Create {
         @Test
-        @DisplayName("정상 -> 생성(기본 등급: 브론즈)")
-        void success() {
+        @DisplayName("고객 등록 -> 필드 검증")
+        void registerCustomer_success() {
             assertSoftly(softly -> {
-                softly.assertThat(member.getLoginId()).isEqualTo(DEFAULT_LOGIN_ID);
-                softly.assertThat(member.getPasswordHash()).isEqualTo(DEFAULT_PASSWORD);
-                softly.assertThat(member.getEmail()).isEqualTo(DEFAULT_EMAIL);
-                softly.assertThat(member.getName()).isEqualTo(DEFAULT_NAME);
-                softly.assertThat(member.getAddr()).isNotNull();
-                softly.assertThat(member.getGrade()).isEqualTo(Grade.BRONZE);
+                softly.assertThat(customer.getLoginId()).isEqualTo(DEFAULT_LOGIN_ID);
+                softly.assertThat(customer.getPasswordHash()).isEqualTo(DEFAULT_PASSWORD_HASH);
+                softly.assertThat(customer.getEmail()).isEqualTo(DEFAULT_EMAIL);
+                softly.assertThat(customer.getName()).isEqualTo(DEFAULT_NAME);
+                softly.assertThat(customer.getAddr()).isNotNull();
+                softly.assertThat(customer.getRole()).isEqualTo(Role.CUSTOMER);
+                softly.assertThat(customer.getCustomerProfile().getGrade()).isEqualTo(CustomerGrade.BRONZE);
             });
+        }
+
+        @Test
+        @DisplayName("판매자 등록 -> Role 검증")
+        void registerSeller_success() {
+            Member seller = Member.registerSeller("Seller", "SellerHash", "Seller123",
+                    "seller@naver.com", null, "store", "12345-12345",
+                    "농협/12345/seller");
+
+            assertThat(seller.getRole()).isEqualTo(Role.SELLER);
+
+        }
+
+
+        @Test
+        @DisplayName("관리자 등록 -> Role 검증")
+        void registerAdmin_success(){
+            Member admin = Member.registerAdmin(DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS);
+
+            assertThat(admin.getRole()).isEqualTo(Role.ADMIN);
         }
 
         @Nested
@@ -57,13 +72,7 @@ public class MemberTest {
             @Test
             @DisplayName("null -> 예외")
             void shouldFail_whenLoginIdIsNull() {
-                assertThatThrownBy(() -> Member.builder()
-                        .loginId(null)
-                        .password(DEFAULT_PASSWORD)
-                        .name(DEFAULT_NAME)
-                        .email(DEFAULT_EMAIL)
-                        .addr(DEFAULT_ADDRESS)
-                        .build())
+                assertThatThrownBy(() -> Member.registerCustomer(null, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS))
                         .isInstanceOfSatisfying(InvalidLoginIdException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidLoginIdException.Reason.REQUIRED);
                             assertThat(e.getMessage())
@@ -74,13 +83,7 @@ public class MemberTest {
             @Test
             @DisplayName("blank -> 예외")
             void shouldFail_whenLoginIdIsBlank() {
-                assertThatThrownBy(() -> Member.builder()
-                        .loginId("    ")
-                        .password(DEFAULT_PASSWORD)
-                        .name(DEFAULT_NAME)
-                        .email(DEFAULT_EMAIL)
-                        .addr(DEFAULT_ADDRESS)
-                        .build())
+                assertThatThrownBy(() -> Member.registerCustomer("  ", DEFAULT_PASSWORD_HASH, DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS))
                         .isInstanceOfSatisfying(InvalidLoginIdException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidLoginIdException.Reason.BLANK);
                             assertThat(e.getMessage())
@@ -95,13 +98,7 @@ public class MemberTest {
             @Test
             @DisplayName("null -> 예외")
             void shouldFail_whenPasswordIsNull() {
-                assertThatThrownBy(() -> Member.builder()
-                        .loginId(DEFAULT_LOGIN_ID)
-                        .password(null)
-                        .name(DEFAULT_NAME)
-                        .email(DEFAULT_EMAIL)
-                        .addr(DEFAULT_ADDRESS)
-                        .build())
+                assertThatThrownBy(() -> Member.registerCustomer(DEFAULT_LOGIN_ID, null, DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS))
                         .isInstanceOfSatisfying(InvalidPasswordException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidPasswordException.Reason.REQUIRED);
                             assertThat(e.getMessage())
@@ -112,13 +109,7 @@ public class MemberTest {
             @Test
             @DisplayName("blank -> 예외")
             void shouldFail_whenPasswordIsBlank() {
-                assertThatThrownBy(() -> Member.builder()
-                        .loginId(DEFAULT_LOGIN_ID)
-                        .password("    ")
-                        .name(DEFAULT_NAME)
-                        .email(DEFAULT_EMAIL)
-                        .addr(DEFAULT_ADDRESS)
-                        .build())
+                assertThatThrownBy(() -> Member.registerCustomer(DEFAULT_LOGIN_ID, "  ", DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS))
                         .isInstanceOfSatisfying(InvalidPasswordException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidPasswordException.Reason.BLANK);
                             assertThat(e.getMessage())
@@ -132,13 +123,7 @@ public class MemberTest {
             @Test
             @DisplayName("null -> 예외")
             void shouldFail_whenNameIsNull() {
-                assertThatThrownBy(() -> Member.builder()
-                        .loginId(DEFAULT_LOGIN_ID)
-                        .password(DEFAULT_PASSWORD)
-                        .name(null)
-                        .email(DEFAULT_EMAIL)
-                        .addr(DEFAULT_ADDRESS)
-                        .build())
+                assertThatThrownBy(() -> Member.registerCustomer(DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, null, DEFAULT_EMAIL, DEFAULT_ADDRESS))
                         .isInstanceOfSatisfying(InvalidMemberNameException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidMemberNameException.Reason.REQUIRED);
                             assertThat(e.getMessage())
@@ -149,13 +134,7 @@ public class MemberTest {
             @Test
             @DisplayName("blank -> 예외")
             void shouldFail_whenNameIsBlank() {
-                assertThatThrownBy(() -> Member.builder()
-                        .loginId(DEFAULT_LOGIN_ID)
-                        .password(DEFAULT_PASSWORD)
-                        .name("     ")
-                        .email(DEFAULT_EMAIL)
-                        .addr(DEFAULT_ADDRESS)
-                        .build())
+                assertThatThrownBy(() -> Member.registerCustomer(DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, "  ", DEFAULT_EMAIL, DEFAULT_ADDRESS))
                         .isInstanceOfSatisfying(InvalidMemberNameException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidMemberNameException.Reason.BLANK);
                             assertThat(e.getMessage())
@@ -169,13 +148,7 @@ public class MemberTest {
             @Test
             @DisplayName("null -> 예외")
             void shouldFail_whenEmailIsNull() {
-                assertThatThrownBy(() -> Member.builder()
-                        .loginId(DEFAULT_LOGIN_ID)
-                        .password(DEFAULT_PASSWORD)
-                        .name(DEFAULT_NAME)
-                        .email(null)
-                        .addr(DEFAULT_ADDRESS)
-                        .build())
+                assertThatThrownBy(() -> Member.registerCustomer(DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, null, DEFAULT_ADDRESS))
                         .isInstanceOfSatisfying(InvalidEmailException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidEmailException.Reason.REQUIRED);
                             assertThat(e.getMessage())
@@ -186,13 +159,7 @@ public class MemberTest {
             @Test
             @DisplayName("blank -> 예외")
             void shouldFail_whenEmailIsBlank() {
-                assertThatThrownBy(() -> Member.builder()
-                        .loginId(DEFAULT_LOGIN_ID)
-                        .password(DEFAULT_PASSWORD)
-                        .name(DEFAULT_NAME)
-                        .email("   ")
-                        .addr(DEFAULT_ADDRESS)
-                        .build())
+                assertThatThrownBy(() -> Member.registerCustomer(DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, "  ", DEFAULT_ADDRESS))
                         .isInstanceOfSatisfying(InvalidEmailException.class, e -> {
                             assertThat(e.getReason()).isEqualTo(InvalidEmailException.Reason.BLANK);
                             assertThat(e.getMessage())
@@ -208,13 +175,13 @@ public class MemberTest {
         @DisplayName("부분 변경 -> 기존 값 유지")
         void partial_update() {
             //when
-            member.update(null, "손흥민", null, null);
+            customer.update(null, "손흥민", null, null);
 
             //then
             assertSoftly(softly -> {
-                softly.assertThat(member.getName()).isEqualTo("손흥민");
-                softly.assertThat(member.getPasswordHash()).isEqualTo(DEFAULT_PASSWORD);
-                softly.assertThat(member.getEmail()).isEqualTo(DEFAULT_EMAIL);
+                softly.assertThat(customer.getName()).isEqualTo("손흥민");
+                softly.assertThat(customer.getPasswordHash()).isEqualTo(DEFAULT_PASSWORD_HASH);
+                softly.assertThat(customer.getEmail()).isEqualTo(DEFAULT_EMAIL);
             });
         }
     }
@@ -225,10 +192,10 @@ public class MemberTest {
         @DisplayName("정상 -> 변경")
         void change_password() {
             //when
-            member.changePassword("p2");
+            customer.changePassword("p2");
 
             //then
-            assertThat(member.getPasswordHash()).isEqualTo("p2");
+            assertThat(customer.getPasswordHash()).isEqualTo("p2");
         }
     }
 
@@ -238,10 +205,10 @@ public class MemberTest {
         @DisplayName("정상 -> 변경")
         void upgrade_grade() {
             //when
-            member.changeGrade(Grade.VIP);
+            customer.getCustomerProfile().changeGrade(CustomerGrade.VIP);
 
             //then
-            assertThat(member.getGrade()).isEqualTo(Grade.VIP);
+            assertThat(customer.getCustomerProfile().getGrade()).isEqualTo(CustomerGrade.VIP);
         }
     }
 
@@ -252,11 +219,11 @@ public class MemberTest {
         void success_addOrder() {
             //when
             Order order = newOrder();
-            member.addOrder(order);
+            customer.addOrder(order);
 
             //then
-            assertThat(member.getOrders()).containsExactly(order);
-            assertThat(order.getMember()).isEqualTo(member);
+            assertThat(customer.getOrders()).containsExactly(order);
+            assertThat(order.getMember()).isEqualTo(customer);
         }
 
         @Test
@@ -264,16 +231,16 @@ public class MemberTest {
         void onlyOneProcess_whenAddDuplicatedOrder() {
             //when
             Order order = newOrder();
-            member.addOrder(order);
-            member.addOrder(order);
+            customer.addOrder(order);
+            customer.addOrder(order);
 
             //then
-            assertThat(member.getOrders()).containsExactly(order);
-            assertThat(order.getMember()).isEqualTo(member);
+            assertThat(customer.getOrders()).containsExactly(order);
+            assertThat(order.getMember()).isEqualTo(customer);
         }
     }
 
     private Order newOrder() {
-        return Order.createOrder(member, OrderItem.createOrderItem(new Product("마우스", 20_000, 20), 10));
+        return Order.createOrder(customer, OrderItem.createOrderItem(new Product("마우스", 20_000, 20), 10));
     }
 }

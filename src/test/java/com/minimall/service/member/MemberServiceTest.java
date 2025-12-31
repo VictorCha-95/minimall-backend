@@ -9,11 +9,18 @@ import com.minimall.domain.exception.DuplicateException;
 import com.minimall.service.exception.InvalidCredentialException;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.member.dto.*;
+import com.minimall.service.member.dto.command.MemberAddressCommand;
+import com.minimall.service.member.dto.command.MemberLoginCommand;
+import com.minimall.service.member.dto.command.MemberRegisterCommand;
+import com.minimall.service.member.dto.command.MemberUpdateCommand;
+import com.minimall.service.member.dto.result.MemberDetailResult;
+import com.minimall.service.member.dto.result.MemberSummaryResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -44,26 +51,26 @@ class MemberServiceTest {
     MemberService memberService;
 
     private Member member;
-    private MemberCreateCommand createCommand;
+    private MemberRegisterCommand registerCommand;
     private MemberUpdateRequest updateRequest;
     private MemberUpdateCommand updateCommand;
     private MemberDetailResult detailResult;
     private MemberSummaryResult summaryResult;
 
+    private static final String DEFAULT_LOGIN_ID = "user123";
+    private static final String DEFAULT_PASSWORD_HASH = "12345678";
+    private static final String DEFAULT_NAME = "차태승";
+    private static final String DEFAULT_EMAIL = "user123@example.com";
+    private static final Address DEFAULT_ADDRESS =
+            Address.createAddress("62550", "광주광역시", "광산구", "수등로76번길 40", "123동 456호");
 
     @BeforeEach
     void setUp() {
         //== Member Entity ==//
-        member = Member.builder()
-                .loginId("user1")
-                .password("abc12345")
-                .name("차태승")
-                .email("cts9458@naver.com")
-                .addr(new Address("12345", "광주광역시", "광산구", "수등로76번길 40", "123동 1501호"))
-                .build();
+        member = Member.registerCustomer(DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS);
 
         //== CreateRequest DTO ==//
-        createCommand = new MemberCreateCommand(member.getLoginId(), member.getPasswordHash(), member.getName(), member.getEmail(),
+        registerCommand = new MemberRegisterCommand(member.getLoginId(), member.getPasswordHash(), member.getName(), member.getEmail(),
                 new MemberAddressCommand(member.getAddr().getPostcode(), member.getAddr().getState(), member.getAddr().getCity(), member.getAddr().getStreet(), member.getAddr().getDetail()));
 
         //== UpdateRequest DTO ==//
@@ -84,7 +91,7 @@ class MemberServiceTest {
         //== Response DTOs ==//
         summaryResult = new MemberSummaryResult(member.getId(), member.getLoginId(), member.getName());
 
-        detailResult = new MemberDetailResult(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getGrade(), member.getAddr());
+        detailResult = new MemberDetailResult(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getCustomerProfile().getGrade(), member.getAddr());
     }
 
     //== login ==//
@@ -95,30 +102,33 @@ class MemberServiceTest {
         @DisplayName("로그인 성공 -> DB 회원 조회 및 비밀번호 검증")
         void success() {
             //given
-            when(memberRepository.findByLoginId(createCommand.loginId())).thenReturn(Optional.of(member));
-            when(passwordEncoder.matches("abc12345", member.getPasswordHash())).thenReturn(true);
+            when(memberRepository.findByLoginId(registerCommand.loginId())).thenReturn(Optional.of(member));
+            when(passwordEncoder.matches(anyString(), eq(registerCommand.password()))).thenReturn(true);
+            when(memberServiceMapper.toSummaryResult(any(Member.class)))
+                    .thenReturn(new MemberSummaryResult(1L, registerCommand.loginId(), registerCommand.name()));
 
             //when
-            Member result = memberService.login(new MemberLoginCommand(createCommand.loginId(), createCommand.password()));
+            MemberSummaryResult result = memberService.login(new MemberLoginCommand(registerCommand.loginId(), registerCommand.password()));
 
             //then
-            assertThat(result).isEqualTo(member);
-            verify(memberRepository).findByLoginId(createCommand.loginId());
-            verify(passwordEncoder).matches("abc12345", member.getPasswordHash());
+            assertThat(result.loginId()).isEqualTo(registerCommand.loginId());
+            assertThat(result.name()).isEqualTo(registerCommand.name());
+            verify(memberRepository).findByLoginId(registerCommand.loginId());
+            verify(passwordEncoder).matches(registerCommand.password(), member.getPasswordHash());
         }
 
         @Test
         @DisplayName("비밀번호 오류 -> InvalidCredentialException 예외 발생")
         void shouldFail_whenPasswordIsNotMatch() {
             //given
-            when(memberRepository.findByLoginId(createCommand.loginId())).thenReturn(Optional.of(member));
+            when(memberRepository.findByLoginId(registerCommand.loginId())).thenReturn(Optional.of(member));
             when(passwordEncoder.matches("wrong_password", member.getPasswordHash())).thenReturn(false);
 
             //when & then
-            assertThatThrownBy(() -> memberService.login(new MemberLoginCommand(createCommand.loginId(), "wrong_password")))
+            assertThatThrownBy(() -> memberService.login(new MemberLoginCommand(registerCommand.loginId(), "wrong_password")))
                     .isInstanceOf(InvalidCredentialException.class);
 
-            verify(memberRepository).findByLoginId(createCommand.loginId());
+            verify(memberRepository).findByLoginId(registerCommand.loginId());
             verify(passwordEncoder).matches("wrong_password", member.getPasswordHash());
         }
 
@@ -129,7 +139,7 @@ class MemberServiceTest {
             when(memberRepository.findByLoginId("wrong_id")).thenReturn(Optional.empty());
 
             //when & then
-            assertThatThrownBy(() -> memberService.login(new MemberLoginCommand("wrong_id", createCommand.password())))
+            assertThatThrownBy(() -> memberService.login(new MemberLoginCommand("wrong_id", registerCommand.password())))
                     .isInstanceOf(MemberNotFoundException.class);
 
             verify(memberRepository).findByLoginId("wrong_id");
@@ -141,50 +151,64 @@ class MemberServiceTest {
     @Test
     void createMember_success() {
         //given
-        when(memberRepository.existsByLoginId(createCommand.loginId())).thenReturn(false);
-        when(memberRepository.existsByEmail(createCommand.email())).thenReturn(false);
-        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-        when(memberServiceMapper.toEntity(any(MemberCreateCommand.class))).thenReturn(member);
-        when(memberRepository.save(member)).thenReturn(member);
+        when(memberRepository.existsByLoginId(registerCommand.loginId())).thenReturn(false);
+        when(memberRepository.existsByEmail(registerCommand.email())).thenReturn(false);
+
+        when(passwordEncoder.encode(registerCommand.password())).thenReturn("encodedPassword");
+
+        when(memberRepository.save(any(Member.class))).thenReturn(member);
+
+        MemberSummaryResult expected = new MemberSummaryResult(member.getId(), member.getLoginId(), member.getName());
+        when(memberServiceMapper.toSummaryResult(any(Member.class))).thenReturn(expected);
+
 
         //when
-        Member result = memberService.create(createCommand);
+        MemberSummaryResult result = memberService.registerCustomer(registerCommand);
 
-        //then
-        assertThat(result).isEqualTo(member);
-        verify(memberRepository).existsByLoginId(createCommand.loginId());
-        verify(memberRepository).existsByEmail(createCommand.email());
+        //then: 호출 검증
+        assertThat(result).isEqualTo(expected);
+        verify(memberRepository).existsByLoginId(registerCommand.loginId());
+        verify(memberRepository).existsByEmail(registerCommand.email());
         verify(passwordEncoder).encode(anyString());
-        verify(memberServiceMapper).toEntity(any(MemberCreateCommand.class));
-        verify(memberRepository).save(member);
+        verify(memberRepository).save(any(Member.class));
+        verify(memberServiceMapper).toSummaryResult(any(Member.class));
+
+        //then: 필드 검증
+        ArgumentCaptor<Member> captor = ArgumentCaptor.forClass(Member.class);
+
+        verify(memberRepository).save(captor.capture());
+        Member captured = captor.getValue();
+
+        assertThat(captured.getLoginId()).isEqualTo(registerCommand.loginId());
+        assertThat(captured.getName()).isEqualTo(registerCommand.name());
     }
 
     @Test
     @DisplayName("회원 등록 시 로그인 아이디 중복일 경우 예외 발생")
     void createMember_duplicateLoginId_shouldFail() {
         //given
-        when(memberRepository.existsByLoginId(createCommand.loginId())).thenReturn(true);
+        when(memberRepository.existsByLoginId(registerCommand.loginId())).thenReturn(true);
 
         //then
         DuplicateException duplicateException =
-                assertThrows(DuplicateException.class, () -> memberService.create(createCommand));
+                assertThrows(DuplicateException.class, () -> memberService.registerCustomer(registerCommand));
         assertThat(duplicateException.getMessage()).contains("loginId", "사용 중", member.getLoginId());
-        verify(memberRepository).existsByLoginId(createCommand.loginId());
+        verify(memberRepository).existsByLoginId(registerCommand.loginId());
     }
 
     @Test
     @DisplayName("회원 등록 시 이메일 중복일 경우 예외 발생")
     void createMember_duplicateEmail_shouldFail() {
         //given
-        when(memberRepository.existsByLoginId(createCommand.loginId())).thenReturn(false);
-        when(memberRepository.existsByEmail(createCommand.email())).thenReturn(true);
+        when(memberRepository.existsByLoginId(registerCommand.loginId())).thenReturn(false);
+        when(memberRepository.existsByEmail(registerCommand.email())).thenReturn(true);
 
         //then
         DuplicateException duplicateException =
-                assertThrows(DuplicateException.class, () -> memberService.create(createCommand));
+                assertThrows(DuplicateException.class, () -> memberService.registerCustomer(registerCommand));
         assertThat(duplicateException.getMessage()).contains("email", "사용 중", member.getEmail());
-        verify(memberRepository).existsByLoginId(createCommand.loginId());
-        verify(memberRepository).existsByEmail(createCommand.email());
+        verify(memberRepository).existsByLoginId(registerCommand.loginId());
+        verify(memberRepository).existsByEmail(registerCommand.email());
     }
 
     //== update ==//
@@ -210,7 +234,7 @@ class MemberServiceTest {
     void updateMember_duplicateEmail_shouldFail() {
         //given
         ReflectionTestUtils.setField(member, "id", 1L); // 수정 대상 회원
-        Member existed = Member.create("other", "1234", "중복회원", updateRequest.email(), null);
+        Member existed = Member.registerCustomer("other", "1234", "중복회원", updateRequest.email(), null);
         ReflectionTestUtils.setField(existed, "id", 2L); // 중복 이메일 보유자
 
         when(memberRepository.findByEmail(updateRequest.email())).thenReturn(Optional.of(existed));

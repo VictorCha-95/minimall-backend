@@ -89,7 +89,12 @@ class OrderServiceTest {
     private final Long PRODUCT1_ID = 1L;
     private final Long PRODUCT2_ID = 2L;
 
-
+    private static final String DEFAULT_LOGIN_ID = "user123";
+    private static final String DEFAULT_PASSWORD_HASH = "12345678";
+    private static final String DEFAULT_NAME = "차태승";
+    private static final String DEFAULT_EMAIL = "user123@example.com";
+    private static final Address DEFAULT_ADDRESS =
+            Address.createAddress("62550", "광주광역시", "광산구", "수등로76번길 40", "123동 456호");
 
     @BeforeEach
     void setUp() {
@@ -106,13 +111,7 @@ class OrderServiceTest {
 
 
         //== Member Entity ==//
-        member = Member.builder()
-                .loginId("user1")
-                .password("abc12345")
-                .name("차태승")
-                .email("cts9458@naver.com")
-                .addr(new Address("12345", "광주광역시", "광산구", "수등로76번길 40", "123동 1501호"))
-                .build();
+        member = Member.registerCustomer(DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS);
 
         //== Product Entity ==//
         book = new Product("도서", 20000, 50);
@@ -546,13 +545,7 @@ class OrderServiceTest {
         void shouldFail_whenShipAddrAndMemberAddrIsNull() {
             //given
             Order order = createSampleOrder(
-                    Member.builder()
-                            .loginId("user1")
-                            .password("abc12345")
-                            .name("차태승")
-                            .email("cts9458@naver.com")
-                            .addr(null)   // 회원 주소 null
-                            .build());
+                    Member.registerCustomer(DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, DEFAULT_EMAIL, null));
 
             processPayment(order);
 

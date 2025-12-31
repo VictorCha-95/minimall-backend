@@ -44,17 +44,18 @@
         final LocalDateTime shippedAt = LocalDateTime.of(2025, 11, 10, 12, 30);
         final LocalDateTime arrivedAt = LocalDateTime.of(2025, 11, 20, 12, 30);
 
-
+        private static final String DEFAULT_LOGIN_ID = "user123";
+        private static final String DEFAULT_PASSWORD_HASH = "12345678";
+        private static final String DEFAULT_NAME = "차태승";
+        private static final String DEFAULT_EMAIL = "user123@example.com";
+        private static final Address DEFAULT_ADDRESS =
+                Address.createAddress("62550", "광주광역시", "광산구", "수등로76번길 40", "123동 456호");
 
         @BeforeEach
         void setUp() {
-            member = Member.builder()
-                    .loginId("user123")
-                    .password("12345")
-                    .email("user123@example.com")
-                    .name("차태승")
-                    .addr(Address.createAddress("62550", "광주광역시", "광산구", "수등로76번길 40", "123동 456호"))
-                    .build();
+            member = Member.registerCustomer(
+                    DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS
+            );
 
             //== Product Entity ==//
             keyboard = new Product("키보드", keyboardPrice, keyboardStock);

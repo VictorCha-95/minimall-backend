@@ -1,12 +1,17 @@
 package com.minimall.service.member;
 
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
+import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.exception.DuplicateException;
+import com.minimall.domain.member.Role;
 import com.minimall.service.exception.InvalidCredentialException;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.member.dto.*;
+import com.minimall.service.member.dto.command.*;
+import com.minimall.service.member.dto.result.MemberDetailResult;
+import com.minimall.service.member.dto.result.MemberSummaryResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,26 +31,69 @@ public class MemberService {
 
     //== 로그인 ==//
     @Transactional
-    public Member login(MemberLoginCommand command) {
+    public MemberSummaryResult login(MemberLoginCommand command) {
         Member member = findMemberByLoginId(command.loginId());
         if (!passwordEncoder.matches(command.password(), member.getPasswordHash())){
             throw new InvalidCredentialException("password not matched");
         }
 
-        return member;
+        return memberServiceMapper.toSummaryResult(member);
     }
 
     //== 생성 ==//
     @Transactional
-    public Member create(MemberCreateCommand command) {
+    public MemberSummaryResult registerCustomer(MemberRegisterCommand command) {
         validateDuplicateLoginId(command.loginId());
         validateDuplicateEmail(command.email());
 
-        String encodedPassword = passwordEncoder.encode(command.password());
-        MemberCreateCommand encodedCommand = command.withEncodedPassword(encodedPassword);
+        String passwordHash = passwordEncoder.encode(command.password());
+        Address addr = getAddress(command.addr());
 
-        Member member = memberServiceMapper.toEntity(encodedCommand);
-        return memberRepository.save(member);
+        Member member = Member.registerCustomer(command.loginId(), passwordHash, command.name(), command.email(), addr);
+        Member saved = memberRepository.save(member);
+        return memberServiceMapper.toSummaryResult(saved);
+    }
+
+    @Transactional
+    public MemberSummaryResult registerSeller(SellerRegisterCommand command) {
+        validateDuplicateLoginId(command.loginId());
+        validateDuplicateEmail(command.email());
+
+        String passwordHash = passwordEncoder.encode(command.password());
+        Address addr = getAddress(command.addr());
+
+        Member member = Member.registerSeller(command.loginId(), passwordHash, command.name(), command.email(), addr,
+                command.storeName(), command.businessNumber(), command.account());
+        Member saved = memberRepository.save(member);
+        return memberServiceMapper.toSummaryResult(saved);
+    }
+
+    @Transactional
+    public MemberSummaryResult registerAdmin(MemberRegisterCommand command) {
+        validateDuplicateLoginId(command.loginId());
+        validateDuplicateEmail(command.email());
+
+        String passwordHash = passwordEncoder.encode(command.password());
+        Address addr = getAddress(command.addr());
+
+        Member member = Member.registerCustomer(command.loginId(), passwordHash, command.name(), command.email(), addr);
+        Member saved = memberRepository.save(member);
+        return memberServiceMapper.toSummaryResult(saved);
+    }
+
+    private Address getAddress(MemberAddressCommand command) {
+        Address address = null;
+        if (command != null) {
+            address = new Address(
+                    command.postcode(),
+                    command.state(),
+                    command.city(),
+                    command.street(),
+                    command.detail()
+            );
+        }
+
+        return address;
     }
 
     //== 수정 ==//

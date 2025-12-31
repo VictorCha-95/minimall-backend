@@ -29,15 +29,15 @@ public class SellerProfile extends BaseTimeEntity {
     private String businessNumber;
 
     @Column(nullable = false, length = 100)
-    private String settlementAccount;
+    private String account;
 
-    private SellerProfile(Member member, String storeName, String businessNumber, String settlementAccount) {
-        validateCreate(member, storeName, businessNumber, settlementAccount);
+    private SellerProfile(Member member, String storeName, String businessNumber, String account) {
+        validateCreate(member, storeName, businessNumber, account);
 
         this.member = member;
         this.storeName = storeName;
         this.businessNumber = businessNumber;
-        this.settlementAccount = settlementAccount;
+        this.account = account;
     }
 
     public static SellerProfile create(Member member, String storeName, String businessNumber, String settlementAccount) {

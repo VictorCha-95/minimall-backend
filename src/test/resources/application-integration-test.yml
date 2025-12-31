@@ -10,7 +10,6 @@ spring:
         format_sql: true
     show-sql: true
 
-  # Lazy 로딩 실패 방지 (선택)
   jackson:
     serialization:
       fail-on-empty-beans: false

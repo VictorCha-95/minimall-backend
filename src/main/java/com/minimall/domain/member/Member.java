@@ -40,7 +40,6 @@ public class Member extends BaseEntity {
     @Embedded
     private Address addr;
 
-    @Column(name = "status", nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private MemberStatus status;
 
@@ -85,7 +84,7 @@ public class Member extends BaseEntity {
         return member;
     }
 
-    static Member registerAdmin(String loginId, String passwordHash, String memberName, String email, Address address){
+    public static Member registerAdmin(String loginId, String passwordHash, String memberName, String email, Address address){
         Member member = new Member(loginId, passwordHash, memberName, email, address, Role.ADMIN);
         return member;
     }

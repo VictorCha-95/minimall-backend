@@ -1,4 +1,4 @@
-package com.minimall.service.member.dto;
+package com.minimall.service.member.dto.command;
 
 public record MemberAddressCommand(
         String postcode,

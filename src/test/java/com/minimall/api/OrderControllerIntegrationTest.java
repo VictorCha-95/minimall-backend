@@ -102,8 +102,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         );
 
         Member memberAddrIsNull = Member.registerCustomer(
-                "abc" + DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, "abc" + DEFAULT_NAME, "abc" + DEFAULT_EMAIL, DEFAULT_ADDRESS
-        );
+                "abc" + DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, "abc" + DEFAULT_NAME, "abc" + DEFAULT_EMAIL, null);
 
         savedMember = memberRepository.save(member);
         savedMemberAddrIsNull = memberRepository.save(memberAddrIsNull);

@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.lang.Nullable;
 
-public record MemberCreateRequest(
+public record MemberRegisterRequest(
         @NotBlank String loginId,
         @NotBlank String password, //TODO 패턴 애너테이션 추가
         @NotBlank String name, //TODO 사이즈 애너테이션 추가

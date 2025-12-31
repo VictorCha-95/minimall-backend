@@ -1,4 +1,4 @@
-package com.minimall.service.member.dto;
+package com.minimall.service.member.dto.result;
 
 import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.CustomerGrade;

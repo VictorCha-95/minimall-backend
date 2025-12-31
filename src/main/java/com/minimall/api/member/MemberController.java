@@ -1,17 +1,18 @@
 package com.minimall.api.member;
 
 import com.minimall.api.member.dto.MemberApiMapper;
-import com.minimall.api.member.dto.request.MemberCreateRequest;
+import com.minimall.api.member.dto.request.MemberRegisterRequest;
 import com.minimall.api.member.dto.request.MemberLoginRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
+import com.minimall.api.member.dto.request.SellerRegisterRequest;
 import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
 import com.minimall.api.order.dto.OrderApiMapper;
 import com.minimall.api.order.dto.response.OrderSummaryResponse;
-import com.minimall.domain.member.Member;
 import com.minimall.service.member.MemberService;
-import com.minimall.service.member.dto.MemberUpdateCommand;
+import com.minimall.service.member.dto.command.MemberUpdateCommand;
+import com.minimall.service.member.dto.result.MemberSummaryResult;
 import com.minimall.service.order.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -22,13 +23,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(value = "/members", produces = "application/json")
 @Tag(name = "Member API", description = "회원 관련 API")
-public class MemberApiController {
+public class MemberController {
 
     private final MemberService memberService;
     private final OrderService orderService;
@@ -39,8 +41,8 @@ public class MemberApiController {
     @Operation(summary = "회원 로그인")
     @PostMapping("/login")
     public ResponseEntity<MemberSummaryResponse> login(@RequestBody @Valid MemberLoginRequest request){
-        Member member = memberService.login(memberApiMapper.toLoginCommand(request));
-        MemberSummaryResponse response = memberApiMapper.toSummaryResponse(member);
+        MemberSummaryResult result = memberService.login(memberApiMapper.toLoginCommand(request));
+        MemberSummaryResponse response = memberApiMapper.toSummaryResponse(result);
         return ResponseEntity.ok(response);
     }
 
@@ -110,11 +112,22 @@ public class MemberApiController {
     }
 
     //== 회원 생성 ==//
-    @Operation(summary = "회원 생성")
-    @PostMapping
-    public MemberSummaryResponse create(@Valid @RequestBody MemberCreateRequest request) {
-        Member member = memberService.createCustomer(memberApiMapper.toCreateCommand(request));
-        return memberApiMapper.toSummaryResponse(member);
+    @Operation(summary = "고객 생성")
+    @PostMapping("/customers")
+    public ResponseEntity<MemberSummaryResponse> registerCustomer(@Valid @RequestBody MemberRegisterRequest request) {
+        MemberSummaryResult result = memberService.registerCustomer(memberApiMapper.toCreateCommand(request));
+
+        URI location = URI.create("/members/" + result.id());
+        return ResponseEntity.created(location).body(memberApiMapper.toSummaryResponse(result));
+    }
+
+    @Operation(summary = "판매자 생성")
+    @PostMapping("/sellers")
+    public ResponseEntity<MemberSummaryResponse> registerSeller(@Valid @RequestBody SellerRegisterRequest request) {
+        MemberSummaryResult result = memberService.registerSeller(memberApiMapper.toSellerRegisterCommand(request));
+
+        URI location = URI.create("/members/" + result.id());
+        return ResponseEntity.created(location).body(memberApiMapper.toSummaryResponse(result));
     }
 
     //== 회원 수정 ==//

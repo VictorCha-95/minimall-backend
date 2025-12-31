@@ -90,7 +90,7 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
         member = Member.registerCustomer(loginId1, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, loginId1 + "naver.com", DEFAULT_ADDRESS);
 
         String loginId2 = UUID.randomUUID().toString();
-        memberNullAddr = Member.registerCustomer(loginId2, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, loginId2 + "naver.com", DEFAULT_ADDRESS);
+        memberNullAddr = Member.registerCustomer(loginId2, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, loginId2 + "naver.com", null);
 
         //== Product Entity ==//
         keyboard = new Product("키보드", 100000, 20);

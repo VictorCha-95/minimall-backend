@@ -30,6 +30,8 @@ CREATE TABLE member (
   street         VARCHAR(255),
 
   grade          VARCHAR(20)  NOT NULL DEFAULT 'BRONZE',
+  role           VARCHAR(20)  NOT NULL DEFAULT 'CUSTOMER',
+  status         VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE'
 
   PRIMARY KEY (member_id),
   UNIQUE KEY uq_member_login_id (login_id),
@@ -37,6 +39,33 @@ CREATE TABLE member (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE member_customer_profile (
+	member_id       BIGINT          NOT NULL,
+    grade           VARCHAR(20)     NOT NULL DEFAULT 'BRONZE',
+    created_at      DATETIME        DEFAULT CURRENT_TIMESTAMP,
+	updated_at      DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (member_id),
+    CONSTRAINT fk_customer_profile_member
+		FOREIGN KEY (member_id) REFERENCES member (member_id)
+		ON DELETE CASCADE
+);
+
+CREATE TABLE member_seller_profile (
+	member_id       BIGINT          NOT NULL,
+    store_name      VARCHAR(100)    NOT NULL,
+    business_number VARCHAR(30)     NOT NULL,
+    `account`       VARCHAR(100)    NOT NULL,
+    created_at      DATETIME        DEFAULT CURRENT_TIMESTAMP,
+	updated_at      DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (member_id),
+    UNIQUE KEY uq_seller_profile_business_number (business_number),
+    CONSTRAINT fk_seller_profile_member
+		FOREIGN KEY (member_id) REFERENCES member (member_id)
+        ON DELETE CASCADE
+);
 
 -- =========================
 -- 2) product

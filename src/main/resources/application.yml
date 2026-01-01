@@ -11,6 +11,11 @@ spring:
       hibernate:
         format_sql: true
 
+jwt:
+  issuer: minimall
+  access-ttl-seconds: 600
+  secret-base64: yE/wKzSL3I1vQgYnz5wHn+OdIuXnbtmX6ZPbBaqPPgP2PiotuFf+Ae3Jr0H6dGtwttoCRcIY7kqBMsEt4LeKeA==
+
 logging:
   level:
     org.hibernate.SQL: debug

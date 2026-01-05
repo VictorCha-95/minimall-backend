@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.security.Keys;
+import lombok.Getter;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
@@ -15,6 +16,7 @@ import java.util.Date;
 import java.util.UUID;
 
 @Component
+@Getter
 public final class JwtTokenProvider {
 
     private final SecretKey key;
@@ -28,23 +30,30 @@ public final class JwtTokenProvider {
         this.clock = clock;
 
         byte[] decoded = Base64.getDecoder().decode(props.secretBase64());
-        this.key = Keys.hmacShaKeyFor(decoded); // HS256 최소 32바이트 요구
+        if (decoded.length < 32) {
+            throw new IllegalArgumentException("jwt.secretBase64 must decode to at least 32 bytes for HS256");
+        }
+        this.key = Keys.hmacShaKeyFor(decoded);
+
     }
 
     public String createAccessToken(long memberId, String role) {
+        String authority = (role != null && role.startsWith("ROLE_")) ? role : "ROLE_" + role;
+
         Instant now = clock.instant();
         Instant exp = now.plusSeconds(accessTtlSeconds);
 
         return Jwts.builder()
                 .issuer(issuer)
                 .subject(String.valueOf(memberId))
-                .id(UUID.randomUUID().toString())  // jti
+                .id(UUID.randomUUID().toString())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
-                .claim("role", role)
-                .signWith(key) // HS256
+                .claim("role", authority)
+                .signWith(key)
                 .compact();
     }
+
 
     public Claims parseAndValidate(String token) throws JwtException {
         io.jsonwebtoken.Clock jjwtClock = () -> Date.from(clock.instant());

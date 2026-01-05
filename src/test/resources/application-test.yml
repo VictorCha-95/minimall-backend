@@ -12,4 +12,4 @@ spring:
 jwt:
   issuer: minimall-test
   access-ttl-seconds: 600
-  secret-base64: "bWluaW1hbGwtand0LXNlY3JldC1mb3ItaW50ZWdyYXRpb24tdGVzdC1wbGVhc2UtY2hhbmdlLTEyMzQ1Njc4OTA="
+  secret-base64: "JXbXqVT8Nw6WcFGGqMeOWG3g8gdE/UWKnT4Bmb1Dvo4="

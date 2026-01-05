@@ -1,0 +1,10 @@
+src/test/java/com/minimall/auth/jwt/JwtTokenProviderTest.java
+src/test/java/com/minimall/domain/member/MemberTest.java
+src/test/java/com/minimall/domain/order/OrderCancelTest.java
+src/test/java/com/minimall/domain/order/OrderCreateTest.java
+src/test/java/com/minimall/domain/order/OrderDeliveryTest.java
+src/test/java/com/minimall/domain/order/OrderItemTest.java
+src/test/java/com/minimall/domain/order/OrderPaymentTest.java
+src/test/java/com/minimall/domain/product/ProductTest.java
+src/test/java/com/minimall/service/member/MemberServiceTest.java
+src/test/java/com/minimall/service/order/OrderServiceTest.java

@@ -13,6 +13,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: minimall
       SPRING_PROFILES_ACTIVE: docker
 
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64}
+
       SPRING_JPA_SHOW_SQL: "true"
       TZ: Asia/Seoul
     command: sh -c "./gradlew bootRun"

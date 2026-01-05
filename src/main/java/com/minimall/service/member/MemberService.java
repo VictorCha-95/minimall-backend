@@ -34,7 +34,7 @@ public class MemberService {
     public MemberSummaryResult login(MemberLoginCommand command) {
         Member member = findMemberByLoginId(command.loginId());
         if (!passwordEncoder.matches(command.password(), member.getPasswordHash())){
-            throw new InvalidCredentialException("password not matched");
+            throw InvalidCredentialException.invalidPassword(command.password());
         }
 
         return memberServiceMapper.toSummaryResult(member);

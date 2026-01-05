@@ -89,3 +89,5 @@ tasks.named('jacocoTestReport', JacocoReport) {
 		csv.required = false
 	}
 }
+
+tasks.test { systemProperty "spring.profiles.active", "test" }

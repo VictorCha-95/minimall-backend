@@ -33,7 +33,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = resolveBearerToken(request);
 
-        // 토큰이 없으면 "인증 시도 자체를 안 함" (익명 상태로 다음 필터)
         if (token == null) {
             filterChain.doFilter(request, response);
             return;
@@ -49,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             var authentication = new UsernamePasswordAuthenticationToken(
                     memberId,          // principal: 여기서는 memberId로 단순화
-                    null,
+                    null,              // credentials(비밀번호 등): JWT 인증이라 의미 없음
                     authorities
             );
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

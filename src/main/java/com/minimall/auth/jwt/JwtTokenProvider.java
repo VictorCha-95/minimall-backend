@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
 
 import javax.crypto.SecretKey;
 import java.time.Clock;
@@ -21,7 +22,7 @@ public final class JwtTokenProvider {
     private final long accessTtlSeconds;
     private final Clock clock;
 
-    public JwtTokenProvider(JwtProperties props, Clock clock) {
+    public JwtTokenProvider(@Validated JwtProperties props, Clock clock) {
         this.issuer = props.issuer();
         this.accessTtlSeconds = props.accessTtlSeconds();
         this.clock = clock;

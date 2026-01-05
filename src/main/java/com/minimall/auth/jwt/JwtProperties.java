@@ -1,10 +1,12 @@
 package com.minimall.auth.jwt;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "jwt")
 public record JwtProperties(
-        String issuer,
-        long accessTtlSeconds,
-        String secretBase64
+        @NotBlank String issuer,
+        @Positive long accessTtlSeconds,
+        @NotBlank String secretBase64
 ) {}

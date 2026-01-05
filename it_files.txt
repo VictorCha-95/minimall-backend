@@ -1,0 +1,8 @@
+src/test/java/com/minimall/AbstractIntegrationTest.java
+src/test/java/com/minimall/api/MemberControllerIntegrationTest.java
+src/test/java/com/minimall/api/OrderControllerIntegrationTest.java
+src/test/java/com/minimall/api/OrderControllerTest.java
+src/test/java/com/minimall/api/ProductControllerIntegrationTest.java
+src/test/java/com/minimall/MiniMallApiApplicationTests.java
+src/test/java/com/minimall/service/member/MemberServiceIntegrationTest.java
+src/test/java/com/minimall/service/order/OrderServiceIntegrationTest.java

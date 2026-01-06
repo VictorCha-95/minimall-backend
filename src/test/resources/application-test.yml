@@ -9,6 +9,11 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
 jwt:
   issuer: minimall-test
   access-ttl-seconds: 600

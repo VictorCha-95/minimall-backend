@@ -496,3 +496,25 @@ docker compose -f docker/docker-compose.dev.yml down -v
 - 주문/결제/배송 주요 흐름 모니터링 지표 추가 (로그/메트릭)
 - 관리자 기능 확장 (상품/주문 관리 API 및 필요 시 Admin 화면)
 - 트래픽 발생 후 성능 측정 및 성능 튜닝 (병목 지점 식별 → 개선 전/후 결과 비교)# docs-erd
+
+
+## 추가 내용
+JWT 목표 동작 규약 (고정)
+
+A. 보호 API
+
+Access 없음/만료/위조 → 401
+
+여기서 Refresh 검증/재발급 절대 안 함
+
+B. POST /auth/refresh
+
+Refresh 유효 + Redis에 “현재 유효한 Refresh”로 등록되어 있음 → 새 Access 발급
+
+Refresh 만료/위조/Redis 불일치(폐기됨) → 401
+
+C. Refresh Rotation
+
+refresh 성공할 때마다 새 Refresh를 발급하고 Redis 값을 교체
+
+그래서 “탈취된 과거 Refresh”는 즉시 무효화됨

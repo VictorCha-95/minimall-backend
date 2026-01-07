@@ -1,0 +1,22 @@
+spring:
+  config:
+    activate:
+      on-profile: e2e
+
+  datasource:
+    url: ${E2E_DB_URL:jdbc:mysql://localhost:13306/minimall?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul}
+    username: ${E2E_DB_USERNAME:minimall}
+    password: ${E2E_DB_PASSWORD:minimall}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+jwt:
+  issuer: minimall-e2e
+  secret-base64: ${JWT_SECRET_BASE64:test-secret-base64}
+  access-expiration-ms: 600000
+  refresh-expiration-ms: 86400000

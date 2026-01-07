@@ -79,7 +79,6 @@ MiniMall은 다음을 목표로 합니다.
 ### 4.1 회원(Member)
 
 - 회원 가입
-- 로그인
 - 회원 정보 수정
 - 단건 조회 / 목록 조회
 
@@ -168,7 +167,6 @@ RESTful API 스타일을 기반으로, 리소스 중심 URL과 HTTP 메서드를
 
 ### 회원(Member) – `/members`
 - `POST /members` – 회원 가입
-- `POST /members/login` – 로그인
 - `GET /members` – 회원 목록 조회
 - `GET /members/{id}` – 회원 단건 조회
 - `GET /members/{id}/summary` – 회원 요약 조회
@@ -180,6 +178,12 @@ RESTful API 스타일을 기반으로, 리소스 중심 URL과 HTTP 메서드를
 - `GET /members/by-loginId/summary` – 로그인ID로 요약 조회
 - `PATCH /members/{id}` – 회원 정보 수정
 - `DELETE /members/{id}` – 회원 삭제
+
+### 인증(Auth) – `/auth`
+- `POST /auth/login` – 로그인(Access/Refresh 발급)
+- `POST /auth/refresh` – 토큰 재발급(Refresh Rotation)
+- `POST /auth/logout` – 로그아웃(Refresh 폐기)
+- `GET /auth/me` – 내 정보 조회
 
 ### 상품(Product) – `/products`
 - `POST /products` – 상품 등록

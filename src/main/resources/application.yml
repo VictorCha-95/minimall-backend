@@ -16,3 +16,12 @@ jwt:
   secret-base64: ${JWT_SECRET_BASE64:PLEASE_OVERRIDE_IN_ENV}
   access-expiration-ms: 3600000        # 1h
   refresh-expiration-ms: 1209600000    # 14d
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always

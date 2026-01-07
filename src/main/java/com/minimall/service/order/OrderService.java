@@ -59,7 +59,7 @@ public class OrderService {
 
     private OrderItem toOrderItem(OrderItemCreateCommand command) {
         Long productId = command.productId();
-        Product product = findProductById(productId);
+        Product product = findProductForUpdate(productId);
         return OrderItem.createOrderItem(product, command.quantity());
     }
 
@@ -79,9 +79,16 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<OrderSummaryResult> getOrderSummaries(Long memberId) {
-        Member member = findMember(memberId);
-        List<Order> orders = orderRepository.findByMember(member);
-        return orderServiceMapper.toSummaryResultList(orders);
+        findMember(memberId);
+        return orderRepository.findOrderSummariesByMemberId(memberId).stream()
+                .map(summary -> new OrderSummaryResult(
+                        summary.getId(),
+                        summary.getOrderedAt(),
+                        summary.getOrderStatus(),
+                        summary.getItemCount().intValue(),
+                        summary.getFinalAmount()
+                ))
+                .toList();
     }
 
     //== 결제 ==//
@@ -143,6 +150,11 @@ public class OrderService {
 
     private Product findProductById(Long productId) {
         return productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException("id", productId));
+    }
+
+    private Product findProductForUpdate(Long productId) {
+        return productRepository.findByIdForUpdate(productId)
                 .orElseThrow(() -> new ProductNotFoundException("id", productId));
     }
 

@@ -29,6 +29,7 @@ import com.minimall.service.order.dto.mapper.OrderServiceMapper;
 import com.minimall.service.order.dto.mapper.PayServiceMapper;
 import com.minimall.service.order.dto.result.DeliverySummaryResult;
 import com.minimall.service.order.dto.result.OrderDetailResult;
+import com.minimall.service.order.dto.result.OrderSummaryProjection;
 import com.minimall.service.order.dto.result.OrderSummaryResult;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
@@ -133,8 +134,8 @@ class OrderServiceTest {
         void success() {
             //given
             given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));
-            given(productRepository.findById(PRODUCT1_ID)).willReturn(Optional.of(book));
-            given(productRepository.findById(PRODUCT2_ID)).willReturn(Optional.of(keyboard));
+            given(productRepository.findByIdForUpdate(PRODUCT1_ID)).willReturn(Optional.of(book));
+            given(productRepository.findByIdForUpdate(PRODUCT2_ID)).willReturn(Optional.of(keyboard));
             given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
 
             //when
@@ -142,7 +143,7 @@ class OrderServiceTest {
 
             //then: 호출검증
             then(memberRepository).should(times(1)).findById(MEMBER_ID);
-            then(productRepository).should(times(2)).findById(anyLong());
+            then(productRepository).should(times(2)).findByIdForUpdate(anyLong());
             then(orderRepository).should(times(1)).save(any(Order.class));
             verifyNoMoreInteractions(memberRepository, productRepository, orderRepository);
 
@@ -186,8 +187,8 @@ class OrderServiceTest {
         void shouldFail_whenProductIsNull() {
             //given
             given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));
-            given(productRepository.findById(PRODUCT1_ID)).willReturn(Optional.of(book));
-            given(productRepository.findById(PRODUCT2_ID)).willReturn(Optional.empty());
+            given(productRepository.findByIdForUpdate(PRODUCT1_ID)).willReturn(Optional.of(book));
+            given(productRepository.findByIdForUpdate(PRODUCT2_ID)).willReturn(Optional.empty());
 
             //when & then: 예외
             assertThatThrownBy(() -> orderService.createOrder(orderCreateCommand))
@@ -198,7 +199,7 @@ class OrderServiceTest {
             //then: 호출 검증
             then(memberRepository).should(times(1)).findById(MEMBER_ID);
 
-            then(productRepository).should(times(2)).findById(anyLong());
+            then(productRepository).should(times(2)).findByIdForUpdate(anyLong());
 
             then(orderRepository).shouldHaveNoInteractions();
         }
@@ -293,10 +294,6 @@ class OrderServiceTest {
         @DisplayName("주문 목록 요약 조회: 회원 리포지토리 조회 -> 주문 리포지토리 조회 -> 매퍼 dto 변환")
         void success() {
             //given
-            Order order1 = mock(Order.class);
-            Order order2 = mock(Order.class);
-            List<Order> orders = List.of(order1, order2);
-
             Long orderId = 1L;
             LocalDateTime localDateTime = LocalDateTime.of(2025, 11, 10, 15, 25, 0);
 
@@ -314,8 +311,22 @@ class OrderServiceTest {
             ));
 
             given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));
-            given(orderRepository.findByMember(member)).willReturn(orders);
-            given(orderServiceMapper.toSummaryResultList(orders)).willReturn(dtoList);
+            OrderSummaryProjection summary1 = mock(OrderSummaryProjection.class);
+            OrderSummaryProjection summary2 = mock(OrderSummaryProjection.class);
+            given(summary1.getId()).willReturn(orderId);
+            given(summary1.getOrderedAt()).willReturn(localDateTime);
+            given(summary1.getOrderStatus()).willReturn(OrderStatus.ORDERED);
+            given(summary1.getItemCount()).willReturn(2L);
+            given(summary1.getFinalAmount()).willReturn(1_100_000);
+
+            given(summary2.getId()).willReturn(orderId);
+            given(summary2.getOrderedAt()).willReturn(localDateTime);
+            given(summary2.getOrderStatus()).willReturn(OrderStatus.ORDERED);
+            given(summary2.getItemCount()).willReturn(5L);
+            given(summary2.getFinalAmount()).willReturn(5_500_000);
+
+            given(orderRepository.findOrderSummariesByMemberId(MEMBER_ID))
+                    .willReturn(List.of(summary1, summary2));
 
             //when
             List<OrderSummaryResult> result = orderService.getOrderSummaries(MEMBER_ID);
@@ -323,8 +334,7 @@ class OrderServiceTest {
             //then
             assertThat(result).isEqualTo(dtoList);
             then(memberRepository).should(times(1)).findById(MEMBER_ID);
-            then(orderRepository).should(times(1)).findByMember(member);
-            then(orderServiceMapper).should(times(1)).toSummaryResultList(orders);
+            then(orderRepository).should(times(1)).findOrderSummariesByMemberId(MEMBER_ID);
             verifyNoInteractions(productRepository);
         }
 
@@ -332,13 +342,10 @@ class OrderServiceTest {
         @DisplayName("회원 주문 없음: 빈 리스트 반환")
         void returnEmpty_whenOrderIsEmpty() {
             //given
-            List<Order> emptyOrder = List.of();
-
             List<OrderSummaryResult> dtoEmptyList = List.of();
 
             given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(member));
-            given(orderRepository.findByMember(member)).willReturn(emptyOrder);
-            given(orderServiceMapper.toSummaryResultList(emptyOrder)).willReturn(dtoEmptyList);
+            given(orderRepository.findOrderSummariesByMemberId(MEMBER_ID)).willReturn(List.of());
 
             //when
             List<OrderSummaryResult> result = orderService.getOrderSummaries(MEMBER_ID);
@@ -346,8 +353,7 @@ class OrderServiceTest {
             //then
             assertThat(result).isEqualTo(dtoEmptyList);
             then(memberRepository).should(times(1)).findById(MEMBER_ID);
-            then(orderRepository).should(times(1)).findByMember(member);
-            then(orderServiceMapper).should(times(1)).toSummaryResultList(emptyOrder);
+            then(orderRepository).should(times(1)).findOrderSummariesByMemberId(MEMBER_ID);
             verifyNoInteractions(productRepository);
         }
     }

@@ -36,7 +36,7 @@ import java.net.URI;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping(value = "/orders", produces = "application/json")
+@RequestMapping(value = "/api/orders", produces = "application/json")
 @Tag(name = "Order API", description = "주문 관련 API")
 public class OrderController {
 
@@ -66,7 +66,7 @@ public class OrderController {
         OrderCreateResponse body = orderApiMapper.toCreateResponse(order);
 
         return ResponseEntity
-                .created(URI.create("/orders/" + body.id()))
+                .created(URI.create("/api/orders/" + body.id()))
                 .body(body);
     }
 

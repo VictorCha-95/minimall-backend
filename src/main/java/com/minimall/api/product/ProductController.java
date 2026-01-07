@@ -18,7 +18,7 @@ import java.net.URI;
 @RestController
 @RequiredArgsConstructor
 @Validated
-@RequestMapping(value = "/products", produces = "application/json")
+@RequestMapping(value = "/api/products", produces = "application/json")
 @Tag(name = "Product API", description = "상품 관련 API")
 public class ProductController {
 
@@ -42,7 +42,7 @@ public class ProductController {
         Product product = productService.register(command);
 
         return ResponseEntity
-                .created(URI.create("/product/" + product.getId().toString()))
+                .created(URI.create("/api/products/" + product.getId()))
                 .build();
     }
 

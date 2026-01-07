@@ -46,7 +46,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
 
 
     @Nested
-    @DisplayName("POST /products")
+    @DisplayName("POST /api/products")
     class RegisterProduct {
         @Test
         @DisplayName("상품 등록 -> 201 검증")
@@ -55,7 +55,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
             ProductRegisterRequest request = new ProductRegisterRequest("상품이름", 150_000, 50);
 
             //when
-            ResultActions result = mockMvc.perform(post("/products")
+            ResultActions result = mockMvc.perform(post("/api/products")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -63,7 +63,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
             MvcResult mvcResult = result.andExpect(status().isCreated()).andReturn();
 
             String location = mvcResult.getResponse().getHeader("Location");
-            assertThat(location).startsWith("/product/");
+            assertThat(location).startsWith("/api/products/");
         }
 
         @Test
@@ -73,7 +73,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
             ProductRegisterRequest request = new ProductRegisterRequest("", 150_000, 50);
 
             //when
-            ResultActions result = mockMvc.perform(post("/products")
+            ResultActions result = mockMvc.perform(post("/api/products")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -84,7 +84,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("POST /products/{id}/stock")
+    @DisplayName("POST /api/products/{id}/stock")
     class Stock {
 
         static final int ORIGINAL_STOCK = 50;
@@ -106,7 +106,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
             @DisplayName("재고 증가 -> 204 + 재고 수량 검증")
             void success() throws Exception {
                 //when
-                ResultActions result = mockMvc.perform(post("/products/{id}/stock/add", id)
+                ResultActions result = mockMvc.perform(post("/api/products/{id}/stock/add", id)
                         .param("requestedQuantity", String.valueOf(REQUESTED_QUANTITY)));
 
                 //then
@@ -121,7 +121,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
             @DisplayName("0 요청 -> 422 에러")
             void shouldFail_whenRequestZero() throws Exception {
                 //when
-                ResultActions result = mockMvc.perform(post("/products/{id}/stock/add", id)
+                ResultActions result = mockMvc.perform(post("/api/products/{id}/stock/add", id)
                         .param("requestedQuantity", String.valueOf(0)));
 
                 //then
@@ -132,7 +132,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
             @DisplayName("음수 요청 -> 422 에러")
             void shouldFail_whenRequestNegative() throws Exception {
                 //when
-                ResultActions result = mockMvc.perform(post("/products/{id}/stock/add", id)
+                ResultActions result = mockMvc.perform(post("/api/products/{id}/stock/add", id)
                         .param("requestedQuantity", String.valueOf(-1)));
 
                 //then
@@ -147,7 +147,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
             @DisplayName("재고 감소 -> 204 + 재고 수량 검증")
             void success() throws Exception {
                 //when
-                ResultActions result = mockMvc.perform(post("/products/{id}/stock/reduce", id)
+                ResultActions result = mockMvc.perform(post("/api/products/{id}/stock/reduce", id)
                         .param("requestedQuantity", String.valueOf(REQUESTED_QUANTITY)));
 
                 //then
@@ -162,7 +162,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
             @DisplayName("재고 부족 -> 422 에러")
             void shouldFail_whenStockIsInsufficient() throws Exception {
                 //when
-                ResultActions result = mockMvc.perform(post("/products/{id}/stock/reduce", id)
+                ResultActions result = mockMvc.perform(post("/api/products/{id}/stock/reduce", id)
                         .param("requestedQuantity", String.valueOf(ORIGINAL_STOCK + 1)));
 
                 //then
@@ -180,7 +180,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
             @DisplayName("재고 초기화 -> 204 + 재고 수량 검증")
             void success() throws Exception {
                 //when
-                ResultActions result = mockMvc.perform(post("/products/{id}/stock/clear", id));
+                ResultActions result = mockMvc.perform(post("/api/products/{id}/stock/clear", id));
 
                 //then
                 result.andExpect(status().isNoContent());
@@ -192,7 +192,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("PATCH /products/{id}/name")
+    @DisplayName("PATCH /api/products/{id}/name")
     class ChangeName {
 
         static final String ORIGINAL_NAME = "기존 상품명";
@@ -212,7 +212,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("상품명 변경 -> 204 + 변경된 상품명 검증")
         void success() throws Exception {
             //when
-            ResultActions result = mockMvc.perform(patch("/products/{id}/name", id)
+            ResultActions result = mockMvc.perform(patch("/api/products/{id}/name", id)
                     .param("name", NEW_NAME));
 
             //then
@@ -226,7 +226,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("상품명 공백 요청 -> 422 에러")
         void shouldFail_whenNameIsBlank() throws Exception {
             //when
-            ResultActions result = mockMvc.perform(patch("/products/{id}/name", id)
+            ResultActions result = mockMvc.perform(patch("/api/products/{id}/name", id)
                     .param("name", "  "));
 
             //then
@@ -238,7 +238,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("PATCH /products/{id}/price")
+    @DisplayName("PATCH /api/products/{id}/price")
     class ChangePrice {
 
         static final int ORIGINAL_PRICE = 100_000;
@@ -258,7 +258,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("가격 변경 -> 204 + 변경된 가격 검증")
         void success() throws Exception {
             //when
-            ResultActions result = mockMvc.perform(patch("/products/{id}/price", id)
+            ResultActions result = mockMvc.perform(patch("/api/products/{id}/price", id)
                     .param("price", String.valueOf(NEW_PRICE)));
 
             //then
@@ -272,7 +272,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("음수 요청 -> 422 에러")
         void shouldFail_whenNameIsBlank() throws Exception {
             //when
-            ResultActions result = mockMvc.perform(patch("/products/{id}/price", id)
+            ResultActions result = mockMvc.perform(patch("/api/products/{id}/price", id)
                     .param("price", String.valueOf(-1)));
 
             //then
@@ -284,7 +284,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("DELETE /products/{id}")
+    @DisplayName("DELETE /api/products/{id}")
     class Delete {
         Product product = new Product("상품명", 150_000, 50);
         Long id;
@@ -300,7 +300,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("상품 삭제 -> 204 + DB 검증")
         void success() throws Exception {
             //when
-            ResultActions result = mockMvc.perform(delete("/products/{id}", id));
+            ResultActions result = mockMvc.perform(delete("/api/products/{id}", id));
 
             //then
             result.andExpect(status().isNoContent());
@@ -312,7 +312,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("미존재하는 상품 삭제 -> 404 에러")
         void shouldFail_whenProductIsNotFound() throws Exception {
             //when
-            ResultActions result = mockMvc.perform(delete("/products/{id}", NOT_EXIST_ID));
+            ResultActions result = mockMvc.perform(delete("/api/products/{id}", NOT_EXIST_ID));
 
             //then
             result.andExpect(status().isNotFound());

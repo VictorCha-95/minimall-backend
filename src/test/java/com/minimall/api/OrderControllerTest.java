@@ -126,7 +126,7 @@ public class OrderControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /orders")
+    @DisplayName("POST /api/orders")
     class CreateOrder {
         @Test
         @DisplayName("주문 생성 -> 201 + JSON 검증")
@@ -146,13 +146,13 @@ public class OrderControllerTest {
                     ));
 
             //when
-            ResultActions result = mockMvc.perform(post("/orders")
+            ResultActions result = mockMvc.perform(post("/api/orders")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)));
 
             //then
             result.andExpect(status().isCreated())
-                    .andExpect(header().string("Location", Matchers.endsWith("/orders/1")))
+                    .andExpect(header().string("Location", Matchers.endsWith("/api/orders/1")))
                     .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                     .andExpect(jsonPath("$.id").value(1))
                     .andExpect(jsonPath("$.finalAmount").value(100_000))
@@ -172,7 +172,7 @@ public class OrderControllerTest {
                     """;
 
             //when
-            ResultActions result = mockMvc.perform(post("/orders")
+            ResultActions result = mockMvc.perform(post("/api/orders")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(invalidJson));
 
@@ -180,7 +180,7 @@ public class OrderControllerTest {
             result.andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.status").value(400))
                     .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
-                    .andExpect(jsonPath("$.path").value("/orders"))
+                    .andExpect(jsonPath("$.path").value("/api/orders"))
                     .andExpect(jsonPath("$.message").exists());
 
             verifyNoInteractions(orderService);
@@ -194,7 +194,7 @@ public class OrderControllerTest {
             given(orderService.createOrder(any())).willThrow(new MemberNotFoundException("id", NOT_EXIST_ID));
 
             //when
-            ResultActions result = mockMvc.perform(post("/orders")
+            ResultActions result = mockMvc.perform(post("/api/orders")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)));
 
@@ -202,7 +202,7 @@ public class OrderControllerTest {
             result.andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404))
                     .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
-                    .andExpect(jsonPath("$.path").value("/orders"))
+                    .andExpect(jsonPath("$.path").value("/api/orders"))
                     .andExpect(jsonPath("$.message", Matchers.containsString("회원")))
                     .andExpect(jsonPath("$.message", Matchers.containsString("id")))
                     .andExpect(jsonPath("$.message", Matchers.containsString(String.valueOf(NOT_EXIST_ID))))
@@ -216,7 +216,7 @@ public class OrderControllerTest {
             given(orderService.createOrder(any())).willThrow(new ProductNotFoundException("id", NOT_EXIST_ID));
 
             //when
-            ResultActions result = mockMvc.perform(post("/orders")
+            ResultActions result = mockMvc.perform(post("/api/orders")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(createRequest)));
 
@@ -224,7 +224,7 @@ public class OrderControllerTest {
             result.andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404))
                     .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
-                    .andExpect(jsonPath("$.path").value("/orders"))
+                    .andExpect(jsonPath("$.path").value("/api/orders"))
                     .andExpect(jsonPath("$.message", Matchers.containsString("상품")))
                     .andExpect(jsonPath("$.message", Matchers.containsString("id")))
                     .andExpect(jsonPath("$.message", Matchers.containsString(String.valueOf(NOT_EXIST_ID))))
@@ -233,13 +233,13 @@ public class OrderControllerTest {
     }
 
     @Nested
-    @DisplayName("PATCH /orders/{id}/cancel")
+    @DisplayName("PATCH /api/orders/{id}/cancel")
     class CancelOrder {
         @DisplayName("주문 취소: 204 검증")
         @Test
         void return204_whenSuccess() throws Exception {
             //when
-            ResultActions result = mockMvc.perform(patch("/orders/1/cancel"));
+            ResultActions result = mockMvc.perform(patch("/api/orders/1/cancel"));
 
             //then
             result.andExpect(status().isNoContent());
@@ -253,7 +253,7 @@ public class OrderControllerTest {
                     .given(orderService).cancelOrder(NOT_EXIST_ID);
 
             //when
-            ResultActions result = mockMvc.perform(patch("/orders/" + NOT_EXIST_ID + "/cancel"));
+            ResultActions result = mockMvc.perform(patch("/api/orders/" + NOT_EXIST_ID + "/cancel"));
 
             //then
             result.andExpect(status().isNotFound())
@@ -269,7 +269,7 @@ public class OrderControllerTest {
 
 
     @Nested
-    @DisplayName("GET /orders/{id}")
+    @DisplayName("GET /api/orders/{id}")
     class GetOrderDetail {
         @Test
         @DisplayName("주문 단건 상세 조회 -> 200 + JSON 검증")
@@ -279,7 +279,7 @@ public class OrderControllerTest {
             given(orderApiMapper.toOrderDetailResponse(detailResult)).willReturn(detailResponse);
 
             //when
-            ResultActions result = mockMvc.perform(get("/orders/1"));
+            ResultActions result = mockMvc.perform(get("/api/orders/1"));
 
             //then
             result.andExpect(status().isOk())
@@ -295,13 +295,13 @@ public class OrderControllerTest {
                     .given(orderService).getOrderDetail(NOT_EXIST_ID);
 
             //when
-            ResultActions result = mockMvc.perform(get("/orders/" + NOT_EXIST_ID));
+            ResultActions result = mockMvc.perform(get("/api/orders/" + NOT_EXIST_ID));
 
             //then
             result.andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404))
                     .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
-                    .andExpect(jsonPath("$.path").value("/orders/" + NOT_EXIST_ID))
+                    .andExpect(jsonPath("$.path").value("/api/orders/" + NOT_EXIST_ID))
                     .andExpect(jsonPath("$.message", Matchers.containsString("주문")))
                     .andExpect(jsonPath("$.message", Matchers.containsString("id")))
                     .andExpect(jsonPath("$.message", Matchers.containsString(String.valueOf(NOT_EXIST_ID))))
@@ -310,7 +310,7 @@ public class OrderControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /orders/{id}/payment")
+    @DisplayName("POST /api/orders/{id}/payment")
     class ProcessPayment {
         @Test
         @DisplayName("주문 결제 처리 -> 201 + Location 헤더 + JSON 검증")
@@ -335,7 +335,7 @@ public class OrderControllerTest {
                     ));
 
             //when
-            ResultActions result = mockMvc.perform(post("/orders/" + orderId + "/payment")
+            ResultActions result = mockMvc.perform(post("/api/orders/" + orderId + "/payment")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -362,13 +362,13 @@ public class OrderControllerTest {
                     .willThrow(OrderStatusException.class);
 
             // when-then(1): 첫 결제 성공 -> 201
-            mockMvc.perform(post("/orders/{id}/payment", orderId)
+            mockMvc.perform(post("/api/orders/{id}/payment", orderId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk());
 
             // when-then(2): 동일 요청 재시도 -> 422
-            mockMvc.perform(post("/orders/{id}/payment", orderId)
+            mockMvc.perform(post("/api/orders/{id}/payment", orderId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnprocessableEntity())
@@ -386,7 +386,7 @@ public class OrderControllerTest {
                     .willThrow(PayAmountMismatchException.class);
 
             // when-then
-            mockMvc.perform(post("/orders/{id}/payment", orderId)
+            mockMvc.perform(post("/api/orders/{id}/payment", orderId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnprocessableEntity())
@@ -395,7 +395,7 @@ public class OrderControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /orders/{id}/delivery")
+    @DisplayName("POST /api/orders/{id}/delivery")
     class PrepareDelivery {
         @Test
         @DisplayName("배송 준비 -> 201 + Location + JSON 검증")
@@ -422,13 +422,13 @@ public class OrderControllerTest {
                             requestAddrDto, null, null));
 
             // when
-            ResultActions result = mockMvc.perform(post("/orders/{id}/delivery", orderId)
+            ResultActions result = mockMvc.perform(post("/api/orders/{id}/delivery", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(requestAddrDto)));
 
             // then
             result.andExpect(status().isCreated())
-                    .andExpect(header().string("Location", Matchers.endsWith("/orders/" + orderId + "/delivery")))
+                    .andExpect(header().string("Location", Matchers.endsWith("/api/orders/" + orderId + "/delivery")))
                     .andExpect(jsonPath("$.deliveryStatus").value("READY"))
                     .andExpect(jsonPath("$.shipAddr.city").value(requestAddrDto.city()));
 
@@ -446,7 +446,7 @@ public class OrderControllerTest {
                     .willThrow(InvalidAddressException.class);
 
             // when
-            ResultActions result = mockMvc.perform(post("/orders/{id}/delivery", orderId)
+            ResultActions result = mockMvc.perform(post("/api/orders/{id}/delivery", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("null"));
 
@@ -461,7 +461,7 @@ public class OrderControllerTest {
     }
 
     @Nested
-    @DisplayName("PATCH /orders/{id}/delivery")
+    @DisplayName("PATCH /api/orders/{id}/delivery")
     class StartDelivery {
 
         StartDeliveryRequest request = new StartDeliveryRequest("12345", LocalDateTime.of(2025, 11, 12, 13, 30));
@@ -476,7 +476,7 @@ public class OrderControllerTest {
                     .startDelivery(eq(orderId), eq(request.trackingNo()), eq(request.shippedAt()));
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -497,7 +497,7 @@ public class OrderControllerTest {
                     .startDelivery(eq(orderId), eq(request.trackingNo()), isNull());
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -519,7 +519,7 @@ public class OrderControllerTest {
                     .startDelivery(eq(orderId), eq(request.trackingNo()), eq(request.shippedAt()));
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -542,7 +542,7 @@ public class OrderControllerTest {
                     .startDelivery(eq(orderId), eq(request.trackingNo()), eq(request.shippedAt()));
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -556,7 +556,7 @@ public class OrderControllerTest {
     }
 
     @Nested
-    @DisplayName("PATCH /orders/{id}/delivery/complete")
+    @DisplayName("PATCH /api/orders/{id}/delivery/complete")
     class CompleteDelivery {
 
         CompleteDeliveryRequest request = new CompleteDeliveryRequest(LocalDateTime.of(2025, 11, 15, 13, 30));
@@ -571,7 +571,7 @@ public class OrderControllerTest {
                     .completeDelivery(orderId, request.arrivedAt());
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery/complete", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -592,7 +592,7 @@ public class OrderControllerTest {
                     .completeDelivery(eq(orderId), isNull());
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery/complete", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -614,7 +614,7 @@ public class OrderControllerTest {
                     .completeDelivery(orderId, request.arrivedAt());
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery/complete", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -637,7 +637,7 @@ public class OrderControllerTest {
                     .completeDelivery(orderId, request.arrivedAt());
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery/complete", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -660,7 +660,7 @@ public class OrderControllerTest {
                     .completeDelivery(orderId, request.arrivedAt());
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery/complete", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 

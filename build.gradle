@@ -92,3 +92,13 @@ tasks.named('jacocoTestReport', JacocoReport) {
 }
 
 tasks.test { systemProperty "spring.profiles.active", "test" }
+
+tasks.register('authIntegrationTest', Test) {
+	useJUnitPlatform()
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	include 'com/minimall/auth/AuthControllerIntegrationTest.class'
+	include 'com/minimall/auth/SecurityIntegrationTest.class'
+	systemProperty "junit.jupiter.execution.parallel.enabled", "false"
+	systemProperty "spring.profiles.active", "test"
+}

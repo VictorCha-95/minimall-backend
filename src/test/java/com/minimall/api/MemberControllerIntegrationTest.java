@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.AbstractIntegrationTest;
 import com.minimall.api.member.dto.request.MemberAddressRequest;
 import com.minimall.api.member.dto.request.MemberRegisterRequest;
-import com.minimall.api.member.dto.request.MemberLoginRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
@@ -72,65 +71,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("POST /members/login")
-    class Login {
-        @Test
-        @DisplayName("회원 로그인 성공 -> 200 OK")
-        void success() throws Exception {
-            //given
-            memberService.registerCustomer(createCommand("member123", "손흥민"));
-            MemberLoginRequest request = new MemberLoginRequest("member123", "12345");
-
-            //when
-            ResultActions result = mockMvc.perform(post("/members/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)));
-
-            //then
-            result.andExpect(status().isOk())
-                    .andExpect(jsonPath("$.loginId").value("member123"))
-                    .andExpect(jsonPath("$.name").value("손흥민"))
-                    .andExpect(jsonPath("$.password").doesNotExist());
-        }
-
-        @Test
-        @DisplayName("비밀번호 오류 -> 401 isUnauthorized")
-        void shouldReturn401_whenPasswordIsWrong() throws Exception {
-            // given
-            memberService.registerCustomer(createCommand("member123", "손흥민"));
-            MemberLoginRequest request = new MemberLoginRequest("member123", "wrong-password");
-
-            // when
-            ResultActions result = mockMvc.perform(post("/members/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)));
-
-            // then
-            result.andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.errorCode").value("INVALID_CREDENTIALS"));
-        }
-
-        @Test
-        @DisplayName("잘못된 회원아이디 -> 404 NotFound")
-        void shouldReturn404_whenMemberNotFound() throws Exception {
-            // given
-            MemberLoginRequest request = new MemberLoginRequest("no_such_user", "12345");
-
-            // when
-            ResultActions result = mockMvc.perform(post("/members/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)));
-
-            // then
-            result.andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"));
-        }
-    }
-
-
-
-    @Nested
-    @DisplayName("GET /members")
+    @DisplayName("GET /api/members")
     class GetAll {
         @Test
         @DisplayName("정상 -> 회원 전체 조회")
@@ -142,7 +83,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             MemberSummaryResult member2 = memberService.getSummaryByLoginId("member2");
 
             //when
-            ResultActions result = mockMvc.perform(get("/members"));
+            ResultActions result = mockMvc.perform(get("/api/members"));
 
             //then
             result.andExpect(status().isOk())
@@ -158,7 +99,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("저장된 회원 없음 -> 빈 회원 리스트 반환")
         void success_empty() throws Exception {
-            mockMvc.perform(get("/members"))
+            mockMvc.perform(get("/api/members"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(0));
         }
@@ -166,7 +107,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("알 수 없는 오류 -> 500 Internal Error")
         void failure_serverError() throws Exception {
-            mockMvc.perform(get("/members/error"))
+            mockMvc.perform(get("/api/members/error"))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.status").value(500))
                     .andExpect(jsonPath("$.errorCode").value("INTERNAL_ERROR"));
@@ -174,7 +115,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("GET /members/{id}")
+    @DisplayName("GET /api/members/{id}")
     class GetDetail {
         @Test
         @DisplayName("정상 -> 회원 단건 상세 조회")
@@ -183,7 +124,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             MemberSummaryResult createdMember = memberService.registerCustomer(createCommand("member123", "손흥민"));
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/" + createdMember.id()));
+            ResultActions result = mockMvc.perform(get("/api/members/" + createdMember.id()));
 
             //then
             assertMemberSummary(createdMember, result);
@@ -196,7 +137,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             long invalidId = 999L;
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/" + invalidId));
+            ResultActions result = mockMvc.perform(get("/api/members/" + invalidId));
 
             //then
             assertNotFoundMemberError(result, "id", invalidId);
@@ -205,7 +146,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("GET /members/{id}/summary")
+    @DisplayName("GET /api/members/{id}/summary")
     class GetSummary{
         @Test
         @DisplayName("성공 -> 회원 단건 요약 조회")
@@ -214,7 +155,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             MemberSummaryResult createdMember = memberService.registerCustomer(createCommand("member123", "손흥민"));
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/" + createdMember.id() + "/summary"));
+            ResultActions result = mockMvc.perform(get("/api/members/" + createdMember.id() + "/summary"));
 
             //then
             assertMemberSummary(createdMember, result);
@@ -227,7 +168,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             long invalidId = 999L;
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/" + invalidId + "/summary"));
+            ResultActions result = mockMvc.perform(get("/api/members/" + invalidId + "/summary"));
 
             //then
             assertNotFoundMemberError(result, "id", invalidId);
@@ -244,7 +185,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("GET /members/by-email")
+    @DisplayName("GET /api/members/by-email")
     class GetDetailByEmail {
         @Test
         @DisplayName("정상 -> 회원 상세 조회")
@@ -253,7 +194,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             MemberSummaryResult createdMember = memberService.registerCustomer(createCommand("member123", "손흥민"));
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/by-email")
+            ResultActions result = mockMvc.perform(get("/api/members/by-email")
                     .param("email", createdMember.loginId() + "@example.com"));
 
             //then
@@ -267,7 +208,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             String invalidEmail = "invalid@invalid.com";
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/by-email")
+            ResultActions result = mockMvc.perform(get("/api/members/by-email")
                     .param("email", invalidEmail));
 
             //then
@@ -276,7 +217,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("GET /members/by-email/summary")
+    @DisplayName("GET /api/members/by-email/summary")
     class GetSummaryByEmail{
         @Test
         void getSummaryByEmail_success() throws Exception {
@@ -284,7 +225,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             MemberSummaryResult createdMember = memberService.registerCustomer(createCommand("member123", "손흥민"));
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/by-email/summary")
+            ResultActions result = mockMvc.perform(get("/api/members/by-email/summary")
                     .param("email", createdMember.loginId() + "@example.com"));
 
             //then
@@ -297,7 +238,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             String invalidEmail = "invalid@invalid.com";
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/by-email/summary")
+            ResultActions result = mockMvc.perform(get("/api/members/by-email/summary")
                     .param("email", invalidEmail));
 
             //then
@@ -306,7 +247,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("GET /members/by-loginId")
+    @DisplayName("GET /api/members/by-loginId")
     class GetDetailByLoginId{
         @Test
         void getDetailByLoginId_success() throws Exception {
@@ -314,7 +255,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             MemberSummaryResult createdMember = memberService.registerCustomer(createCommand("member123", "손흥민"));
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/by-loginId")
+            ResultActions result = mockMvc.perform(get("/api/members/by-loginId")
                     .param("loginId", createdMember.loginId()));
 
             //then
@@ -327,7 +268,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             String invalidLoginId = "invalidLoginId";
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/by-loginId")
+            ResultActions result = mockMvc.perform(get("/api/members/by-loginId")
                     .param("loginId", invalidLoginId));
 
             //then
@@ -336,7 +277,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("GET /members/by-loginId/summary")
+    @DisplayName("GET /api/members/by-loginId/summary")
     class GetSummaryByLoginId{
         @Test
         void getSummaryByLoginId_success() throws Exception {
@@ -344,7 +285,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             MemberSummaryResult createdMember = memberService.registerCustomer(createCommand("member123", "손흥민"));
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/by-loginId/summary")
+            ResultActions result = mockMvc.perform(get("/api/members/by-loginId/summary")
                     .param("loginId", createdMember.loginId()));
 
             //then
@@ -358,7 +299,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             String invalidLoginId = "invalidLoginId";
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/by-loginId/summary")
+            ResultActions result = mockMvc.perform(get("/api/members/by-loginId/summary")
                     .param("loginId", invalidLoginId));
 
             //then
@@ -367,7 +308,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("POST /members")
+    @DisplayName("POST /api/members")
     class Create{
         @Test
         void create_success() throws Exception {
@@ -375,7 +316,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             MemberRegisterRequest request = createRequest("new123", "새로운 회원");
 
             //when
-            ResultActions result = mockMvc.perform(post("/members/customers")
+            ResultActions result = mockMvc.perform(post("/api/members/customers")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -392,11 +333,11 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             MemberRegisterRequest request2 = createRequest("new123", "새로운 회원2");
 
             //when
-            mockMvc.perform(post("/members/customers")
+            mockMvc.perform(post("/api/members/customers")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request1)));
 
-            ResultActions result = mockMvc.perform(post("/members/customers")
+            ResultActions result = mockMvc.perform(post("/api/members/customers")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request2)));
 
@@ -410,7 +351,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("UPDATE /members/{id}")
+    @DisplayName("UPDATE /api/members/{id}")
     class Update{
         @Test
         void update_success() throws Exception {
@@ -419,7 +360,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             MemberUpdateRequest updateRequest = new MemberUpdateRequest("12345", "수정된 회원", "updated@example.com", null);
 
             //when
-            ResultActions result = mockMvc.perform(patch("/members/" + createdMember.id())
+            ResultActions result = mockMvc.perform(patch("/api/members/" + createdMember.id())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(updateRequest)));
 
@@ -450,7 +391,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
 
 
             //when 중복 이메일로 업데이트 시도
-            ResultActions result = mockMvc.perform(patch("/members/" + otherMember.id())
+            ResultActions result = mockMvc.perform(patch("/api/members/" + otherMember.id())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(updateRequest)));
 
@@ -462,7 +403,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("DELETE /members/{id}")
+    @DisplayName("DELETE /api/members/{id}")
     class Delete{
         @Test
         void delete_success() throws Exception {
@@ -470,7 +411,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             MemberSummaryResult createdMember = memberService.registerCustomer(createCommand("member123", "손흥민"));
 
             //when
-            ResultActions result = mockMvc.perform(delete("/members/" + createdMember.id()));
+            ResultActions result = mockMvc.perform(delete("/api/members/" + createdMember.id()));
 
             //then
             result.andExpect(status().isNoContent());
@@ -484,7 +425,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             long invalidId = 999L;
 
             //when
-            ResultActions result = mockMvc.perform(delete("/members/" + invalidId));
+            ResultActions result = mockMvc.perform(delete("/api/members/" + invalidId));
 
             //then
             assertNotFoundMemberError(result, "id", invalidId);
@@ -493,7 +434,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
 
 
     @Nested
-    @DisplayName("GET /members/{id}/orders")
+    @DisplayName("GET /api/members/{id}/orders")
     class GetOrderSummaries {
         @Test
         @DisplayName("주문 목록 요약 조회 -> 200 + JSON 검증")
@@ -512,7 +453,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
                     List.of(new OrderItemCreateCommand(mouse.getId(), 10))));
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/" + foundMember.getId() + "/orders"));
+            ResultActions result = mockMvc.perform(get("/api/members/" + foundMember.getId() + "/orders"));
 
             //then
             result.andExpect(status().isOk())
@@ -529,7 +470,7 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
             Member foundMember = memberRepository.findById(member.id()).get();
 
             //when
-            ResultActions result = mockMvc.perform(get("/members/" + foundMember.getId() + "/orders"));
+            ResultActions result = mockMvc.perform(get("/api/members/" + foundMember.getId() + "/orders"));
 
             //then
             result.andExpect(status().isOk())

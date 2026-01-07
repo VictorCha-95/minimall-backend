@@ -1,6 +1,5 @@
 package com.minimall.api.member.dto;
 
-import com.minimall.api.member.dto.request.MemberLoginRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.api.member.dto.request.SellerRegisterRequest;
 import com.minimall.api.member.dto.response.MemberSummaryResponse;
@@ -9,7 +8,6 @@ import com.minimall.domain.member.Member;
 import com.minimall.api.member.dto.request.MemberRegisterRequest;
 import com.minimall.api.member.dto.response.MemberDetailResponse;
 import com.minimall.api.member.dto.response.MemberDetailWithOrdersResponse;
-import com.minimall.service.member.dto.command.MemberLoginCommand;
 import com.minimall.service.member.dto.command.MemberRegisterCommand;
 import com.minimall.service.member.dto.command.MemberUpdateCommand;
 import com.minimall.service.member.dto.command.SellerRegisterCommand;
@@ -27,9 +25,6 @@ import java.util.List;
 public interface MemberApiMapper {
 
     // ===== Request -> Command (API → Service) ===== //
-
-    // == Login == //
-    MemberLoginCommand toLoginCommand(MemberLoginRequest request);
 
     //== Create ==//
     MemberRegisterCommand toCreateCommand(MemberRegisterRequest request);

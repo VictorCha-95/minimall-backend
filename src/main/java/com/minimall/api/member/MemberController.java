@@ -2,7 +2,6 @@ package com.minimall.api.member;
 
 import com.minimall.api.member.dto.MemberApiMapper;
 import com.minimall.api.member.dto.request.MemberRegisterRequest;
-import com.minimall.api.member.dto.request.MemberLoginRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.api.member.dto.request.SellerRegisterRequest;
 import com.minimall.api.member.dto.response.MemberDetailResponse;
@@ -28,7 +27,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping(value = "/members", produces = "application/json")
+@RequestMapping(value = "/api/members", produces = "application/json")
 @Tag(name = "Member API", description = "회원 관련 API")
 public class MemberController {
 
@@ -36,15 +35,6 @@ public class MemberController {
     private final OrderService orderService;
     private final MemberApiMapper memberApiMapper;
     private final OrderApiMapper orderApiMapper;
-
-    //== 로그인 ==//
-    @Operation(summary = "회원 로그인")
-    @PostMapping("/login")
-    public ResponseEntity<MemberSummaryResponse> login(@RequestBody @Valid MemberLoginRequest request){
-        MemberSummaryResult result = memberService.login(memberApiMapper.toLoginCommand(request));
-        MemberSummaryResponse response = memberApiMapper.toSummaryResponse(result);
-        return ResponseEntity.ok(response);
-    }
 
     //== 회원 조회 ==//
     @Operation(summary = "회원 전체 조회", description = "모든 회원 요약 조회")
@@ -117,7 +107,7 @@ public class MemberController {
     public ResponseEntity<MemberSummaryResponse> registerCustomer(@Valid @RequestBody MemberRegisterRequest request) {
         MemberSummaryResult result = memberService.registerCustomer(memberApiMapper.toCreateCommand(request));
 
-        URI location = URI.create("/members/" + result.id());
+        URI location = URI.create("/api/members/" + result.id());
         return ResponseEntity.created(location).body(memberApiMapper.toSummaryResponse(result));
     }
 
@@ -126,7 +116,7 @@ public class MemberController {
     public ResponseEntity<MemberSummaryResponse> registerSeller(@Valid @RequestBody SellerRegisterRequest request) {
         MemberSummaryResult result = memberService.registerSeller(memberApiMapper.toSellerRegisterCommand(request));
 
-        URI location = URI.create("/members/" + result.id());
+        URI location = URI.create("/api/members/" + result.id());
         return ResponseEntity.created(location).body(memberApiMapper.toSummaryResponse(result));
     }
 

@@ -493,6 +493,58 @@ docker compose -f docker/docker-compose.dev.yml down -v
 
 ---
 
+## 12.1 모니터링(Observability) - Prometheus + Grafana
+
+최소 관측 스택을 통해 `/actuator/prometheus` 지표를 수집하고 대시보드로 확인할 수 있습니다.
+
+### 12.1.1 Prometheus + Grafana 실행
+
+**명령어 전체 문법**
+```bash
+docker compose -f <compose-file> up -d
+```
+- `-f <compose-file>`: 사용할 compose 파일 지정
+- `up`: 컨테이너 생성/시작
+- `-d`: 백그라운드(detached) 실행
+
+**실행 예시**
+```bash
+docker compose -f monitoring/docker-compose.yml up -d
+```
+
+### 12.1.2 Grafana 데이터소스 연결
+- Grafana 접속: `http://localhost:3000` (admin/admin)
+- Data Source: Prometheus
+- URL: `http://prometheus:9090`
+
+### 12.1.3 검증 체크리스트
+- `http://localhost:8080/actuator/prometheus` 지표가 텍스트로 노출되는지
+- `docker compose -f monitoring/docker-compose.yml up -d` 후
+  `http://localhost:9090/targets`에서 `minimall-api`가 `UP`인지
+- Grafana 접속(`http://localhost:3000`) 후 Prometheus 데이터소스가 연결되는지
+
+### 12.1.4 PromQL 예시
+- RPS: `sum(rate(http_server_requests_seconds_count[1m]))`
+- 5xx 비율: `sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) / sum(rate(http_server_requests_seconds_count[5m]))`
+- p95: `histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))`
+
+### 12.1.5 (선택) k6 부하 테스트
+
+**명령어 전체 문법**
+```bash
+docker run --rm -i grafana/k6 run [--vus <n>] [--duration <duration>] [--summary-export <file>] -
+```
+- `--vus <n>`: 동시 사용자 수
+- `--duration <duration>`: 테스트 시간(예: 10s, 1m)
+- `--summary-export <file>`: 요약 결과 저장 파일
+
+**실행 예시**
+```bash
+type loadtest\\order_concurrency.js | docker run --rm -i grafana/k6 run --summary-export summary.json -
+```
+
+---
+
 ## 13. 향후 계획
 
 - 운영 환경 배포 구성 고도화 (EC2 + 외부 DB(RDS 등) + 환경변수 기반 설정 정리)

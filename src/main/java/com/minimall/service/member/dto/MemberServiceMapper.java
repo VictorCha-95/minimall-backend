@@ -7,6 +7,7 @@ import com.minimall.domain.embeddable.Address;
 import com.minimall.domain.member.Member;
 import com.minimall.service.member.dto.command.MemberRegisterCommand;
 import com.minimall.service.member.dto.result.MemberDetailResult;
+import com.minimall.service.member.dto.result.MemberMeResult;
 import com.minimall.service.member.dto.result.MemberSummaryResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -48,6 +49,11 @@ public interface MemberServiceMapper {
 
     // == Domain -> Response == //
     MemberSummaryResult toSummaryResult(Member member);
+
+    @Mapping(target = "grade", expression = "java(member.getCustomerProfile() != null ? member.getCustomerProfile().getGrade() : null)")
+    @Mapping(target = "storeName", expression = "java(member.getSellerProfile() != null ? member.getSellerProfile().getStoreName() : null)")
+    @Mapping(target = "businessNumber", expression = "java(member.getSellerProfile() != null ? member.getSellerProfile().getBusinessNumber() : null)")
+    MemberMeResult toMeResult(Member member);
 
     List<MemberSummaryResponse> toSummaryResponseList(List<Member> members);
 

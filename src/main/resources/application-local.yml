@@ -1,8 +1,12 @@
 spring:
+  config:
+    activate:
+      on-profile: local
+
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/minimall?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul}
-    username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:1234}
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/minimall?useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:1234}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:

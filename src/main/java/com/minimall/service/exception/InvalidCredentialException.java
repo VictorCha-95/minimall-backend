@@ -15,4 +15,8 @@ public class InvalidCredentialException extends RuntimeException {
     public static InvalidCredentialException invalidPassword(String password){
         return new InvalidCredentialException("Invalid Password: " + password);
     }
+
+    public static InvalidCredentialException invalidRefreshToken(){
+        return new InvalidCredentialException("Invalid refresh token");
+    }
 }

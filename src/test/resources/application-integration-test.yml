@@ -1,26 +1,22 @@
 spring:
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
+  config:
+    activate:
+      on-profile: integration-test
+
+  test:
+    database:
+      replace: none
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
-    show-sql: true
-
-  jackson:
-    serialization:
-      fail-on-empty-beans: false
-
-logging:
-  level:
-    org.hibernate.SQL: debug
-    org.hibernate.type.descriptor.sql.BasicBinder: trace
 
 jwt:
-  issuer: minimall-test
-  access-ttl-seconds: 600
-  secret-base64: "JXbXqVT8Nw6WcFGGqMeOWG3g8gdE/UWKnT4Bmb1Dvo4="
-
+  issuer: minimall-it
+  secret-base64: ${JWT_SECRET_BASE64:test-secret-base64}
+  access-expiration-ms: 600000
+  refresh-expiration-ms: 86400000

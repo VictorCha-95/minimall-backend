@@ -1,20 +1,21 @@
 spring:
+  config:
+    activate:
+      on-profile: test
+
   datasource:
-    url: jdbc:h2:mem:test;MODE=MYSQL
+    url: jdbc:h2:mem:testdb;MODE=MYSQL;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
     username: sa
     password:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
-
-  data:
-    redis:
-      host: localhost
-      port: 6379
+      ddl-auto: create
+    show-sql: true
 
 jwt:
   issuer: minimall-test
-  access-ttl-seconds: 600
-  secret-base64: "JXbXqVT8Nw6WcFGGqMeOWG3g8gdE/UWKnT4Bmb1Dvo4="
+  secret-base64: ${JWT_SECRET_BASE64:test-secret-base64}
+  access-expiration-ms: 600000
+  refresh-expiration-ms: 86400000

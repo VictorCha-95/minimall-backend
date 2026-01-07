@@ -14,10 +14,11 @@ import static org.assertj.core.api.Assertions.*;
 
 class JwtTokenProviderTest {
 
-    private static JwtProperties props(String issuer, long ttlSeconds, byte[] rawKey) {
+    private static JwtProperties props(String issuer, long accessTtlSeconds, long refreshTtlSeconds, byte[] rawKey) {
         return new JwtProperties(
                 issuer,
-                ttlSeconds,
+                accessTtlSeconds,
+                refreshTtlSeconds,
                 Base64.getEncoder().encodeToString(rawKey)
         );
     }
@@ -29,7 +30,7 @@ class JwtTokenProviderTest {
         for (int i = 0; i < key.length; i++) key[i] = (byte) i;
 
         Clock clock = Clock.fixed(Instant.parse("2025-12-31T00:00:00Z"), ZoneOffset.UTC);
-        JwtTokenProvider jwt = new JwtTokenProvider(props("minimall", 600, key), clock);
+        JwtTokenProvider jwt = new JwtTokenProvider(props("minimall", 600, 1200, key), clock);
 
         // when
         String token = jwt.createAccessToken(1L, "ROLE_CUSTOMER");
@@ -48,13 +49,13 @@ class JwtTokenProviderTest {
         for (int i = 0; i < key.length; i++) key[i] = (byte) i;
 
         Clock atIssue = Clock.fixed(Instant.parse("2025-12-31T00:00:00Z"), ZoneOffset.UTC);
-        JwtTokenProvider jwt = new JwtTokenProvider(props("minimall", 1, key), atIssue);
+        JwtTokenProvider jwt = new JwtTokenProvider(props("minimall", 1, 1200, key), atIssue);
 
         String token = jwt.createAccessToken(1L, "ROLE_CUSTOMER");
 
         // 2초 후
         Clock afterExp = Clock.fixed(Instant.parse("2025-12-31T00:00:02Z"), ZoneOffset.UTC);
-        JwtTokenProvider jwtAfterExp = new JwtTokenProvider(props("minimall", 1, key), afterExp);
+        JwtTokenProvider jwtAfterExp = new JwtTokenProvider(props("minimall", 1, 1200, key), afterExp);
 
         assertThatThrownBy(() -> jwtAfterExp.parseAndValidate(token))
                 .isInstanceOf(ExpiredJwtException.class);
@@ -67,10 +68,10 @@ class JwtTokenProviderTest {
 
         Clock clock = Clock.fixed(Instant.parse("2025-12-31T00:00:00Z"), ZoneOffset.UTC);
 
-        JwtTokenProvider jwtA = new JwtTokenProvider(props("minimall", 600, key), clock);
+        JwtTokenProvider jwtA = new JwtTokenProvider(props("minimall", 600, 1200, key), clock);
         String token = jwtA.createAccessToken(1L, "ROLE_CUSTOMER");
 
-        JwtTokenProvider jwtB = new JwtTokenProvider(props("other-service", 600, key), clock);
+        JwtTokenProvider jwtB = new JwtTokenProvider(props("other-service", 600, 1200, key), clock);
 
         assertThatThrownBy(() -> jwtB.parseAndValidate(token))
                 .isInstanceOf(JwtException.class);

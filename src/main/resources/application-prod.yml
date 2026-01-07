@@ -1,11 +1,18 @@
 spring:
+  config:
+    activate:
+      on-profile: prod
+
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:?SPRING_DATASOURCE_URL is required}
+    username: ${SPRING_DATASOURCE_USERNAME:?SPRING_DATASOURCE_USERNAME is required}
+    password: ${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD is required}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
+
+jwt:
+  secret-base64: ${JWT_SECRET_BASE64:?JWT_SECRET_BASE64 is required}

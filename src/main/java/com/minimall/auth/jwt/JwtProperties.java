@@ -8,5 +8,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record JwtProperties(
         @NotBlank String issuer,
         @Positive long accessTtlSeconds,
+        @Positive long refreshTtlSeconds,
         @NotBlank String secretBase64
 ) {}

@@ -9,8 +9,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.TestPropertySource;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -18,6 +20,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(TestRefreshTokenStoreConfig.class)
+@TestPropertySource(properties = {
+        "jwt.issuer=minimall",
+        "jwt.access-ttl-seconds=600",
+        "jwt.refresh-ttl-seconds=1209600",
+        "jwt.secret-base64=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+})
 class SecurityIntegrationTest {
 
     @Autowired MockMvc mockMvc;
@@ -54,13 +63,13 @@ class SecurityIntegrationTest {
 
     @Test
     void adminPing_withoutToken_returns401() throws Exception {
-        mockMvc.perform(get("/admin/ping"))
+        mockMvc.perform(get("/api/admin/ping"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void adminPing_withInvalidToken_returns401() throws Exception {
-        mockMvc.perform(get("/admin/ping")
+        mockMvc.perform(get("/api/admin/ping")
                         .header("Authorization", "Bearer invalid.token.here"))
                 .andExpect(status().isUnauthorized());
     }
@@ -69,7 +78,7 @@ class SecurityIntegrationTest {
     void adminPing_withCustomerToken_returns403() throws Exception {
         String token = loginAndGetAccessToken(CUSTOMER_ID, PW);
 
-        mockMvc.perform(get("/admin/ping")
+        mockMvc.perform(get("/api/admin/ping")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
@@ -78,7 +87,7 @@ class SecurityIntegrationTest {
     void adminPing_withAdminToken_returns200() throws Exception {
         String token = loginAndGetAccessToken(ADMIN_ID, PW);
 
-        mockMvc.perform(get("/admin/ping")
+        mockMvc.perform(get("/api/admin/ping")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(content().string("ok"));
@@ -89,7 +98,7 @@ class SecurityIntegrationTest {
                 {"loginId":"%s","password":"%s"}
                 """.formatted(loginId, password);
 
-        String json = mockMvc.perform(post("/auth/login")
+        String json = mockMvc.perform(post("/api/auth/login")
                         .contentType(APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isOk())

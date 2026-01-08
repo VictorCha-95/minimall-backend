@@ -10,11 +10,8 @@ import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.domain.order.OrderRepository;
-import com.minimall.service.exception.InvalidCredentialException;
-import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.NotFoundException;
 import com.minimall.service.member.dto.command.MemberAddressCommand;
-import com.minimall.service.member.dto.command.MemberLoginCommand;
 import com.minimall.service.member.dto.command.MemberRegisterCommand;
 import com.minimall.service.member.dto.command.MemberUpdateCommand;
 import com.minimall.service.member.dto.result.MemberDetailResult;
@@ -94,49 +91,6 @@ public class MemberServiceIntegrationTest extends AbstractIntegrationTest {
         orderRepository.deleteAll();
         memberRepository.deleteAll();
     }
-
-    @Nested
-    @DisplayName("login(MemberLoginCommand)")
-    class Login {
-        @Test
-        @DisplayName("로그인 성공: DB 회원 조회 -> 비밀번호 검증")
-        void success() {
-            //given
-            MemberSummaryResult member = memberService.registerCustomer(createCommand);
-            MemberLoginCommand command = new MemberLoginCommand(createCommand.loginId(), createCommand.password());
-
-            //when
-            MemberSummaryResult result = memberService.login(command);
-
-            //then
-            assertThat(result).isEqualTo(member);
-        }
-
-        @Test
-        @DisplayName("비밀번호 오류 -> InvalidCredentialException 예외 발생")
-        void shouldFail_whenPasswordIsNotMatch() {
-            //given
-            memberService.registerCustomer(createCommand);
-            MemberLoginCommand command = new MemberLoginCommand(createCommand.loginId(), "wrong_password");
-
-            //when & then
-            assertThatThrownBy(() -> memberService.login(command))
-                    .isInstanceOf(InvalidCredentialException.class);
-        }
-
-        @Test
-        @DisplayName("회원 아이디 오류 -> MemberNotFound 예외 발생")
-        void shouldFail_whenMemberIsNotFound() {
-            //given
-            memberService.registerCustomer(createCommand);
-            MemberLoginCommand command = new MemberLoginCommand("wrong_loginId", createCommand.password());
-
-            //when & then
-            assertThatThrownBy(() -> memberService.login(command))
-                    .isInstanceOf(MemberNotFoundException.class);
-        }
-    }
-
 
     @Nested
     @DisplayName("회원 생성")

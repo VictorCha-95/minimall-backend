@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { login } from "../services/authApi";
 
 const LoginPage: React.FC = () => {
+  const navigate = useNavigate();
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,6 +20,7 @@ const LoginPage: React.FC = () => {
       const res = await login({ loginId, password });
       setSuccess("로그인 성공");
       console.log("login result", res);
+      navigate("/");
     } catch (err: unknown) {
       console.error("로그인 에러:", err);
       if (axios.isAxiosError(err)) {

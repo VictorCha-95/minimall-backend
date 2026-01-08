@@ -19,14 +19,19 @@ import java.util.UUID;
 @Getter
 public final class JwtTokenProvider {
 
+    private static final String TOKEN_TYPE = "typ";
+    private static final String TOKEN_TYPE_REFRESH = "refresh";
+
     private final SecretKey key;
     private final String issuer;
     private final long accessTtlSeconds;
+    private final long refreshTtlSeconds;
     private final Clock clock;
 
     public JwtTokenProvider(@Validated JwtProperties props, Clock clock) {
         this.issuer = props.issuer();
         this.accessTtlSeconds = props.accessTtlSeconds();
+        this.refreshTtlSeconds = props.refreshTtlSeconds();
         this.clock = clock;
 
         byte[] decoded = Base64.getDecoder().decode(props.secretBase64());
@@ -50,6 +55,21 @@ public final class JwtTokenProvider {
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
                 .claim("role", authority)
+                .signWith(key)
+                .compact();
+    }
+
+    public String createRefreshToken(long memberId, String refreshJti) {
+        Instant now = clock.instant();
+        Instant exp = now.plusSeconds(refreshTtlSeconds);
+
+        return Jwts.builder()
+                .issuer(issuer)
+                .subject(String.valueOf(memberId))
+                .id(refreshJti)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(exp))
+                .claim(TOKEN_TYPE, TOKEN_TYPE_REFRESH)
                 .signWith(key)
                 .compact();
     }

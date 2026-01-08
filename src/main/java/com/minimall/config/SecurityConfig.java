@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
+                .anonymous(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((req, res, e) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED))
@@ -50,13 +51,13 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll()
-                        .requestMatchers("/auth/login").permitAll()
-                        .requestMatchers("/members/login", "/members/customers", "/members/sellers").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/products/**").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/products/**").hasRole("SELLER")
-                        .requestMatchers(HttpMethod.PATCH, "/products/**").hasRole("SELLER")
-                        .requestMatchers(HttpMethod.DELETE, "/products/**").hasRole("SELLER")
+                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout").permitAll()
+                        .requestMatchers("/api/members/customers", "/api/members/sellers").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/products/**").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("SELLER")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),

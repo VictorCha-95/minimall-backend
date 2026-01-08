@@ -139,13 +139,13 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("POST /orders")
+    @DisplayName("POST /api/orders")
     class CreateOrder {
         @Test
         @DisplayName("주문 생성 -> 201 + JSON + Location 검증")
         void return201_whenOrderCreate() throws Exception {
             //when
-            ResultActions result = mockMvc.perform(post("/orders")
+            ResultActions result = mockMvc.perform(post("/api/orders")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(orderCreateRequest)));
 
@@ -160,14 +160,14 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             OrderCreateResponse body = objectMapper.readValue(json, OrderCreateResponse.class);
 
             String location = mvcResult.getResponse().getHeader("Location");
-            assertThat(location).endsWith("/orders/" + body.id());
+            assertThat(location).endsWith("/api/orders/" + body.id());
         }
 
         @Test
         @DisplayName("회원 미존재 -> 404 Not Found")
         void return404_whenMemberNotFound() throws Exception{
             //when
-            ResultActions result = mockMvc.perform(post("/orders")
+            ResultActions result = mockMvc.perform(post("/api/orders")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(new OrderCreateRequest(NOT_EXIST_ID, orderItems))));
 
@@ -175,7 +175,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             result.andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404))
                     .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
-                    .andExpect(jsonPath("$.path").value("/orders"))
+                    .andExpect(jsonPath("$.path").value("/api/orders"))
                     .andExpect(jsonPath("$.message").exists())
                     .andExpect(header().doesNotExist("Location"));
         }
@@ -184,7 +184,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("상품 미존재 -> 404 Not Found")
         void return404_whenProductNotFound() throws Exception{
             //when
-            ResultActions result = mockMvc.perform(post("/orders")
+            ResultActions result = mockMvc.perform(post("/api/orders")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(
                             new OrderCreateRequest(savedMember.getId(),
@@ -195,14 +195,14 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             result.andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404))
                     .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
-                    .andExpect(jsonPath("$.path").value("/orders"))
+                    .andExpect(jsonPath("$.path").value("/api/orders"))
                     .andExpect(jsonPath("$.message").exists())
                     .andExpect(header().doesNotExist("Location"));
         }
     }
 
     @Nested
-    @DisplayName("PATCH /orders/{id}/cancel")
+    @DisplayName("PATCH /api/orders/{id}/cancel")
     class CancelOrder {
         @DisplayName("주문 취소 -> 204 검증")
         @Test
@@ -211,7 +211,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             Order order = orderService.createOrder(orderCreateCommand);
 
             //when
-            ResultActions result = mockMvc.perform(patch("/orders/" + order.getId() + "/cancel"));
+            ResultActions result = mockMvc.perform(patch("/api/orders/" + order.getId() + "/cancel"));
 
             //then
             result.andExpect(status().isNoContent());
@@ -221,7 +221,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         void return404_whenOrderNotFound() throws Exception {
             //when
-            ResultActions result = mockMvc.perform(patch("/orders/" + NOT_EXIST_ID + "/cancel"));
+            ResultActions result = mockMvc.perform(patch("/api/orders/" + NOT_EXIST_ID + "/cancel"));
 
             //then
             result.andExpect(status().isNotFound())
@@ -236,7 +236,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("GET /orders/{id}")
+    @DisplayName("GET /api/orders/{id}")
     class GetOrderDetail {
         @Test
         @DisplayName("주문 단건 상세 조회 -> 200 + JSON 검증")
@@ -246,7 +246,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             Long id = order.getId();
 
             //when
-            ResultActions result = mockMvc.perform(get("/orders/" + id));
+            ResultActions result = mockMvc.perform(get("/api/orders/" + id));
 
             //then
             result.andExpect(status().isOk())
@@ -258,13 +258,13 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("주문 없음 -> 404 Not Found")
         void return404_whenOrderNotFound() throws Exception {
             //when
-            ResultActions result = mockMvc.perform(get("/orders/" + NOT_EXIST_ID));
+            ResultActions result = mockMvc.perform(get("/api/orders/" + NOT_EXIST_ID));
 
             //then
             result.andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.status").value(404))
                     .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"))
-                    .andExpect(jsonPath("$.path").value("/orders/" + NOT_EXIST_ID))
+                    .andExpect(jsonPath("$.path").value("/api/orders/" + NOT_EXIST_ID))
                     .andExpect(jsonPath("$.message", Matchers.containsString("주문")))
                     .andExpect(jsonPath("$.message", Matchers.containsString("id")))
                     .andExpect(jsonPath("$.message", Matchers.containsString(String.valueOf(NOT_EXIST_ID))))
@@ -273,7 +273,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("POST /orders/{id}/payment")
+    @DisplayName("POST /api/orders/{id}/payment")
     class ProcessPayment {
         @Test
         @DisplayName("주문 결제 처리 -> 201 + Location 헤더 + JSON 검증")
@@ -284,7 +284,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
             //when
-            ResultActions result = mockMvc.perform(post("/orders/" + id + "/payment")
+            ResultActions result = mockMvc.perform(post("/api/orders/" + id + "/payment")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -305,13 +305,13 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
 
             // when-then(1): 첫 결제 성공 -> 201
-            mockMvc.perform(post("/orders/{id}/payment", id)
+            mockMvc.perform(post("/api/orders/{id}/payment", id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk());
 
             // when-then(2): 동일 요청 재시도 -> 422
-            mockMvc.perform(post("/orders/{id}/payment", id)
+            mockMvc.perform(post("/api/orders/{id}/payment", id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnprocessableEntity())
@@ -328,7 +328,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             PayRequest request = new PayRequest(PayMethod.CARD, invalidAmount);
 
             // when-then
-            mockMvc.perform(post("/orders/{id}/payment", id)
+            mockMvc.perform(post("/api/orders/{id}/payment", id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnprocessableEntity())
@@ -337,7 +337,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("POST /orders/{id}/delivery")
+    @DisplayName("POST /api/orders/{id}/delivery")
     class PrepareDelivery {
         private AddressDto createSampleAddrDto() {
             return new AddressDto(
@@ -357,13 +357,13 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             AddressDto requestAddrDto = createSampleAddrDto();
 
             // when
-            ResultActions result = mockMvc.perform(post("/orders/{id}/delivery", orderId)
+            ResultActions result = mockMvc.perform(post("/api/orders/{id}/delivery", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(requestAddrDto)));
 
             // then
             result.andExpect(status().isCreated())
-                    .andExpect(header().string("Location", Matchers.endsWith("/orders/" + orderId + "/delivery")))
+                    .andExpect(header().string("Location", Matchers.endsWith("/api/orders/" + orderId + "/delivery")))
                     .andExpect(jsonPath("$.deliveryStatus").value("READY"))
                     .andExpect(jsonPath("$.shipAddr.city").value(requestAddrDto.city()));
         }
@@ -377,7 +377,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             assertThat(member.getAddr()).isNull();
 
             // when
-            ResultActions result = mockMvc.perform(post("/orders/{id}/delivery", orderId)
+            ResultActions result = mockMvc.perform(post("/api/orders/{id}/delivery", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("null"));
 
@@ -397,7 +397,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("PATCH /orders/{id}/delivery (Long, StartDeliveryRequest)")
+    @DisplayName("PATCH /api/orders/{id}/delivery (Long, StartDeliveryRequest)")
     class StartDelivery {
 
         StartDeliveryRequest request = new StartDeliveryRequest("12345", LocalDateTime.of(2025, 11, 12, 13, 30));
@@ -430,7 +430,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             Long orderId = prepareDelivery();
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -447,7 +447,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             Long orderId = order.getId();
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -463,7 +463,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             Long orderId = processPayment();
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -474,7 +474,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
-    @DisplayName("PATCH /orders/{id}/delivery/complete")
+    @DisplayName("PATCH /api/orders/{id}/delivery/complete")
     class CompleteDelivery {
 
         Address shipAddr = new Address(
@@ -512,7 +512,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             Long orderId = startDelivery();
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery/complete", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -527,7 +527,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             Long orderId = startDelivery();
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery/complete", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(new CompleteDeliveryRequest(null))));
 
@@ -543,7 +543,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             Long orderId = order.getId();
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery/complete", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -559,7 +559,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             Long orderId = processPayment();
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery/complete", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 
@@ -575,7 +575,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             Long orderId = prepareDelivery();
 
             // when
-            ResultActions result = mockMvc.perform(patch("/orders/{id}/delivery/complete", orderId)
+            ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery/complete", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)));
 

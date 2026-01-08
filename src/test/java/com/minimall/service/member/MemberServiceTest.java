@@ -6,11 +6,9 @@ import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.domain.exception.DuplicateException;
-import com.minimall.service.exception.InvalidCredentialException;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.member.dto.*;
 import com.minimall.service.member.dto.command.MemberAddressCommand;
-import com.minimall.service.member.dto.command.MemberLoginCommand;
 import com.minimall.service.member.dto.command.MemberRegisterCommand;
 import com.minimall.service.member.dto.command.MemberUpdateCommand;
 import com.minimall.service.member.dto.result.MemberDetailResult;
@@ -92,59 +90,6 @@ class MemberServiceTest {
         summaryResult = new MemberSummaryResult(member.getId(), member.getLoginId(), member.getName());
 
         detailResult = new MemberDetailResult(member.getId(), member.getLoginId(), member.getName(), member.getEmail(), member.getCustomerProfile().getGrade(), member.getAddr());
-    }
-
-    //== login ==//
-    @Nested
-    @DisplayName("login(MemberLoginCommand)")
-    class Login {
-        @Test
-        @DisplayName("로그인 성공 -> DB 회원 조회 및 비밀번호 검증")
-        void success() {
-            //given
-            when(memberRepository.findByLoginId(registerCommand.loginId())).thenReturn(Optional.of(member));
-            when(passwordEncoder.matches(anyString(), eq(registerCommand.password()))).thenReturn(true);
-            when(memberServiceMapper.toSummaryResult(any(Member.class)))
-                    .thenReturn(new MemberSummaryResult(1L, registerCommand.loginId(), registerCommand.name()));
-
-            //when
-            MemberSummaryResult result = memberService.login(new MemberLoginCommand(registerCommand.loginId(), registerCommand.password()));
-
-            //then
-            assertThat(result.loginId()).isEqualTo(registerCommand.loginId());
-            assertThat(result.name()).isEqualTo(registerCommand.name());
-            verify(memberRepository).findByLoginId(registerCommand.loginId());
-            verify(passwordEncoder).matches(registerCommand.password(), member.getPasswordHash());
-        }
-
-        @Test
-        @DisplayName("비밀번호 오류 -> InvalidCredentialException 예외 발생")
-        void shouldFail_whenPasswordIsNotMatch() {
-            //given
-            when(memberRepository.findByLoginId(registerCommand.loginId())).thenReturn(Optional.of(member));
-            when(passwordEncoder.matches("wrong_password", member.getPasswordHash())).thenReturn(false);
-
-            //when & then
-            assertThatThrownBy(() -> memberService.login(new MemberLoginCommand(registerCommand.loginId(), "wrong_password")))
-                    .isInstanceOf(InvalidCredentialException.class);
-
-            verify(memberRepository).findByLoginId(registerCommand.loginId());
-            verify(passwordEncoder).matches("wrong_password", member.getPasswordHash());
-        }
-
-        @Test
-        @DisplayName("회원 아이디 오류 -> MemberNotFound 예외 발생")
-        void shouldFail_whenMemberIsNotFound() {
-            //given
-            when(memberRepository.findByLoginId("wrong_id")).thenReturn(Optional.empty());
-
-            //when & then
-            assertThatThrownBy(() -> memberService.login(new MemberLoginCommand("wrong_id", registerCommand.password())))
-                    .isInstanceOf(MemberNotFoundException.class);
-
-            verify(memberRepository).findByLoginId("wrong_id");
-        }
-
     }
 
     //== create ==//

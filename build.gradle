@@ -35,11 +35,13 @@ dependencies {
 	implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
 	annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'com.mysql:mysql-connector-j'
+	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
 	annotationProcessor 'org.projectlombok:lombok'
@@ -70,7 +72,9 @@ def jacocoExcludes = [
 ]
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'e2e'
+	}
 	systemProperty "junit.jupiter.execution.parallel.enabled", "false"
 	finalizedBy tasks.named('jacocoTestReport')
 }
@@ -92,3 +96,24 @@ tasks.named('jacocoTestReport', JacocoReport) {
 }
 
 tasks.test { systemProperty "spring.profiles.active", "test" }
+
+tasks.register('authIntegrationTest', Test) {
+	useJUnitPlatform()
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	include 'com/minimall/auth/AuthControllerIntegrationTest.class'
+	include 'com/minimall/auth/SecurityIntegrationTest.class'
+	systemProperty "junit.jupiter.execution.parallel.enabled", "false"
+	systemProperty "spring.profiles.active", "test"
+}
+
+tasks.register('e2eTest', Test) {
+	useJUnitPlatform {
+		includeTags 'e2e'
+	}
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	systemProperty "junit.jupiter.execution.parallel.enabled", "false"
+	systemProperty "spring.profiles.active", "e2e"
+	shouldRunAfter tasks.named('test')
+}

@@ -6,11 +6,11 @@ import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.exception.DuplicateException;
 import com.minimall.domain.member.Role;
-import com.minimall.service.exception.InvalidCredentialException;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.member.dto.*;
 import com.minimall.service.member.dto.command.*;
 import com.minimall.service.member.dto.result.MemberDetailResult;
+import com.minimall.service.member.dto.result.MemberMeResult;
 import com.minimall.service.member.dto.result.MemberSummaryResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -28,17 +28,6 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final MemberServiceMapper memberServiceMapper;
     private final PasswordEncoder passwordEncoder;
-
-    //== 로그인 ==//
-    @Transactional
-    public MemberSummaryResult login(MemberLoginCommand command) {
-        Member member = findMemberByLoginId(command.loginId());
-        if (!passwordEncoder.matches(command.password(), member.getPasswordHash())){
-            throw InvalidCredentialException.invalidPassword(command.password());
-        }
-
-        return memberServiceMapper.toSummaryResult(member);
-    }
 
     //== 생성 ==//
     @Transactional
@@ -118,6 +107,10 @@ public class MemberService {
     //== 단건 조회 ==//
     public MemberSummaryResult getSummary(Long memberId) {
         return memberServiceMapper.toSummaryResult(findMemberById(memberId));
+    }
+
+    public MemberMeResult getMe(Long memberId) {
+        return memberServiceMapper.toMeResult(findMemberById(memberId));
     }
     public MemberDetailResult getDetail(Long memberId) {
         return memberServiceMapper.toDetailResult(findMemberById(memberId));

@@ -79,7 +79,6 @@ MiniMall은 다음을 목표로 합니다.
 ### 4.1 회원(Member)
 
 - 회원 가입
-- 로그인
 - 회원 정보 수정
 - 단건 조회 / 목록 조회
 
@@ -168,7 +167,6 @@ RESTful API 스타일을 기반으로, 리소스 중심 URL과 HTTP 메서드를
 
 ### 회원(Member) – `/members`
 - `POST /members` – 회원 가입
-- `POST /members/login` – 로그인
 - `GET /members` – 회원 목록 조회
 - `GET /members/{id}` – 회원 단건 조회
 - `GET /members/{id}/summary` – 회원 요약 조회
@@ -180,6 +178,12 @@ RESTful API 스타일을 기반으로, 리소스 중심 URL과 HTTP 메서드를
 - `GET /members/by-loginId/summary` – 로그인ID로 요약 조회
 - `PATCH /members/{id}` – 회원 정보 수정
 - `DELETE /members/{id}` – 회원 삭제
+
+### 인증(Auth) – `/auth`
+- `POST /auth/login` – 로그인(Access/Refresh 발급)
+- `POST /auth/refresh` – 토큰 재발급(Refresh Rotation)
+- `POST /auth/logout` – 로그아웃(Refresh 폐기)
+- `GET /auth/me` – 내 정보 조회
 
 ### 상품(Product) – `/products`
 - `POST /products` – 상품 등록
@@ -486,6 +490,58 @@ docker compose -f docker/docker-compose.dev.yml down -v
 애플리케이션 실행 후 브라우저에서 아래 주소로 접속하면 Swagger UI를 통해 API 명세를 확인할 수 있습니다.
 
 - `http://localhost:8080/swagger-ui/index.html`
+
+---
+
+## 12.1 모니터링(Observability) - Prometheus + Grafana
+
+최소 관측 스택을 통해 `/actuator/prometheus` 지표를 수집하고 대시보드로 확인할 수 있습니다.
+
+### 12.1.1 Prometheus + Grafana 실행
+
+**명령어 전체 문법**
+```bash
+docker compose -f <compose-file> up -d
+```
+- `-f <compose-file>`: 사용할 compose 파일 지정
+- `up`: 컨테이너 생성/시작
+- `-d`: 백그라운드(detached) 실행
+
+**실행 예시**
+```bash
+docker compose -f monitoring/docker-compose.yml up -d
+```
+
+### 12.1.2 Grafana 데이터소스 연결
+- Grafana 접속: `http://localhost:3000` (admin/admin)
+- Data Source: Prometheus
+- URL: `http://prometheus:9090`
+
+### 12.1.3 검증 체크리스트
+- `http://localhost:8080/actuator/prometheus` 지표가 텍스트로 노출되는지
+- `docker compose -f monitoring/docker-compose.yml up -d` 후
+  `http://localhost:9090/targets`에서 `minimall-api`가 `UP`인지
+- Grafana 접속(`http://localhost:3000`) 후 Prometheus 데이터소스가 연결되는지
+
+### 12.1.4 PromQL 예시
+- RPS: `sum(rate(http_server_requests_seconds_count[1m]))`
+- 5xx 비율: `sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) / sum(rate(http_server_requests_seconds_count[5m]))`
+- p95: `histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))`
+
+### 12.1.5 (선택) k6 부하 테스트
+
+**명령어 전체 문법**
+```bash
+docker run --rm -i grafana/k6 run [--vus <n>] [--duration <duration>] [--summary-export <file>] -
+```
+- `--vus <n>`: 동시 사용자 수
+- `--duration <duration>`: 테스트 시간(예: 10s, 1m)
+- `--summary-export <file>`: 요약 결과 저장 파일
+
+**실행 예시**
+```bash
+type loadtest\\order_concurrency.js | docker run --rm -i grafana/k6 run --summary-export summary.json -
+```
 
 ---
 

@@ -51,10 +51,7 @@ jobs:
 
             cd ~/minimall
 
-          # 운영 compose 파일이 참조하는 image: 태그가 latest면,
-          # 아래 pull이 최신 이미지를 가져옴
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
-          # 오래된 이미지 정리
             docker image prune -f

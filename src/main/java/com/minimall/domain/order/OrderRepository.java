@@ -12,9 +12,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByMember(Member member);
 
-    @Query("select distinct o from Order o left join fetch o.orderItems where o.member = :member")
-    List<Order> findByMemberWithItems(@Param("member") Member member);
-
     @Query("select distinct o from Order o left join fetch o.orderItems where o.member.id = :memberId")
     List<Order> findByMemberIdWithItems(@Param("memberId") Long memberId);
 

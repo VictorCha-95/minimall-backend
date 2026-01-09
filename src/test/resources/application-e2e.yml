@@ -14,6 +14,10 @@ spring:
     hibernate:
       ddl-auto: create
     show-sql: false
+    properties:
+      hibernate:
+        hbm2ddl:
+          halt_on_error: false
 
 jwt:
   issuer: minimall-e2e

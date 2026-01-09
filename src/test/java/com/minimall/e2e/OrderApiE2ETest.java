@@ -2,6 +2,7 @@ package com.minimall.e2e;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minimall.AbstractE2ETest;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.OrderRepository;
 import com.minimall.domain.product.ProductRepository;
@@ -14,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.net.URI;
@@ -26,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("e2e")
 @Tag("e2e")
-class OrderApiE2ETest {
+class OrderApiE2ETest extends AbstractE2ETest {
 
     @LocalServerPort
     int port;
@@ -35,13 +37,19 @@ class OrderApiE2ETest {
     @Autowired MemberRepository memberRepository;
     @Autowired ProductRepository productRepository;
     @Autowired OrderRepository orderRepository;
+    @Autowired JdbcTemplate jdbcTemplate;
     @Autowired TestRestTemplate restTemplate;
 
     @AfterEach
     void tearDown() {
-        orderRepository.deleteAll();
-        productRepository.deleteAll();
-        memberRepository.deleteAll();
+        jdbcTemplate.update("delete from order_item");
+        jdbcTemplate.update("delete from pay");
+        jdbcTemplate.update("delete from delivery");
+        jdbcTemplate.update("delete from orders");
+        jdbcTemplate.update("delete from product");
+        jdbcTemplate.update("delete from member_customer_profile");
+        jdbcTemplate.update("delete from member_seller_profile");
+        jdbcTemplate.update("delete from member");
     }
 
     @Test

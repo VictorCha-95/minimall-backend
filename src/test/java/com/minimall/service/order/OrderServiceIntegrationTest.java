@@ -260,9 +260,12 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
 
             //when
             orderService.cancelOrder(order.id());
+            flushClear();
 
             //then
-            assertThat(order.orderStatus()).isEqualTo(OrderStatus.CANCELED);
+            Order found = orderRepository.findById(order.id())
+                    .orElseThrow(() -> new AssertionError("주문이 저장되지 않음"));
+            assertThat(found.getOrderStatus()).isEqualTo(OrderStatus.CANCELED);
         }
 
         @DisplayName("주문 미존재 -> Not Found 예외 발생")

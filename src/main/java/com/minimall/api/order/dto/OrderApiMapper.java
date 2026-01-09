@@ -22,6 +22,9 @@ import java.util.List;
         nullValueIterableMappingStrategy = NullValueMappingStrategy.RETURN_DEFAULT // null 리스트 -> 빈 리스트
 )
 public interface OrderApiMapper {
+    @Mapping(target = "totalAmount", source = "orderAmount.finalAmount")
+    OrderSummaryDto toDto(Order order);
+
     //== Response ==//
     OrderCreateResponse toCreateResponse(OrderCreateResult result);
 
@@ -30,5 +33,9 @@ public interface OrderApiMapper {
     OrderSummaryResponse toOrderSummaryResponse(Order order);
     OrderSummaryResponse toOrderSummaryResponse(OrderSummaryResult result);
 
+    List<OrderSummaryResponse> toOrderSummaryResponse(List<Order> orders);
+
+    @Mapping(target = "finalAmount", source = "orderAmount.finalAmount")
+    OrderDetailResponse toOrderDetailResponse(Order order);
     OrderDetailResponse toOrderDetailResponse(OrderDetailResult result);
 }

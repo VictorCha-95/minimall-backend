@@ -15,6 +15,8 @@ spring:
       hibernate:
         format_sql: true
         generate_statistics: true
+        hbm2ddl:
+          halt_on_error: false
 
 jwt:
   issuer: minimall-it

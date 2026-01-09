@@ -2,6 +2,7 @@ package com.minimall.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minimall.AbstractIntegrationTest;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.TestPropertySource;
@@ -27,12 +29,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "jwt.refresh-ttl-seconds=1209600",
         "jwt.secret-base64=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
 })
-class SecurityIntegrationTest {
+class SecurityIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired MemberRepository memberRepository;
     @Autowired PasswordEncoder passwordEncoder;
+    @Autowired JdbcTemplate jdbcTemplate;
 
     private static final String ADMIN_ID = "admin";
     private static final String CUSTOMER_ID = "customer";
@@ -40,6 +43,12 @@ class SecurityIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("delete from order_item");
+        jdbcTemplate.update("delete from pay");
+        jdbcTemplate.update("delete from delivery");
+        jdbcTemplate.update("delete from orders");
+        jdbcTemplate.update("delete from member_customer_profile");
+        jdbcTemplate.update("delete from member_seller_profile");
         memberRepository.deleteAll();
 
         // 아래는 네 도메인에 맞게 필드/팩토리만 맞춰라.

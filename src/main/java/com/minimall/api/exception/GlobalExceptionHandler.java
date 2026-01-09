@@ -7,6 +7,8 @@ import com.minimall.service.exception.NotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +21,8 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     // 400: @RequestBody 검증 실패(@Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -104,6 +108,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleEtc(Exception ex, HttpServletRequest req) {
+        log.error("Unhandled exception: {} {}", req.getMethod(), req.getRequestURI(), ex);
         return ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, ApiErrorCode.INTERNAL_ERROR, "Unexpected server error", req.getRequestURI());
     }
 }

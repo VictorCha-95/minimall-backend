@@ -14,8 +14,8 @@ spring:
 jwt:
   issuer: minimall
   secret-base64: ${JWT_SECRET_BASE64:PLEASE_OVERRIDE_IN_ENV}
-  access-expiration-ms: 3600000        # 1h
-  refresh-expiration-ms: 1209600000    # 14d
+  access-ttl-seconds: 3600        # 1h
+  refresh-ttl-seconds: 1209600    # 14d
 
 management:
   endpoints:
@@ -25,3 +25,10 @@ management:
   endpoint:
     health:
       show-details: always
+
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true

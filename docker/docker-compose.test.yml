@@ -18,16 +18,16 @@ services:
       dockerfile: Dockerfile
     container_name: minimall-app-test
     environment:
-      SPRING_PROFILES_ACTIVE: test
-      DB_HOST: db-test
-      DB_PORT: 3306
-      DB_NAME: minimall_test
-      DB_USER: root
-      DB_PASSWORD: root
+      SPRING_PROFILES_ACTIVE: e2e
+      E2E_DB_URL: jdbc:mysql://db-test:3306/minimall_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+      E2E_DB_USERNAME: root
+      E2E_DB_PASSWORD: root
     depends_on:
       - db-test
     networks:
       - test-net
+    ports:
+      - "8080:8080"
 
 volumes:
   db_data_test:

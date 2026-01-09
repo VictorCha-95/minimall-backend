@@ -9,41 +9,38 @@ import com.minimall.api.common.embeddable.AddressDto;
 import com.minimall.api.common.embeddable.AddressMapper;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
-import com.minimall.domain.order.Order;
 import com.minimall.domain.order.OrderRepository;
 import com.minimall.api.order.dto.request.OrderCreateRequest;
 import com.minimall.api.order.dto.request.OrderItemCreateRequest;
 import com.minimall.api.order.dto.response.OrderCreateResponse;
-import com.minimall.service.exception.OrderNotFoundException;
+import com.minimall.fixture.AddressFixture;
+import com.minimall.fixture.MemberFixture;
+import com.minimall.fixture.OrderFixture;
+import com.minimall.fixture.PayFixture;
+import com.minimall.fixture.ProductFixture;
 import com.minimall.service.order.dto.command.OrderCreateCommand;
 import com.minimall.domain.order.pay.PayMethod;
 import com.minimall.api.order.pay.dto.PayRequest;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.order.OrderService;
-import com.minimall.service.order.dto.command.OrderItemCreateCommand;
-import com.minimall.service.order.dto.command.PayCommand;
+import com.minimall.service.order.dto.result.OrderCreateResult;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -86,55 +83,62 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
 
     private static final long NOT_EXIST_ID = 999_999_999L;
 
-    private static final String DEFAULT_LOGIN_ID = "user123";
-    private static final String DEFAULT_PASSWORD_HASH = "12345678";
-    private static final String DEFAULT_NAME = "차태승";
-    private static final String DEFAULT_EMAIL = "user123@example.com";
-    private static final Address DEFAULT_ADDRESS =
-            Address.createAddress("62550", "광주광역시", "광산구", "수등로76번길 40", "123동 456호");
-
 
     @BeforeEach
     void setUp() {
         //== Member Entity ==//
-        Member member = Member.registerCustomer(
-                DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, DEFAULT_NAME, DEFAULT_EMAIL, DEFAULT_ADDRESS
+        Address address = AddressFixture.createAddress(
+                "62550",
+                "광주광역시",
+                "광산구",
+                "수등로76번길 40",
+                "123동 456호"
+        );
+        Member member = MemberFixture.createMember(
+                "user123",
+                "차태승",
+                "user123@example.com",
+                address
         );
 
-        Member memberAddrIsNull = Member.registerCustomer(
-                "abc" + DEFAULT_LOGIN_ID, DEFAULT_PASSWORD_HASH, "abc" + DEFAULT_NAME, "abc" + DEFAULT_EMAIL, null);
+        Member memberAddrIsNull = MemberFixture.createMember(
+                "abcuser123",
+                "abc차태승",
+                "abcuser123@example.com",
+                null
+        );
 
         savedMember = memberRepository.save(member);
         savedMemberAddrIsNull = memberRepository.save(memberAddrIsNull);
 
         //== Product Entity ==//
-        Product book = new Product("도서", 20000, 50);
-        Product keyboard = new Product("키보드", 100000, 20);
-        Product savedBook = productRepository.save(book);
-        Product savedKeyboard = productRepository.save(keyboard);
+        Product savedBook = ProductFixture.createProductSaved(productRepository, "도서", 20_000, 50);
+        Product savedKeyboard = ProductFixture.createProductSaved(productRepository, "키보드", 100_000, 20);
 
         //== OrderItemRequestList ==//
-        OrderItemCreateRequest orderItemCreateRequest1 = new OrderItemCreateRequest(savedBook.getId(), 30);
-        OrderItemCreateRequest orderItemCreateRequest2 = new OrderItemCreateRequest(savedKeyboard.getId(), 10);
+        OrderItemCreateRequest orderItemCreateRequest1 = OrderFixture.createOrderItemRequest(savedBook.getId(), 30);
+        OrderItemCreateRequest orderItemCreateRequest2 = OrderFixture.createOrderItemRequest(savedKeyboard.getId(), 10);
         orderItems.add(orderItemCreateRequest1);
         orderItems.add(orderItemCreateRequest2);
 
         //== OrderCreateRequest ==//
-        orderCreateRequest = new OrderCreateRequest(savedMember.getId(), orderItems);
-        createRequestMemberAddrIsNull = new OrderCreateRequest(savedMemberAddrIsNull.getId(), orderItems);
+        orderCreateRequest = OrderFixture.createOrderRequestDto(savedMember.getId(), orderItems);
+        createRequestMemberAddrIsNull = OrderFixture.createOrderRequestDto(savedMemberAddrIsNull.getId(), orderItems);
 
-        orderCreateCommand = new OrderCreateCommand(
+        orderCreateCommand = OrderFixture.createOrderCreateCommand(
                 orderCreateRequest.memberId(),
-                orderCreateRequest.items().stream()
-                        .map(i -> new OrderItemCreateCommand(i.productId(), i.quantity()))
-                        .toList()
+                List.of(
+                        OrderFixture.createOrderItemCommand(savedBook.getId(), 30),
+                        OrderFixture.createOrderItemCommand(savedKeyboard.getId(), 10)
+                )
         );
 
-         createCommandMemberAddrIsNull = new OrderCreateCommand(
+        createCommandMemberAddrIsNull = OrderFixture.createOrderCreateCommand(
                 createRequestMemberAddrIsNull.memberId(),
-                 createRequestMemberAddrIsNull.items().stream()
-                        .map(i -> new OrderItemCreateCommand(i.productId(), i.quantity()))
-                        .toList()
+                List.of(
+                        OrderFixture.createOrderItemCommand(savedBook.getId(), 30),
+                        OrderFixture.createOrderItemCommand(savedKeyboard.getId(), 10)
+                )
         );
     }
 
@@ -169,7 +173,9 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             //when
             ResultActions result = mockMvc.perform(post("/api/orders")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(new OrderCreateRequest(NOT_EXIST_ID, orderItems))));
+                    .content(objectMapper.writeValueAsString(
+                            OrderFixture.createOrderRequestDto(NOT_EXIST_ID, orderItems)
+                    )));
 
             //then
             result.andExpect(status().isNotFound())
@@ -187,9 +193,9 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             ResultActions result = mockMvc.perform(post("/api/orders")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(
-                            new OrderCreateRequest(savedMember.getId(),
+                            OrderFixture.createOrderRequestDto(savedMember.getId(),
                                     List.of(orderItems.getFirst(),
-                                            new OrderItemCreateRequest(NOT_EXIST_ID, 999))))));
+                                            OrderFixture.createOrderItemRequest(NOT_EXIST_ID, 999))))));
 
             //then
             result.andExpect(status().isNotFound())
@@ -208,10 +214,10 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         void return204_whenOrderCancel() throws Exception {
             //given
-            Order order = orderService.createOrder(orderCreateCommand);
+            OrderCreateResult order = orderService.createOrder(orderCreateCommand);
 
             //when
-            ResultActions result = mockMvc.perform(patch("/api/orders/" + order.getId() + "/cancel"));
+            ResultActions result = mockMvc.perform(patch("/api/orders/" + order.id() + "/cancel"));
 
             //then
             result.andExpect(status().isNoContent());
@@ -242,8 +248,8 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("주문 단건 상세 조회 -> 200 + JSON 검증")
         void return200_whenSuccess() throws Exception {
             //given
-            Order order = orderService.createOrder(orderCreateCommand);
-            Long id = order.getId();
+            OrderCreateResult order = orderService.createOrder(orderCreateCommand);
+            Long id = order.id();
 
             //when
             ResultActions result = mockMvc.perform(get("/api/orders/" + id));
@@ -279,9 +285,9 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("주문 결제 처리 -> 201 + Location 헤더 + JSON 검증")
         void success() throws Exception{
             //given
-            Order order = orderService.createOrder(orderCreateCommand);
-            Long id = order.getId();
-            PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            OrderCreateResult order = orderService.createOrder(orderCreateCommand);
+            Long id = order.id();
+            PayRequest request = PayFixture.createPayRequest(PayMethod.CARD, order.finalAmount());
 
             //when
             ResultActions result = mockMvc.perform(post("/api/orders/" + id + "/payment")
@@ -291,7 +297,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             //then
             MvcResult mvcResult = result.andExpect(status().isOk())
                     .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                    .andExpect(jsonPath("$.payAmount").value(order.getOrderAmount().getFinalAmount()))
+                    .andExpect(jsonPath("$.payAmount").value(order.finalAmount()))
                     .andExpect(jsonPath("$.payStatus").value("PAID"))
                     .andReturn();
         }
@@ -300,9 +306,9 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("중복 결제 -> 422 Unprocessable Entity")
         void shouldFail_whenDuplicatedPay() throws Exception{
             ///given
-            Order order = orderService.createOrder(orderCreateCommand);
-            Long id = order.getId();
-            PayRequest request = new PayRequest(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            OrderCreateResult order = orderService.createOrder(orderCreateCommand);
+            Long id = order.id();
+            PayRequest request = PayFixture.createPayRequest(PayMethod.CARD, order.finalAmount());
 
             // when-then(1): 첫 결제 성공 -> 201
             mockMvc.perform(post("/api/orders/{id}/payment", id)
@@ -323,9 +329,9 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         void shouldFail_whenMismatchAmount() throws Exception{
             ///given
             int invalidAmount = 999_999;
-            Order order = orderService.createOrder(orderCreateCommand);
-            Long id = order.getId();
-            PayRequest request = new PayRequest(PayMethod.CARD, invalidAmount);
+            OrderCreateResult order = orderService.createOrder(orderCreateCommand);
+            Long id = order.id();
+            PayRequest request = PayFixture.createPayRequest(PayMethod.CARD, invalidAmount);
 
             // when-then
             mockMvc.perform(post("/api/orders/{id}/payment", id)
@@ -340,7 +346,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("POST /api/orders/{id}/delivery")
     class PrepareDelivery {
         private AddressDto createSampleAddrDto() {
-            return new AddressDto(
+            return AddressFixture.createAddressDto(
                     "12345",
                     "광주광역시",
                     "광산구",
@@ -387,9 +393,12 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         }
 
         private long createOrderAndProcessPayment(OrderCreateCommand command) {
-            Order order = orderService.createOrder(command);
-            Long id = order.getId();
-            orderService.processPayment(id, new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount()));
+            OrderCreateResult order = orderService.createOrder(command);
+            Long id = order.id();
+            orderService.processPayment(
+                    id,
+                    PayFixture.createPayCommand(PayMethod.CARD, order.finalAmount())
+            );
             return id;
         }
 
@@ -400,13 +409,17 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("PATCH /api/orders/{id}/delivery (Long, StartDeliveryRequest)")
     class StartDelivery {
 
-        StartDeliveryRequest request = new StartDeliveryRequest("12345", LocalDateTime.of(2025, 11, 12, 13, 30));
-        Address shipAddr = new Address(
+        StartDeliveryRequest request = OrderFixture.createStartDeliveryRequest(
+                "12345",
+                LocalDateTime.of(2025, 11, 12, 13, 30)
+        );
+        Address shipAddr = AddressFixture.createAddress(
                 "12345",
                 "광주광역시",
                 "광산구",
                 "신창동",
-                "상가 1층");
+                "상가 1층"
+        );
 
         private Long prepareDelivery() {
             Long orderId = processPayment();
@@ -415,11 +428,11 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         }
 
         private Long processPayment() {
-            Order order = orderService.createOrder(orderCreateCommand);
-            Long orderId = order.getId();
+            OrderCreateResult order = orderService.createOrder(orderCreateCommand);
+            Long orderId = order.id();
             orderService.processPayment(
                     orderId,
-                    new PayCommand(PayMethod.MOBILE_PAY, order.getOrderAmount().getFinalAmount()));
+                    PayFixture.createPayCommand(PayMethod.MOBILE_PAY, order.finalAmount()));
             return orderId;
         }
 
@@ -443,8 +456,8 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("결제 되지 않은 상태 -> 422 에러")
         void shouldFail_whenNotPaid() throws Exception {
             // given
-            Order order = orderService.createOrder(orderCreateCommand);
-            Long orderId = order.getId();
+            OrderCreateResult order = orderService.createOrder(orderCreateCommand);
+            Long orderId = order.id();
 
             // when
             ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery", orderId)
@@ -477,12 +490,13 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("PATCH /api/orders/{id}/delivery/complete")
     class CompleteDelivery {
 
-        Address shipAddr = new Address(
+        Address shipAddr = AddressFixture.createAddress(
                 "12345",
                 "광주광역시",
                 "광산구",
                 "신창동",
-                "상가 1층");
+                "상가 1층"
+        );
 
         private Long startDelivery() {
             Long orderId = prepareDelivery();
@@ -497,13 +511,18 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         }
 
         private Long processPayment() {
-            Order order = orderService.createOrder(orderCreateCommand);
-            Long orderId = order.getId();
-            orderService.processPayment(orderId, new PayCommand(PayMethod.MOBILE_PAY, order.getOrderAmount().getFinalAmount()));
+            OrderCreateResult order = orderService.createOrder(orderCreateCommand);
+            Long orderId = order.id();
+            orderService.processPayment(
+                    orderId,
+                    PayFixture.createPayCommand(PayMethod.MOBILE_PAY, order.finalAmount())
+            );
             return orderId;
         }
 
-        CompleteDeliveryRequest request = new CompleteDeliveryRequest(LocalDateTime.of(2025, 11, 15, 13, 30));
+        CompleteDeliveryRequest request = OrderFixture.createCompleteDeliveryRequest(
+                LocalDateTime.of(2025, 11, 15, 13, 30)
+        );
 
         @Test
         @DisplayName("배송 완료 -> 204 검증")
@@ -529,7 +548,7 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
             // when
             ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery/complete", orderId)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(new CompleteDeliveryRequest(null))));
+                    .content(objectMapper.writeValueAsString(OrderFixture.createCompleteDeliveryRequest(null))));
 
             // then
             result.andExpect(status().isNoContent());
@@ -539,8 +558,8 @@ class OrderControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("결제 되지 않은 상태 -> 422 에러")
         void shouldFail_whenNotPaid() throws Exception {
             // given
-            Order order = orderService.createOrder(orderCreateCommand);
-            Long orderId = order.getId();
+            OrderCreateResult order = orderService.createOrder(orderCreateCommand);
+            Long orderId = order.id();
 
             // when
             ResultActions result = mockMvc.perform(patch("/api/orders/{id}/delivery/complete", orderId)

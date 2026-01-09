@@ -9,20 +9,16 @@ import com.minimall.api.order.dto.OrderApiMapper;
 import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
 import com.minimall.api.order.dto.response.OrderCreateResponse;
 import com.minimall.api.order.dto.response.OrderDetailResponse;
-import com.minimall.api.order.dto.response.OrderItemResponse;
 import com.minimall.api.order.pay.dto.PayApiMapper;
-import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.api.common.embeddable.AddressDto;
 import com.minimall.api.common.embeddable.AddressMapper;
 import com.minimall.domain.embeddable.InvalidAddressException;
-import com.minimall.domain.order.Order;
 import com.minimall.domain.order.OrderStatus;
 import com.minimall.domain.order.Pay;
 import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.api.order.dto.request.OrderCreateRequest;
-import com.minimall.api.order.dto.request.OrderItemCreateRequest;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
 import com.minimall.domain.order.pay.PayStatus;
 import com.minimall.domain.order.exception.OrderStatusException;
@@ -30,6 +26,9 @@ import com.minimall.domain.order.exception.PaymentRequiredException;
 import com.minimall.domain.order.pay.PayAmountMismatchException;
 import com.minimall.domain.order.pay.PayMethod;
 import com.minimall.api.order.pay.dto.PayRequest;
+import com.minimall.fixture.AddressFixture;
+import com.minimall.fixture.OrderFixture;
+import com.minimall.fixture.PayFixture;
 import com.minimall.service.order.OrderService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.exception.OrderNotFoundException;
@@ -37,8 +36,8 @@ import com.minimall.service.exception.ProductNotFoundException;
 import com.minimall.service.order.dto.command.OrderCreateCommand;
 import com.minimall.service.order.dto.command.PayCommand;
 import com.minimall.service.order.dto.result.DeliverySummaryResult;
+import com.minimall.service.order.dto.result.OrderCreateResult;
 import com.minimall.service.order.dto.result.OrderDetailResult;
-import com.minimall.service.order.dto.result.OrderItemResult;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -93,36 +92,29 @@ public class OrderControllerTest {
 
     @BeforeEach
     void setUp() {
-        createRequest = new OrderCreateRequest(
+        createRequest = OrderFixture.createOrderRequestDto(
                 1L,
-                List.of(new OrderItemCreateRequest(1L, 10),
-                        new OrderItemCreateRequest(2L, 20)));
+                List.of(
+                        OrderFixture.createOrderItemRequest(1L, 10),
+                        OrderFixture.createOrderItemRequest(2L, 20)
+                )
+        );
 
-        detailResult = new OrderDetailResult(
+        detailResult = OrderFixture.createOrderDetailResult(
                 1L,
                 LocalDateTime.of(2025, 11, 11, 12, 30),
                 OrderStatus.ORDERED,
                 100_000,
-                List.of(new OrderItemResult(
-                        1L,
-                        "도서",
-                        10_000,
-                        10,
-                        100_000)),
-                null, null);
+                List.of(OrderFixture.createOrderItemResult(1L, "도서", 10_000, 10, 100_000))
+        );
 
-        detailResponse = new OrderDetailResponse(
+        detailResponse = OrderFixture.createOrderDetailResponse(
                 1L,
                 LocalDateTime.of(2025, 11, 11, 12, 30),
                 OrderStatus.ORDERED,
                 100_000,
-                List.of(new OrderItemResponse(
-                        1L,
-                        "도서",
-                        10_000,
-                        10,
-                        100_000)),
-                null, null);
+                List.of(OrderFixture.createOrderItemResponse(1L, "도서", 10_000, 10, 100_000))
+        );
     }
 
     @Nested
@@ -132,7 +124,7 @@ public class OrderControllerTest {
         @DisplayName("주문 생성 -> 201 + JSON 검증")
         void return201_whenSuccess() throws Exception {
             //given
-            Order sutbOrder = mock(Order.class);
+            OrderCreateResult sutbOrder = mock(OrderCreateResult.class);
             given(orderService.createOrder(any(OrderCreateCommand.class)))
                     .willReturn(sutbOrder);
 
@@ -160,7 +152,7 @@ public class OrderControllerTest {
                     .andExpect(jsonPath("$.itemCount").value(2));
 
             then(orderService).should(times(1)).createOrder(any(OrderCreateCommand.class));
-            then(orderApiMapper).should(times(1)).toCreateResponse(any(Order.class));
+            then(orderApiMapper).should(times(1)).toCreateResponse(any(OrderCreateResult.class));
         }
 
         @Test
@@ -317,17 +309,15 @@ public class OrderControllerTest {
         void success() throws Exception{
             //given
             long orderId = 123L;
-            PayRequest request = new PayRequest(PayMethod.CARD, 100_000);
+            PayRequest request = PayFixture.createPayRequest(PayMethod.CARD, 100_000);
 
-            Pay pay = new Pay(
-                    PayMethod.CARD,
-                    100_000);
+            Pay pay = PayFixture.createPay(PayMethod.CARD, 100_000);
 
             given(orderService.processPayment(eq(orderId), any(PayCommand.class)))
                     .willReturn(pay);
 
             given(payApiMapper.toPaySummary(pay))
-                    .willReturn(new PayResponse(
+                    .willReturn(PayFixture.createPayResponse(
                             PayMethod.CARD,
                             100_000,
                             PayStatus.PAID,
@@ -351,11 +341,9 @@ public class OrderControllerTest {
         void shouldFail_whenDuplicatedPay() throws Exception{
             //given
             long orderId = 123L;
-            PayRequest request = new PayRequest(PayMethod.CARD, 100_000);
+            PayRequest request = PayFixture.createPayRequest(PayMethod.CARD, 100_000);
 
-            Pay pay = new Pay(
-                    PayMethod.CARD,
-                    100_000);
+            Pay pay = PayFixture.createPay(PayMethod.CARD, 100_000);
 
             given(orderService.processPayment(eq(orderId), any(PayCommand.class)))
                     .willReturn(pay)
@@ -380,7 +368,7 @@ public class OrderControllerTest {
         void shouldFail_whenMismatchAmount() throws Exception{
             //given
             long orderId = 123L;
-            PayRequest request = new PayRequest(PayMethod.CARD, 100_000);
+            PayRequest request = PayFixture.createPayRequest(PayMethod.CARD, 100_000);
 
             given(orderService.processPayment(eq(orderId), any(PayCommand.class)))
                     .willThrow(PayAmountMismatchException.class);
@@ -464,7 +452,10 @@ public class OrderControllerTest {
     @DisplayName("PATCH /api/orders/{id}/delivery")
     class StartDelivery {
 
-        StartDeliveryRequest request = new StartDeliveryRequest("12345", LocalDateTime.of(2025, 11, 12, 13, 30));
+        StartDeliveryRequest request = OrderFixture.createStartDeliveryRequest(
+                "12345",
+                LocalDateTime.of(2025, 11, 12, 13, 30)
+        );
 
         @Test
         @DisplayName("배송 시작 -> 204 검증")
@@ -559,7 +550,9 @@ public class OrderControllerTest {
     @DisplayName("PATCH /api/orders/{id}/delivery/complete")
     class CompleteDelivery {
 
-        CompleteDeliveryRequest request = new CompleteDeliveryRequest(LocalDateTime.of(2025, 11, 15, 13, 30));
+        CompleteDeliveryRequest request = OrderFixture.createCompleteDeliveryRequest(
+                LocalDateTime.of(2025, 11, 15, 13, 30)
+        );
 
         @Test
         @DisplayName("배송 완료 -> 204 검증")
@@ -676,7 +669,7 @@ public class OrderControllerTest {
 
 
     private AddressDto createOrderSampleAddrDto() {
-        return new AddressDto(
+        return AddressFixture.createAddressDto(
                 "12345",
                 "광주광역시",
                 "광산구",

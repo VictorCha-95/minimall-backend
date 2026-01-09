@@ -6,6 +6,7 @@ import com.minimall.service.order.dto.mapper.DeliveryServiceMapper;
 import com.minimall.api.order.dto.response.OrderCreateResponse;
 import com.minimall.api.order.dto.response.OrderDetailResponse;
 import com.minimall.api.order.dto.response.OrderSummaryResponse;
+import com.minimall.service.order.dto.result.OrderCreateResult;
 import com.minimall.service.order.dto.result.OrderDetailResult;
 import com.minimall.service.order.dto.result.OrderSummaryResult;
 import org.mapstruct.Mapper;
@@ -25,11 +26,7 @@ public interface OrderApiMapper {
     OrderSummaryDto toDto(Order order);
 
     //== Response ==//
-    @Mapping(target = "originalAmount", source = "orderAmount.originalAmount")
-    @Mapping(target = "discountAmount", source = "orderAmount.discountAmount")
-    @Mapping(target = "finalAmount", source = "orderAmount.finalAmount")
-    @Mapping(target = "itemCount", expression = "java(order.getOrderItems().size())")
-    OrderCreateResponse toCreateResponse(Order order);
+    OrderCreateResponse toCreateResponse(OrderCreateResult result);
 
     @Mapping(target = "itemCount", expression = "java(order.getOrderItems().size())")
     @Mapping(target = "finalAmount", source = "orderAmount.finalAmount")

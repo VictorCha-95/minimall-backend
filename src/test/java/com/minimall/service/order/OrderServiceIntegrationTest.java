@@ -23,10 +23,10 @@ import com.minimall.service.order.dto.command.OrderCreateCommand;
 import com.minimall.service.order.dto.command.OrderItemCreateCommand;
 import com.minimall.service.order.dto.command.PayCommand;
 import com.minimall.service.order.dto.result.DeliverySummaryResult;
+import com.minimall.service.order.dto.result.OrderCreateResult;
 import com.minimall.service.order.dto.result.OrderDetailResult;
 import com.minimall.service.order.dto.result.OrderSummaryResult;
 import jakarta.persistence.EntityManager;
-import org.hibernate.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,7 +39,6 @@ import org.springframework.test.context.transaction.TestTransaction;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
@@ -130,15 +129,15 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("주문 생성 - DB 반영 및 기타 검증")
         void success() {
             //when
-            Order order = orderService.createOrder(createCommand1);
+            OrderCreateResult order = orderService.createOrder(createCommand1);
             flushClear();
 
             //then: DB 조회해서 실제 생성된 주문 검증
-            Order found = orderRepository.findById(order.getId())
+            Order found = orderRepository.findById(order.id())
                     .orElseThrow(() -> new AssertionError("주문이 저장되지 않음"));
 
             assertSoftly(softly -> {
-                softly.assertThat(found.getId()).isEqualTo(order.getId());
+                softly.assertThat(found.getId()).isEqualTo(order.id());
                 softly.assertThat(found.getOrderStatus()).isEqualTo(OrderStatus.ORDERED);
                 softly.assertThat(found.getOrderedAt()).isNotNull();
                 softly.assertThat(found.getMember().getId()).isEqualTo(member.getId());
@@ -257,13 +256,16 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
         @Test
         void success(){
             //given
-            Order order = orderService.createOrder(createCommand1);
+            OrderCreateResult order = orderService.createOrder(createCommand1);
 
             //when
-            orderService.cancelOrder(order.getId());
+            orderService.cancelOrder(order.id());
+            flushClear();
 
             //then
-            assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CANCELED);
+            Order found = orderRepository.findById(order.id())
+                    .orElseThrow(() -> new AssertionError("주문이 저장되지 않음"));
+            assertThat(found.getOrderStatus()).isEqualTo(OrderStatus.CANCELED);
         }
 
         @DisplayName("주문 미존재 -> Not Found 예외 발생")
@@ -287,10 +289,10 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("주문 상세 단건 조회: 식별자, 일시, 상태, 총금액, 주문 항목, 결제, 배송 응답")
         void success() {
             //given
-            Order order = orderService.createOrder(createCommand1);
+            OrderCreateResult order = orderService.createOrder(createCommand1);
 
             //when
-            OrderDetailResult result = orderService.getOrderDetail(order.getId());
+            OrderDetailResult result = orderService.getOrderDetail(order.id());
 
             //then
             assertSoftly(softly -> {
@@ -361,15 +363,15 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("결제: 주문 조회 -> 결제 -> 매퍼 dto 변환")
         void success() {
             //given
-            Order order = orderService.createOrder(createCommand1);
-            PayCommand command = new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
+            OrderCreateResult order = orderService.createOrder(createCommand1);
+            PayCommand command = new PayCommand(PayMethod.CARD, order.finalAmount());
 
             //when
-            Pay result = orderService.processPayment(order.getId(), command);
+            Pay result = orderService.processPayment(order.id(), command);
 
             //then
             assertSoftly(softly -> {
-                softly.assertThat(result.getPayAmount()).isEqualTo(order.getOrderAmount().getFinalAmount());
+                softly.assertThat(result.getPayAmount()).isEqualTo(order.finalAmount());
             });
         }
 
@@ -377,15 +379,15 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("중복 결제 -> 예외 발생 + 기존 결제/주문 상태 유지")
         void shouldFail_whenDuplicatedPay() {
             //given
-            Order order = orderService.createOrder(createCommand1);
-            PayCommand command = new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount());
-            orderService.processPayment(order.getId(), command);
+            OrderCreateResult order = orderService.createOrder(createCommand1);
+            PayCommand command = new PayCommand(PayMethod.CARD, order.finalAmount());
+            orderService.processPayment(order.id(), command);
 
             //then
-            assertThatThrownBy(() -> orderService.processPayment(order.getId(), command))
+            assertThatThrownBy(() -> orderService.processPayment(order.id(), command))
                     .isInstanceOf(OrderStatusException.class);
 
-            Order foundOrder = orderRepository.findById(order.getId()).get();
+            Order foundOrder = orderRepository.findById(order.id()).get();
             assertThat(foundOrder.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
             assertThat(foundOrder.getPay().getPayStatus()).isEqualTo(PayStatus.PAID);
         }
@@ -394,16 +396,16 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("주문 금액, 결제 금액 불일치 -> 예외 발생 + 주문 상태는 ORDERED 유지")
         void shouldFail_whenMismatchAmount() {
             //given
-            Order order = orderService.createOrder(createCommand1);
+            OrderCreateResult order = orderService.createOrder(createCommand1);
 
             int invalidAmount = 999_999;
             PayCommand command = new PayCommand(PayMethod.CARD, invalidAmount);
 
             //then
-            assertThatThrownBy(() -> orderService.processPayment(order.getId(), command))
+            assertThatThrownBy(() -> orderService.processPayment(order.id(), command))
                     .isInstanceOf(PayAmountMismatchException.class);
 
-            Order foundOrder = orderRepository.findById(order.getId()).get();
+            Order foundOrder = orderRepository.findById(order.id()).get();
             assertThat(foundOrder.getPay().getPayStatus()).isEqualTo(PayStatus.FAILED);
             assertThat(foundOrder.getOrderStatus()).isEqualTo(OrderStatus.ORDERED);
         }
@@ -494,10 +496,10 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("결제 되지 않은 상태 -> 예외")
         void shouldFail_whenNotPaid() {
             //given
-            Order order = orderService.createOrder(createCommand1);
+            OrderCreateResult order = orderService.createOrder(createCommand1);
 
             //when-then
-            assertThatThrownBy(() -> orderService.startDelivery(order.getId(), trackingNo, shippedAt))
+            assertThatThrownBy(() -> orderService.startDelivery(order.id(), trackingNo, shippedAt))
                     .isInstanceOf(DeliveryException.class);
         }
 
@@ -563,10 +565,10 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("결제 되지 않은 상태 -> 예외")
         void shouldFail_whenNotPaid() {
             //given
-            Order order = orderService.createOrder(createCommand1);
+            OrderCreateResult order = orderService.createOrder(createCommand1);
 
             //when-then
-            assertThatThrownBy(() -> orderService.completeDelivery(order.getId(), arrivedAt))
+            assertThatThrownBy(() -> orderService.completeDelivery(order.id(), arrivedAt))
                     .isInstanceOf(DeliveryException.class);
         }
 
@@ -605,9 +607,9 @@ public class OrderServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     private Long createOrderAndProcessPayment(OrderCreateCommand command) {
-        Order order = orderService.createOrder(command);
-        orderService.processPayment(order.getId(), new PayCommand(PayMethod.CARD, order.getOrderAmount().getFinalAmount()));
-        return order.getId();
+        OrderCreateResult order = orderService.createOrder(command);
+        orderService.processPayment(order.id(), new PayCommand(PayMethod.CARD, order.finalAmount()));
+        return order.id();
     }
 
     private Address createSampleAddr() {

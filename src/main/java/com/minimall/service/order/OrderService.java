@@ -20,6 +20,7 @@ import com.minimall.service.exception.ProductNotFoundException;
 import com.minimall.service.order.dto.mapper.OrderServiceMapper;
 import com.minimall.service.order.dto.mapper.PayServiceMapper;
 import com.minimall.service.order.dto.result.DeliverySummaryResult;
+import com.minimall.service.order.dto.result.OrderCreateResult;
 import com.minimall.service.order.dto.result.OrderDetailResult;
 import com.minimall.service.order.dto.result.OrderSummaryResult;
 import lombok.RequiredArgsConstructor;
@@ -42,24 +43,24 @@ public class OrderService {
     private final DeliveryServiceMapper deliveryServiceMapper;
     
     //== 주문 생성 ==//
-    public Order createOrder(OrderCreateCommand command) {
+    public OrderCreateResult createOrder(OrderCreateCommand command) {
 
         Member member = findMember(command.memberId());
 
-        Order order = Order.createOrder(
+        Order created = Order.createOrder(
                 member,
                 command.items().stream()
                         .map(this::toOrderItem)
                         .toArray(OrderItem[]::new));
 
-        orderRepository.save(order);
+        Order saved = orderRepository.save(created);
 
-        return order;
+        return orderServiceMapper.toCreateResult(saved);
     }
 
     private OrderItem toOrderItem(OrderItemCreateCommand command) {
         Long productId = command.productId();
-        Product product = findProductById(productId);
+        Product product = findProductForUpdate(productId);
         return OrderItem.createOrderItem(product, command.quantity());
     }
 
@@ -79,9 +80,16 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<OrderSummaryResult> getOrderSummaries(Long memberId) {
-        Member member = findMember(memberId);
-        List<Order> orders = orderRepository.findByMember(member);
-        return orderServiceMapper.toSummaryResultList(orders);
+        findMember(memberId);
+        return orderRepository.findOrderSummariesByMemberId(memberId).stream()
+                .map(summary -> new OrderSummaryResult(
+                        summary.getId(),
+                        summary.getOrderedAt(),
+                        summary.getOrderStatus(),
+                        summary.getItemCount().intValue(),
+                        summary.getFinalAmount()
+                ))
+                .toList();
     }
 
     //== 결제 ==//
@@ -143,6 +151,11 @@ public class OrderService {
 
     private Product findProductById(Long productId) {
         return productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException("id", productId));
+    }
+
+    private Product findProductForUpdate(Long productId) {
+        return productRepository.findByIdForUpdate(productId)
                 .orElseThrow(() -> new ProductNotFoundException("id", productId));
     }
 

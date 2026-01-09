@@ -21,6 +21,7 @@ import com.minimall.service.order.dto.command.OrderCreateCommand;
 import com.minimall.service.order.dto.command.OrderItemCreateCommand;
 import com.minimall.service.order.dto.command.PayCommand;
 import com.minimall.service.order.dto.result.DeliverySummaryResult;
+import com.minimall.service.order.dto.result.OrderCreateResult;
 import com.minimall.service.order.dto.result.OrderDetailResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -62,8 +63,8 @@ public class OrderController {
                         .toList()
         );
 
-        Order order = orderService.createOrder(command);
-        OrderCreateResponse body = orderApiMapper.toCreateResponse(order);
+        OrderCreateResult result = orderService.createOrder(command);
+        OrderCreateResponse body = orderApiMapper.toCreateResponse(result);
 
         return ResponseEntity
                 .created(URI.create("/api/orders/" + body.id()))

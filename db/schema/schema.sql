@@ -31,7 +31,7 @@ CREATE TABLE member (
 
   grade          VARCHAR(20)  NOT NULL DEFAULT 'BRONZE',
   role           VARCHAR(20)  NOT NULL DEFAULT 'CUSTOMER',
-  status         VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE'
+  status         VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
 
   PRIMARY KEY (member_id),
   UNIQUE KEY uq_member_login_id (login_id),

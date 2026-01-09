@@ -14,9 +14,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        generate_statistics: true
+        hbm2ddl:
+          halt_on_error: false
 
 jwt:
   issuer: minimall-it
-  secret-base64: ${JWT_SECRET_BASE64:test-secret-base64}
-  access-expiration-ms: 600000
-  refresh-expiration-ms: 86400000
+  secret-base64: ${JWT_SECRET_BASE64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+  access-ttl-seconds: 600
+  refresh-ttl-seconds: 86400

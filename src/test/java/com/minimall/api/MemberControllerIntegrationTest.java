@@ -2,23 +2,21 @@ package com.minimall.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.AbstractIntegrationTest;
-import com.minimall.api.member.dto.request.MemberAddressRequest;
 import com.minimall.api.member.dto.request.MemberRegisterRequest;
 import com.minimall.api.member.dto.request.MemberUpdateRequest;
 import com.minimall.domain.member.Member;
 import com.minimall.domain.member.MemberRepository;
 import com.minimall.domain.order.OrderRepository;
-import com.minimall.service.member.dto.command.MemberAddressCommand;
 import com.minimall.service.member.dto.command.MemberRegisterCommand;
 import com.minimall.service.member.dto.result.MemberSummaryResult;
-import com.minimall.service.order.dto.command.OrderCreateCommand;
-import com.minimall.service.order.dto.command.OrderItemCreateCommand;
 import com.minimall.domain.product.Product;
+import com.minimall.fixture.MemberFixture;
+import com.minimall.fixture.OrderFixture;
+import com.minimall.fixture.ProductFixture;
 import com.minimall.service.order.OrderService;
 import com.minimall.service.product.ProductService;
 import com.minimall.service.exception.MemberNotFoundException;
 import com.minimall.service.member.MemberService;
-import com.minimall.service.product.dto.ProductRegisterCommand;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -357,7 +355,8 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
         void update_success() throws Exception {
             //given
             MemberSummaryResult createdMember = memberService.registerCustomer(createCommand("new123", "새로운 회원"));
-            MemberUpdateRequest updateRequest = new MemberUpdateRequest("12345", "수정된 회원", "updated@example.com", null);
+            MemberUpdateRequest updateRequest =
+                    MemberFixture.createUpdateRequest("12345", "수정된 회원", "updated@example.com", null);
 
             //when
             ResultActions result = mockMvc.perform(patch("/api/members/" + createdMember.id())
@@ -380,14 +379,16 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         void update_shouldFail_whenDuplicateEmail() throws Exception {
             //given
-            memberService.registerCustomer(new MemberRegisterCommand("original123", "12345", "original",
-                    "original123@example.com", null));
+            memberService.registerCustomer(
+                    MemberFixture.createRegisterCommand("original123", "original", "original123@example.com", null)
+            );
 
-            MemberSummaryResult otherMember = memberService.registerCustomer(new MemberRegisterCommand("other123", "12345", "other",
-                    "other123@example.com", null));
+            MemberSummaryResult otherMember = memberService.registerCustomer(
+                    MemberFixture.createRegisterCommand("other123", "other", "other123@example.com", null)
+            );
 
-            MemberUpdateRequest updateRequest = new MemberUpdateRequest("12345", "다른 회원",
-                    "original123@example.com", null);
+            MemberUpdateRequest updateRequest =
+                    MemberFixture.createUpdateRequest("12345", "다른 회원", "original123@example.com", null);
 
 
             //when 중복 이메일로 업데이트 시도
@@ -440,17 +441,27 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("주문 목록 요약 조회 -> 200 + JSON 검증")
         void success() throws Exception {
             //given
-            Product book = productService.register(new ProductRegisterCommand("도서", 10_000, 20));
-            Product mouse = productService.register(new ProductRegisterCommand("마우스", 20_000, 50));
+            Product book = productService.register(ProductFixture.createProductRegisterCommand("도서", 10_000, 20));
+            Product mouse = productService.register(ProductFixture.createProductRegisterCommand("마우스", 20_000, 50));
 
             MemberSummaryResult member =
-                    memberService.registerCustomer(new MemberRegisterCommand("loginId123", "12345", "박지성", "ex@ex.com", null));
+                    memberService.registerCustomer(
+                            MemberFixture.createRegisterCommand("loginId123", "박지성", "ex@ex.com", null)
+                    );
             Member foundMember = memberRepository.findById(member.id()).get();
 
-            orderService.createOrder(new OrderCreateCommand(foundMember.getId(),
-                    List.of(new OrderItemCreateCommand(book.getId(), 10))));
-            orderService.createOrder(new OrderCreateCommand(foundMember.getId(),
-                    List.of(new OrderItemCreateCommand(mouse.getId(), 10))));
+            orderService.createOrder(
+                    OrderFixture.createOrderCreateCommand(
+                            foundMember.getId(),
+                            List.of(OrderFixture.createOrderItemCommand(book.getId(), 10))
+                    )
+            );
+            orderService.createOrder(
+                    OrderFixture.createOrderCreateCommand(
+                            foundMember.getId(),
+                            List.of(OrderFixture.createOrderItemCommand(mouse.getId(), 10))
+                    )
+            );
 
             //when
             ResultActions result = mockMvc.perform(get("/api/members/" + foundMember.getId() + "/orders"));
@@ -466,7 +477,9 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("회원 주문 없음: 빈 리스트 반환")
         void returnEmpty_whenOrderIsEmpty() throws Exception {
             //given
-            MemberSummaryResult member = memberService.registerCustomer(new MemberRegisterCommand("loginId123", "12345", "박지성", "ex@ex.com", null));
+            MemberSummaryResult member = memberService.registerCustomer(
+                    MemberFixture.createRegisterCommand("loginId123", "박지성", "ex@ex.com", null)
+            );
             Member foundMember = memberRepository.findById(member.id()).get();
 
             //when
@@ -508,12 +521,10 @@ class MemberControllerIntegrationTest extends AbstractIntegrationTest {
 
     //== Helper Methods==//
     private MemberRegisterCommand createCommand(String loginId, String name) {
-        return new MemberRegisterCommand(loginId, "12345", name, loginId + "@example.com",
-                new MemberAddressCommand("12345", "서울특별시", "강남구", "테헤란로 1", "101동 202호"));
+        return MemberFixture.createRegisterCommand(loginId, name);
     }
 
     private MemberRegisterRequest createRequest(String loginId, String name) {
-        return new MemberRegisterRequest(loginId, "12345", name, loginId + "@example.com",
-                new MemberAddressRequest("12345", "서울특별시", "강남구", "테헤란로 1", "101동 202호"));
+        return MemberFixture.createRegisterRequest(loginId, name);
     }
 }

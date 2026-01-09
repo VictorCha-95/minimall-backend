@@ -4,19 +4,19 @@ spring:
       on-profile: e2e
 
   datasource:
-    url: ${E2E_DB_URL:jdbc:mysql://localhost:13306/minimall?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul}
-    username: ${E2E_DB_USERNAME:minimall}
-    password: ${E2E_DB_PASSWORD:minimall}
+    url: ${E2E_DB_URL:jdbc:mysql://localhost:3307/minimall_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul}
+    username: ${E2E_DB_USERNAME:root}
+    password: ${E2E_DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create
     show-sql: false
 
 jwt:
   issuer: minimall-e2e
   secret-base64: ${JWT_SECRET_BASE64:test-secret-base64}
-  access-expiration-ms: 600000
-  refresh-expiration-ms: 86400000
+  access-ttl-seconds: 600
+  refresh-ttl-seconds: 86400

@@ -11,10 +11,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.time.LocalDateTime;
@@ -22,21 +22,20 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("e2e")
 @Tag("e2e")
 class OrderApiE2ETest {
 
-    private static final String BASE_URL = "http://localhost:8080";
+    @LocalServerPort
+    int port;
 
     @Autowired ObjectMapper objectMapper;
     @Autowired MemberRepository memberRepository;
     @Autowired ProductRepository productRepository;
     @Autowired OrderRepository orderRepository;
-
-    private final RestTemplate restTemplate = new RestTemplate();
+    @Autowired TestRestTemplate restTemplate;
 
     @AfterEach
     void tearDown() {
@@ -85,12 +84,8 @@ class OrderApiE2ETest {
         JsonNode order = createOrder(customerToken, customerId, productId, 1);
         long orderId = order.get("id").asLong();
 
-        HttpStatusCodeException ex = catchThrowableOfType(
-                () -> processPayment(customerToken, orderId, 9999),
-                HttpStatusCodeException.class
-        );
-
-        assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        ResponseEntity<String> response = processPaymentRaw(customerToken, orderId, 9999);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Test
@@ -106,12 +101,8 @@ class OrderApiE2ETest {
         JsonNode order = createOrder(customerToken, customerId, productId, 1);
         long orderId = order.get("id").asLong();
 
-        HttpStatusCodeException ex = catchThrowableOfType(
-                () -> prepareDelivery(customerToken, orderId, null),
-                HttpStatusCodeException.class
-        );
-
-        assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        ResponseEntity<String> response = prepareDeliveryRaw(customerToken, orderId, null);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Test
@@ -120,31 +111,28 @@ class OrderApiE2ETest {
         registerCustomer("customer-product-fail", true);
         String customerToken = login("customer-product-fail", "pass1234!");
 
-        HttpStatusCodeException ex = catchThrowableOfType(
-                () -> registerProduct(customerToken, "blocked-product", 10000, 1),
-                HttpStatusCodeException.class
-        );
-
-        assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        ResponseEntity<Void> response = registerProductRaw(customerToken, "blocked-product", 10000, 1);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     private Long registerCustomer(String loginId, boolean includeAddress) throws Exception {
-        Map<String, Object> payload = Map.of(
-                "loginId", loginId,
-                "password", "pass1234!",
-                "name", "CUSTOMER",
-                "email", loginId + "@example.com",
-                "addr", includeAddress ? Map.of(
-                        "postcode", "12345",
-                        "state", "Seoul",
-                        "city", "Gangnam",
-                        "street", "Teheran-ro",
-                        "detail", "101"
-                ) : null
-        );
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("loginId", loginId);
+        payload.put("password", "pass1234!");
+        payload.put("name", "CUSTOMER");
+        payload.put("email", loginId + "@example.com");
+        if (includeAddress) {
+            payload.put("addr", Map.of(
+                    "postcode", "12345",
+                    "state", "Seoul",
+                    "city", "Gangnam",
+                    "street", "Teheran-ro",
+                    "detail", "101"
+            ));
+        }
 
         ResponseEntity<String> response = restTemplate.postForEntity(
-                BASE_URL + "/api/members/customers",
+                baseUrl() + "/api/members/customers",
                 payload,
                 String.class
         );
@@ -165,7 +153,7 @@ class OrderApiE2ETest {
         );
 
         ResponseEntity<String> response = restTemplate.postForEntity(
-                BASE_URL + "/api/members/sellers",
+                baseUrl() + "/api/members/sellers",
                 payload,
                 String.class
         );
@@ -181,7 +169,7 @@ class OrderApiE2ETest {
         );
 
         ResponseEntity<String> response = restTemplate.postForEntity(
-                BASE_URL + "/api/auth/login",
+                baseUrl() + "/api/auth/login",
                 payload,
                 String.class
         );
@@ -191,10 +179,16 @@ class OrderApiE2ETest {
     }
 
     private Long registerProduct(String token, String name, int price, int stock) throws Exception {
+        ResponseEntity<Void> response = registerProductRaw(token, name, price, stock);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return extractId(response.getHeaders().getLocation());
+    }
+
+    private ResponseEntity<Void> registerProductRaw(String token, String name, int price, int stock) {
         Map<String, Object> payload = Map.of(
                 "name", name,
                 "price", price,
-                "stock", stock
+                "stockQuantity", stock
         );
 
         HttpHeaders headers = new HttpHeaders();
@@ -202,13 +196,11 @@ class OrderApiE2ETest {
         headers.setBearerAuth(token);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-        ResponseEntity<Void> response = restTemplate.postForEntity(
-                BASE_URL + "/api/products",
+        return restTemplate.postForEntity(
+                baseUrl() + "/api/products",
                 request,
                 Void.class
         );
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        return extractId(response.getHeaders().getLocation());
     }
 
     private JsonNode createOrder(String token, Long memberId, Long productId, int quantity) throws Exception {
@@ -225,7 +217,7 @@ class OrderApiE2ETest {
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
         ResponseEntity<String> response = restTemplate.postForEntity(
-                BASE_URL + "/api/orders",
+                baseUrl() + "/api/orders",
                 request,
                 String.class
         );
@@ -234,6 +226,11 @@ class OrderApiE2ETest {
     }
 
     private void processPayment(String token, long orderId, int payAmount) {
+        ResponseEntity<String> response = processPaymentRaw(token, orderId, payAmount);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    private ResponseEntity<String> processPaymentRaw(String token, long orderId, int payAmount) {
         Map<String, Object> payload = Map.of(
                 "payMethod", "CARD",
                 "payAmount", payAmount
@@ -244,26 +241,29 @@ class OrderApiE2ETest {
         headers.setBearerAuth(token);
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(
-                BASE_URL + "/api/orders/" + orderId + "/payment",
+        return restTemplate.postForEntity(
+                baseUrl() + "/api/orders/" + orderId + "/payment",
                 request,
                 String.class
         );
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     private void prepareDelivery(String token, long orderId, Map<String, Object> address) {
+        ResponseEntity<String> response = prepareDeliveryRaw(token, orderId, address);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    }
+
+    private ResponseEntity<String> prepareDeliveryRaw(String token, long orderId, Map<String, Object> address) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(token);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(address, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(
-                BASE_URL + "/api/orders/" + orderId + "/delivery",
+        return restTemplate.postForEntity(
+                baseUrl() + "/api/orders/" + orderId + "/delivery",
                 request,
                 String.class
         );
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     private void startDelivery(String token, long orderId) {
@@ -278,7 +278,7 @@ class OrderApiE2ETest {
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
         ResponseEntity<Void> response = restTemplate.exchange(
-                BASE_URL + "/api/orders/" + orderId + "/delivery",
+                baseUrl() + "/api/orders/" + orderId + "/delivery",
                 HttpMethod.PATCH,
                 request,
                 Void.class
@@ -297,12 +297,16 @@ class OrderApiE2ETest {
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
         ResponseEntity<Void> response = restTemplate.exchange(
-                BASE_URL + "/api/orders/" + orderId + "/delivery/complete",
+                baseUrl() + "/api/orders/" + orderId + "/delivery/complete",
                 HttpMethod.PATCH,
                 request,
                 Void.class
         );
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    }
+
+    private String baseUrl() {
+        return "http://localhost:" + port;
     }
 
     private Long extractId(URI location) {

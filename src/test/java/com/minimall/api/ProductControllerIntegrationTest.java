@@ -5,6 +5,7 @@ import com.minimall.AbstractIntegrationTest;
 import com.minimall.api.product.dto.request.ProductRegisterRequest;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
+import com.minimall.fixture.ProductFixture;
 import com.minimall.service.product.ProductService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -52,7 +53,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("상품 등록 -> 201 검증")
         void success() throws Exception {
             //given
-            ProductRegisterRequest request = new ProductRegisterRequest("상품이름", 150_000, 50);
+            ProductRegisterRequest request = ProductFixture.createProductRegisterRequest("상품이름", 150_000, 50);
 
             //when
             ResultActions result = mockMvc.perform(post("/api/products")
@@ -70,7 +71,7 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("상품명 공백 -> 422 에러")
         void shouldFail_whenNameIsBlank() throws Exception {
             //given
-            ProductRegisterRequest request = new ProductRegisterRequest("", 150_000, 50);
+            ProductRegisterRequest request = ProductFixture.createProductRegisterRequest("", 150_000, 50);
 
             //when
             ResultActions result = mockMvc.perform(post("/api/products")
@@ -90,12 +91,16 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
         static final int ORIGINAL_STOCK = 50;
         static final int REQUESTED_QUANTITY = 20;
 
-        Product product = new Product("마우스", 150_000, ORIGINAL_STOCK);
         Long id;
 
         @BeforeEach
         void setup() {
-            Product savedProduct = productRepository.save(product);
+            Product savedProduct = ProductFixture.createProductSaved(
+                    productRepository,
+                    "마우스",
+                    150_000,
+                    ORIGINAL_STOCK
+            );
             id = savedProduct.getId();
         }
 
@@ -199,12 +204,16 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
         static final String NEW_NAME = "새로운 상품명";
 
 
-        Product product = new Product(ORIGINAL_NAME, 150_000, 50);
         Long id;
 
         @BeforeEach
         void setup() {
-            Product savedProduct = productRepository.save(product);
+            Product savedProduct = ProductFixture.createProductSaved(
+                    productRepository,
+                    ORIGINAL_NAME,
+                    150_000,
+                    50
+            );
             id = savedProduct.getId();
         }
 
@@ -245,12 +254,16 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
         static final int NEW_PRICE = 200_000;
 
 
-        Product product = new Product("상품명", ORIGINAL_PRICE, 50);
         Long id;
 
         @BeforeEach
         void setup() {
-            Product savedProduct = productRepository.save(product);
+            Product savedProduct = ProductFixture.createProductSaved(
+                    productRepository,
+                    "상품명",
+                    ORIGINAL_PRICE,
+                    50
+            );
             id = savedProduct.getId();
         }
 
@@ -286,13 +299,17 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
     @Nested
     @DisplayName("DELETE /api/products/{id}")
     class Delete {
-        Product product = new Product("상품명", 150_000, 50);
         Long id;
         static final int NOT_EXIST_ID = 999_999;
 
         @BeforeEach
         void setup() {
-            Product savedProduct = productRepository.save(product);
+            Product savedProduct = ProductFixture.createProductSaved(
+                    productRepository,
+                    "상품명",
+                    150_000,
+                    50
+            );
             id = savedProduct.getId();
         }
 

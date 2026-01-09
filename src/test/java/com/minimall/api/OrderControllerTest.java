@@ -9,20 +9,16 @@ import com.minimall.api.order.dto.OrderApiMapper;
 import com.minimall.api.order.dto.request.CompleteDeliveryRequest;
 import com.minimall.api.order.dto.response.OrderCreateResponse;
 import com.minimall.api.order.dto.response.OrderDetailResponse;
-import com.minimall.api.order.dto.response.OrderItemResponse;
 import com.minimall.api.order.pay.dto.PayApiMapper;
-import com.minimall.api.order.pay.dto.PayResponse;
 import com.minimall.domain.embeddable.Address;
 import com.minimall.api.common.embeddable.AddressDto;
 import com.minimall.api.common.embeddable.AddressMapper;
 import com.minimall.domain.embeddable.InvalidAddressException;
-import com.minimall.domain.order.Order;
 import com.minimall.domain.order.OrderStatus;
 import com.minimall.domain.order.Pay;
 import com.minimall.domain.order.delivery.DeliveryException;
 import com.minimall.domain.order.delivery.DeliveryStatus;
 import com.minimall.api.order.dto.request.OrderCreateRequest;
-import com.minimall.api.order.dto.request.OrderItemCreateRequest;
 import com.minimall.domain.order.delivery.DeliveryStatusException;
 import com.minimall.domain.order.pay.PayStatus;
 import com.minimall.domain.order.exception.OrderStatusException;
@@ -40,8 +36,8 @@ import com.minimall.service.exception.ProductNotFoundException;
 import com.minimall.service.order.dto.command.OrderCreateCommand;
 import com.minimall.service.order.dto.command.PayCommand;
 import com.minimall.service.order.dto.result.DeliverySummaryResult;
+import com.minimall.service.order.dto.result.OrderCreateResult;
 import com.minimall.service.order.dto.result.OrderDetailResult;
-import com.minimall.service.order.dto.result.OrderItemResult;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -128,7 +124,7 @@ public class OrderControllerTest {
         @DisplayName("주문 생성 -> 201 + JSON 검증")
         void return201_whenSuccess() throws Exception {
             //given
-            Order sutbOrder = mock(Order.class);
+            OrderCreateResult sutbOrder = mock(OrderCreateResult.class);
             given(orderService.createOrder(any(OrderCreateCommand.class)))
                     .willReturn(sutbOrder);
 
@@ -156,7 +152,7 @@ public class OrderControllerTest {
                     .andExpect(jsonPath("$.itemCount").value(2));
 
             then(orderService).should(times(1)).createOrder(any(OrderCreateCommand.class));
-            then(orderApiMapper).should(times(1)).toCreateResponse(any(Order.class));
+            then(orderApiMapper).should(times(1)).toCreateResponse(any(OrderCreateResult.class));
         }
 
         @Test

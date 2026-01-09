@@ -1,10 +1,10 @@
-package com.minimall.api.order.dto.response;
+package com.minimall.service.order.dto.result;
 
 import com.minimall.domain.order.OrderStatus;
 
 import java.time.LocalDateTime;
 
-public record OrderCreateResponse(
+public record OrderCreateResult(
         Long id,
         LocalDateTime orderedAt,
         OrderStatus orderStatus,

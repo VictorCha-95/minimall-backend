@@ -20,6 +20,7 @@ import com.minimall.service.exception.ProductNotFoundException;
 import com.minimall.service.order.dto.mapper.OrderServiceMapper;
 import com.minimall.service.order.dto.mapper.PayServiceMapper;
 import com.minimall.service.order.dto.result.DeliverySummaryResult;
+import com.minimall.service.order.dto.result.OrderCreateResult;
 import com.minimall.service.order.dto.result.OrderDetailResult;
 import com.minimall.service.order.dto.result.OrderSummaryResult;
 import lombok.RequiredArgsConstructor;
@@ -42,19 +43,19 @@ public class OrderService {
     private final DeliveryServiceMapper deliveryServiceMapper;
     
     //== 주문 생성 ==//
-    public Order createOrder(OrderCreateCommand command) {
+    public OrderCreateResult createOrder(OrderCreateCommand command) {
 
         Member member = findMember(command.memberId());
 
-        Order order = Order.createOrder(
+        Order created = Order.createOrder(
                 member,
                 command.items().stream()
                         .map(this::toOrderItem)
                         .toArray(OrderItem[]::new));
 
-        orderRepository.save(order);
+        Order saved = orderRepository.save(created);
 
-        return order;
+        return orderServiceMapper.toCreateResult(saved);
     }
 
     private OrderItem toOrderItem(OrderItemCreateCommand command) {

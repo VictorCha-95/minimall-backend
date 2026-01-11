@@ -1,3 +1,0 @@
-CREATE USER IF NOT EXISTS 'minimall'@'%' IDENTIFIED BY 'minimall';
-GRANT ALL PRIVILEGES ON minimall.* TO 'minimall'@'%';
-FLUSH PRIVILEGES;

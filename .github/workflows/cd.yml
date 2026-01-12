@@ -52,7 +52,7 @@ jobs:
           script: |
             set -e
 
-            cd ~/minimall
+            cd ~/minimall/minimall-backend
 
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
 

@@ -11,6 +11,11 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+
 jwt:
   issuer: minimall
   secret-base64: ${JWT_SECRET_BASE64:PLEASE_OVERRIDE_IN_ENV}

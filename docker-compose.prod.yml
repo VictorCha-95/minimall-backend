@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    image: ghcr.io/victorcha-95/minimall-backend:latest
+    image: ghcr.io/VictorCha-95/minimall-backend:${IMAGE_TAG}
     container_name: minimall-app
     restart: always
     ports:

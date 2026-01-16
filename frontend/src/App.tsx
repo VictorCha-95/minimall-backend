@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import CustomerRegisterPage from "./pages/CustomerRegisterPage";
 import ProfilePage from "./pages/ProfilePage";
+import WorkspacePage from "./pages/WorkspacePage";
 import RequireAuth from "./components/RequireAuth";
 import RedirectIfAuth from "./components/RedirectIfAuth";
 import {
@@ -104,6 +105,7 @@ const App: React.FC = () => {
           <Link to="/">홈</Link>
           {meInfo ? (
             <>
+              <Link to="/workspace">운영 콘솔</Link>
               <Link to="/me">내 정보</Link>
               <span className="nav-user">
                 {meInfo.name} ({meInfo.role})
@@ -156,6 +158,14 @@ const App: React.FC = () => {
             element={
               <RequireAuth ready={authReady} loading={meLoading}>
                 <ProfilePage me={meInfo} />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/workspace"
+            element={
+              <RequireAuth ready={authReady} loading={meLoading}>
+                <WorkspacePage me={meInfo} />
               </RequireAuth>
             }
           />

@@ -1,9 +1,12 @@
 package com.minimall.api.product;
 
 import com.minimall.api.product.dto.request.ProductRegisterRequest;
+import com.minimall.api.product.dto.response.ProductListItemResponse;
+import com.minimall.api.product.dto.response.ProductSliceResponse;
 import com.minimall.domain.product.Product;
 import com.minimall.service.product.ProductService;
 import com.minimall.service.product.dto.ProductRegisterCommand;
+import com.minimall.service.product.dto.ProductSliceResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -44,6 +47,22 @@ public class ProductController {
         return ResponseEntity
                 .created(URI.create("/api/products/" + product.getId()))
                 .build();
+    }
+
+    @Operation(summary = "상품 목록 조회")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "400", description = "요청 검증 오류")
+    })
+    @GetMapping
+    public ProductSliceResponse<ProductListItemResponse> list(@RequestParam int page, @RequestParam int size) {
+        ProductSliceResult<Product> result = productService.list(page, size);
+        return new ProductSliceResponse<>(
+                result.items().stream().map(ProductListItemResponse::from).toList(),
+                result.page(),
+                result.size(),
+                result.hasNext()
+        );
     }
 
     @Operation(summary = "재고 증가")

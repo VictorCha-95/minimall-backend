@@ -16,7 +16,7 @@ public enum PayStatus implements CustomStatus {
     private final static Map<PayStatus, Set<PayStatus>> transitions = Map.of(
         READY, Set.of(PAID, CANCELED, FAILED),
         PAID, Set.of(CANCELED),
-        FAILED, Set.of(),
+        FAILED, Set.of(PAID),
         CANCELED, Set.of()
     );
 

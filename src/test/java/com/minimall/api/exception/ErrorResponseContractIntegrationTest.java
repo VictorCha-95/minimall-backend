@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -119,6 +120,16 @@ class ErrorResponseContractIntegrationTest extends AbstractIntegrationTest {
                 .content(body));
 
         assertBaseErrorContract(result, 422, ApiErrorCode.DOMAIN_RULE_VIOLATION, path, false);
+    }
+
+    @Test
+    @DisplayName("405 METHOD_NOT_ALLOWED: unsupported method")
+    void methodNotAllowed_contract() throws Exception {
+        String path = "/api/products";
+
+        ResultActions result = mockMvc.perform(put(path));
+
+        assertBaseErrorContract(result, 405, ApiErrorCode.METHOD_NOT_ALLOWED, path, false);
     }
 
     private void assertBaseErrorContract(ResultActions result,

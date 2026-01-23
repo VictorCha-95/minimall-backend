@@ -3,8 +3,11 @@ package com.minimall.service.product;
 import com.minimall.domain.product.Product;
 import com.minimall.domain.product.ProductRepository;
 import com.minimall.service.exception.ProductNotFoundException;
+import com.minimall.service.product.dto.ProductSliceResult;
 import com.minimall.service.product.dto.ProductRegisterCommand;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +17,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class ProductService {
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final ProductRepository productRepository;
 
@@ -83,5 +88,27 @@ public class ProductService {
     public List<Product> findByStockQuantityGreaterThan(int stockQuantity) {
         return productRepository.findByStockQuantityGreaterThan(stockQuantity);
     }
-}
 
+    @Transactional(readOnly = true)
+    public ProductSliceResult<Product> list(int page, int size, String name) {
+        int limitedSize = Math.min(size, MAX_PAGE_SIZE);
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(limitedSize, 1);
+        int fetchSize = safeSize + 1;
+
+        PageRequest pageRequest = PageRequest.of(
+                safePage,
+                fetchSize,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        List<Product> content = (name == null || name.isBlank())
+                ? productRepository.findAllByOrderByCreatedAtDesc(pageRequest).getContent()
+                : productRepository.findByNameContainingIgnoreCaseOrderByCreatedAtDesc(name.trim(), pageRequest)
+                .getContent();
+        boolean hasNext = content.size() > safeSize;
+        List<Product> items = hasNext ? content.subList(0, safeSize) : content;
+
+        return new ProductSliceResult<>(items, safePage, safeSize, hasNext);
+    }
+}

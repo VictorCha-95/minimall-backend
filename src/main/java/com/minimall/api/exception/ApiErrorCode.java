@@ -12,5 +12,6 @@ public enum ApiErrorCode {
     DUPLICATE_VALUE,
     CONFLICT,                // 중복/무결성 위반
     INTERNAL_ERROR,          // 예상 못한 서버 오류
-    INVALID_CREDENTIALS      // 로그인 시 비밀번호 오류 등 권한 오류
+    INVALID_CREDENTIALS,     // 로그인 시 비밀번호 오류 등 권한 오류
+    METHOD_NOT_ALLOWED       // 허용되지 않은 HTTP 메서드
 }

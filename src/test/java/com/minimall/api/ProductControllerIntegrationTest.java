@@ -1,5 +1,6 @@
 package com.minimall.api;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minimall.AbstractIntegrationTest;
 import com.minimall.api.product.dto.request.ProductRegisterRequest;
@@ -44,6 +45,73 @@ public class ProductControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     ProductService productService;
+
+    @Nested
+    @DisplayName("GET /api/products")
+    class ListProducts {
+
+        @BeforeEach
+        void setup() {
+            for (int i = 0; i < 25; i++) {
+                ProductFixture.createProductSaved(
+                        productRepository,
+                        "상품-" + i,
+                        10_000 + i,
+                        10
+                );
+            }
+        }
+
+        @Test
+        @DisplayName("기본 페이징 -> 200 + 20개 이하")
+        void success_defaultPaging() throws Exception {
+            ResultActions result = mockMvc.perform(get("/api/products")
+                    .param("page", "0")
+                    .param("size", "20"));
+
+            result.andExpect(status().isOk());
+
+            String body = result.andReturn().getResponse().getContentAsString();
+            JsonNode root = objectMapper.readTree(body);
+            assertThat(root.has("items")).isTrue();
+            assertThat(root.has("page")).isTrue();
+            assertThat(root.has("size")).isTrue();
+            assertThat(root.has("hasNext")).isTrue();
+            assertThat(root.get("items").isArray()).isTrue();
+            assertThat(root.get("items").size()).isLessThanOrEqualTo(20);
+            JsonNode first = root.get("items").get(0);
+            assertThat(first.has("productId")).isTrue();
+            assertThat(first.has("productName")).isTrue();
+            assertThat(first.has("productPrice")).isTrue();
+            assertThat(first.has("stockQuantity")).isTrue();
+            assertThat(first.has("createdAt")).isTrue();
+            assertThat(first.has("updatedAt")).isTrue();
+        }
+
+        @Test
+        @DisplayName("size 상한 -> 100 제한")
+        void shouldLimitPageSizeToMax() throws Exception {
+            for (int i = 25; i < 120; i++) {
+                ProductFixture.createProductSaved(
+                        productRepository,
+                        "상품-" + i,
+                        10_000 + i,
+                        10
+                );
+            }
+
+            ResultActions result = mockMvc.perform(get("/api/products")
+                    .param("page", "0")
+                    .param("size", "200"));
+
+            result.andExpect(status().isOk());
+
+            String body = result.andReturn().getResponse().getContentAsString();
+            JsonNode root = objectMapper.readTree(body);
+            assertThat(root.get("size").asInt()).isEqualTo(100);
+            assertThat(root.get("items").size()).isLessThanOrEqualTo(100);
+        }
+    }
 
 
     @Nested

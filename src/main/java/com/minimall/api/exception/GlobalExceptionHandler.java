@@ -13,6 +13,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -104,6 +105,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDomainRule(
             DomainRuleException ex, HttpServletRequest req) {
         return ErrorResponse.of(HttpStatus.UNPROCESSABLE_ENTITY, ApiErrorCode.DOMAIN_RULE_VIOLATION, ex.getMessage(), req.getRequestURI());
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotAllowed(
+            HttpRequestMethodNotSupportedException ex, HttpServletRequest req) {
+        return ErrorResponse.of(HttpStatus.METHOD_NOT_ALLOWED, ApiErrorCode.METHOD_NOT_ALLOWED, ex.getMessage(), req.getRequestURI());
     }
 
     @ExceptionHandler(Exception.class)

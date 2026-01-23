@@ -16,6 +16,10 @@ spring:
     locations: classpath:db/migration
     validate-on-migrate: true
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
 jwt:
   issuer: minimall
   secret-base64: ${JWT_SECRET_BASE64:PLEASE_OVERRIDE_IN_ENV}

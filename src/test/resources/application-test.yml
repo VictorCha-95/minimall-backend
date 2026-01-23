@@ -14,6 +14,14 @@ spring:
       ddl-auto: create-drop
     show-sql: true
 
+  cache:
+    type: none
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
 jwt:
   issuer: minimall-test
   secret-base64: ${JWT_SECRET_BASE64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}

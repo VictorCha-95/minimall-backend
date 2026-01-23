@@ -3,6 +3,8 @@ import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import CustomerRegisterPage from "./pages/CustomerRegisterPage";
+import SellerRegisterPage from "./pages/SellerRegisterPage";
+import RegisterSelectPage from "./pages/RegisterSelectPage";
 import ProfilePage from "./pages/ProfilePage";
 import WorkspacePage from "./pages/WorkspacePage";
 import RequireAuth from "./components/RequireAuth";
@@ -117,7 +119,7 @@ const App: React.FC = () => {
           ) : (
             <>
               <Link to="/login">로그인</Link>
-              <Link to="/register/customer">회원가입</Link>
+              <Link to="/register">회원가입</Link>
             </>
           )}
         </nav>
@@ -150,6 +152,22 @@ const App: React.FC = () => {
             element={
               <RedirectIfAuth ready={authReady} loading={meLoading}>
                 <CustomerRegisterPage />
+              </RedirectIfAuth>
+            }
+          />
+          <Route
+            path="/register/seller"
+            element={
+              <RedirectIfAuth ready={authReady} loading={meLoading}>
+                <SellerRegisterPage />
+              </RedirectIfAuth>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <RedirectIfAuth ready={authReady} loading={meLoading}>
+                <RegisterSelectPage />
               </RedirectIfAuth>
             }
           />

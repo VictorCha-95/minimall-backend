@@ -27,8 +27,8 @@ const HomePage: React.FC<HomePageProps> = ({ me }) => {
                 로그인하고 시작하기
               </Link>
             )}
-            <Link to="/register/customer" className="btn-outline">
-              고객 회원가입
+            <Link to="/register" className="btn-outline">
+              회원가입
             </Link>
           </div>
         </div>
@@ -111,4 +111,3 @@ const HomePage: React.FC<HomePageProps> = ({ me }) => {
 };
 
 export default HomePage;
-

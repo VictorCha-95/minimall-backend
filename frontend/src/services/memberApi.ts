@@ -16,6 +16,17 @@ export interface CustomerRegisterRequest {
   addr?: MemberAddress | null;
 }
 
+export interface SellerRegisterRequest {
+  loginId: string;
+  password: string;
+  name: string;
+  email: string;
+  addr?: MemberAddress | null;
+  storeName: string;
+  businessNumber: string;
+  account: string;
+}
+
 export interface MemberSummaryResponse {
   id: number;
   loginId: string;
@@ -52,6 +63,17 @@ export async function registerCustomer(
 ): Promise<MemberSummaryResponse> {
   const { data } = await axios.post<MemberSummaryResponse>(
     "/api/members/customers",
+    payload
+  );
+  return data;
+}
+
+// 판매자 회원가입: POST /members/sellers
+export async function registerSeller(
+  payload: SellerRegisterRequest
+): Promise<MemberSummaryResponse> {
+  const { data } = await axios.post<MemberSummaryResponse>(
+    "/api/members/sellers",
     payload
   );
   return data;

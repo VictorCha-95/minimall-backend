@@ -68,8 +68,22 @@ jobs:
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
 
             export IMAGE_TAG="${{ github.sha }}"
+            if [ -f .env ]; then
+              if grep -q '^IMAGE_TAG=' .env; then
+                sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${IMAGE_TAG}/" .env
+              else
+                echo "IMAGE_TAG=${IMAGE_TAG}" >> .env
+              fi
+            else
+              echo "IMAGE_TAG=${IMAGE_TAG}" > .env
+              echo "NOTE: .env was missing; only IMAGE_TAG was created. Other secrets must be added manually." >&2
+            fi
 
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
             docker image prune -f
+            # Verify on EC2:
+            # docker compose -f docker-compose.prod.yml config | grep -n "image:"
+            # docker ps --no-trunc | grep minimall
+            # docker logs --tail 200 minimall-app

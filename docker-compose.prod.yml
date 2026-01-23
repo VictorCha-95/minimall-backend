@@ -1,8 +1,6 @@
-version: "3.8"
-
 services:
   frontend:
-    image: ghcr.io/victorcha-95/minimall-frontend:${IMAGE_TAG}
+    image: ghcr.io/victorcha-95/minimall-frontend:${IMAGE_TAG:-latest}
     container_name: minimall-frontend
     restart: always
     ports:
@@ -13,7 +11,7 @@ services:
       - appnet
 
   app:
-    image: ghcr.io/victorcha-95/minimall-backend:${IMAGE_TAG}
+    image: ghcr.io/victorcha-95/minimall-backend:${IMAGE_TAG:-latest}
     container_name: minimall-app
     restart: always
     expose:

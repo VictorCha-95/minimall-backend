@@ -125,7 +125,8 @@ def npmCommand = System.getProperty("os.name").toLowerCase().contains("windows")
 
 tasks.register('frontendInstall', Exec) {
 	workingDir frontendDir
-	commandLine npmCommand, '--prefix', frontendDir, 'install'
+	commandLine npmCommand, '--prefix', frontendDir, 'ci', '--include=dev'
+	environment "NPM_CONFIG_PRODUCTION", "false"
 	inputs.files("${frontendDir}/package.json", "${frontendDir}/package-lock.json")
 	outputs.dir("${frontendDir}/node_modules")
 	onlyIf { !project.hasProperty("skipFrontend") }

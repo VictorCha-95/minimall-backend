@@ -34,9 +34,6 @@ class OrderApiE2ETest extends AbstractE2ETest {
     int port;
 
     @Autowired ObjectMapper objectMapper;
-    @Autowired MemberRepository memberRepository;
-    @Autowired ProductRepository productRepository;
-    @Autowired OrderRepository orderRepository;
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired TestRestTemplate restTemplate;
 

@@ -90,7 +90,7 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public ProductSliceResult<Product> list(int page, int size) {
+    public ProductSliceResult<Product> list(int page, int size, String name) {
         int limitedSize = Math.min(size, MAX_PAGE_SIZE);
         int safePage = Math.max(page, 0);
         int safeSize = Math.max(limitedSize, 1);
@@ -102,7 +102,10 @@ public class ProductService {
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
-        List<Product> content = productRepository.findAllByOrderByCreatedAtDesc(pageRequest).getContent();
+        List<Product> content = (name == null || name.isBlank())
+                ? productRepository.findAllByOrderByCreatedAtDesc(pageRequest).getContent()
+                : productRepository.findByNameContainingIgnoreCaseOrderByCreatedAtDesc(name.trim(), pageRequest)
+                .getContent();
         boolean hasNext = content.size() > safeSize;
         List<Product> items = hasNext ? content.subList(0, safeSize) : content;
 

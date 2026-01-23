@@ -28,5 +28,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("select p from Product p where p.id = :id")
     Optional<Product> findByIdForUpdate(@Param("id") Long id);
 
+    Slice<Product> findByNameContainingIgnoreCaseOrderByCreatedAtDesc(String name, Pageable pageable);
+
     Slice<Product> findAllByOrderByCreatedAtDesc(Pageable pageable);
 }

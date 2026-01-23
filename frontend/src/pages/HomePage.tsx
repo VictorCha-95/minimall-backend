@@ -13,10 +13,9 @@ const HomePage: React.FC<HomePageProps> = ({ me }) => {
       <div className="hero">
         <div>
           <p className="eyebrow">MiniMall Platform</p>
-          <h1>API를 실감나게 체험하는 운영 허브</h1>
+          <h1>Minimall 이커머스 </h1>
           <p className="hero-sub">
-            인증, 주문, 배송, 재고까지 백엔드 플로우를 한 화면에서 연결하고
-            확인하세요.
+            인증, 주문, 배송, 재고까지 백엔드 플로우를 한 화면에서 확인하세요.
           </p>
           <div className="hero-actions">
             {me ? (

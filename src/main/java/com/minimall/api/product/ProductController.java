@@ -55,8 +55,10 @@ public class ProductController {
             @ApiResponse(responseCode = "400", description = "요청 검증 오류")
     })
     @GetMapping
-    public ProductSliceResponse<ProductListItemResponse> list(@RequestParam int page, @RequestParam int size) {
-        ProductSliceResult<Product> result = productService.list(page, size);
+    public ProductSliceResponse<ProductListItemResponse> list(@RequestParam int page,
+                                                             @RequestParam int size,
+                                                             @RequestParam(required = false) String name) {
+        ProductSliceResult<Product> result = productService.list(page, size, name);
         return new ProductSliceResponse<>(
                 result.items().stream().map(ProductListItemResponse::from).toList(),
                 result.page(),

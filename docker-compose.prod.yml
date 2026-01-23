@@ -1,12 +1,23 @@
 version: "3.8"
 
 services:
+  frontend:
+    image: ghcr.io/victorcha-95/minimall-frontend:${IMAGE_TAG}
+    container_name: minimall-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    networks:
+      - appnet
+
   app:
     image: ghcr.io/victorcha-95/minimall-backend:${IMAGE_TAG}
     container_name: minimall-app
     restart: always
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
@@ -17,11 +28,22 @@ services:
       JWT_SECRET_BASE64: ${JWT_SECRET_BASE64}
     depends_on:
       - redis
+    networks:
+      - appnet
 
   redis:
     image: redis:7-alpine
     container_name: minimall-redis
     restart: always
-    ports:
-      - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - appnet
+
+volumes:
+  redis-data:
+
+networks:
+  appnet:
+    driver: bridge

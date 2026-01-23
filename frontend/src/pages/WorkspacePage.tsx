@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AuthMeResponse } from "../services/authApi";
 import {
-  ProductPageResponse,
+  ProductSliceResponse,
   addProductStock,
   changeProductName,
   changeProductPrice,
@@ -43,13 +43,14 @@ type WorkspacePageProps = {
 };
 
 const WorkspacePage: React.FC<WorkspacePageProps> = ({ me }) => {
-  const [productPage, setProductPage] = useState<ProductPageResponse | null>(
+  const [productSlice, setProductSlice] = useState<ProductSliceResponse | null>(
     null
   );
   const [productPageError, setProductPageError] = useState<string | null>(null);
   const [productPageLoading, setProductPageLoading] = useState(false);
-  const [page, setPage] = useState("0");
-  const [size, setSize] = useState("6");
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(6);
+  const [productNameQuery, setProductNameQuery] = useState("");
   const [newProductName, setNewProductName] = useState("");
   const [newProductPrice, setNewProductPrice] = useState("");
   const [newProductStock, setNewProductStock] = useState("");
@@ -116,22 +117,28 @@ const WorkspacePage: React.FC<WorkspacePageProps> = ({ me }) => {
 
   const isSeller = me?.role === "SELLER";
 
-  const loadProducts = async () => {
+  useEffect(() => {
+    void loadProducts(0);
+  }, []);
+
+  const loadProducts = async (targetPage = page) => {
     setProductPageError(null);
     setProductPageLoading(true);
-    setProductPage(null);
+    setProductSlice(null);
     try {
       const data = await listProducts(
-        Number.parseInt(page, 10) || 0,
-        Number.parseInt(size, 10) || 6
+        Number.isFinite(targetPage) ? targetPage : 0,
+        Number.isFinite(size) && size > 0 ? size : 6,
+        productNameQuery.trim()
       );
-      setProductPage(data);
+      setProductSlice(data);
     } catch {
       setProductPageError("상품 목록을 불러오지 못했습니다.");
     } finally {
       setProductPageLoading(false);
     }
   };
+
 
   const handleRegisterProduct = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -504,24 +511,87 @@ const WorkspacePage: React.FC<WorkspacePageProps> = ({ me }) => {
 
           <div className="form-row">
             <label>
-              페이지
-              <input value={page} onChange={(e) => setPage(e.target.value)} />
+              상품명
+              <input
+                placeholder="예: 마이크"
+                value={productNameQuery}
+                onChange={(e) => setProductNameQuery(e.target.value)}
+              />
             </label>
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={() => {
+                setPage(0);
+                void loadProducts(0);
+              }}
+              disabled={productPageLoading}
+            >
+              검색
+            </button>
+            <p className="note">
+              예시: 마이크, 키보드, 웹캠, 모니터, 허브, 스피커
+            </p>
             <label>
               사이즈
-              <input value={size} onChange={(e) => setSize(e.target.value)} />
+              <input
+                type="number"
+                min={1}
+                value={size}
+                onChange={(e) => {
+                  const next = Number.parseInt(e.target.value, 10);
+                  setSize(Number.isFinite(next) && next > 0 ? next : 1);
+                }}
+              />
             </label>
-            <button type="button" onClick={loadProducts}>
-              상품 불러오기
-            </button>
+            <div className="button-row">
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => {
+                  const nextPage = Math.max(0, page - 1);
+                  setPage(nextPage);
+                  void loadProducts(nextPage);
+                }}
+                disabled={page <= 0 || productPageLoading}
+              >
+                이전
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextPage = page + 1;
+                  setPage(nextPage);
+                  void loadProducts(nextPage);
+                }}
+                disabled={!productSlice?.hasNext || productPageLoading}
+              >
+                다음
+              </button>
+              <button
+                type="button"
+                className="btn-outline"
+                onClick={() => {
+                  setPage(0);
+                  void loadProducts(0);
+                }}
+                disabled={productPageLoading}
+              >
+                처음부터
+              </button>
+              <button type="button" onClick={() => loadProducts()}>
+                상품 불러오기
+              </button>
+            </div>
           </div>
+          <p className="note">현재 페이지: {page + 1}</p>
 
           {productPageLoading && <p className="note">상품 불러오는 중...</p>}
           {productPageError && <p className="error-text">{productPageError}</p>}
 
-          {productPage && (
+          {productSlice && (
             <div className="tile-grid">
-              {productPage.items.map((item) => (
+              {productSlice.items.map((item) => (
                 <div className="tile" key={item.productId}>
                   <div className="tile-title">{item.productName}</div>
                   <div className="tile-meta">상품 ID #{item.productId}</div>

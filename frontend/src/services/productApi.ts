@@ -9,12 +9,10 @@ export interface ProductListItemResponse {
   updatedAt: string;
 }
 
-export interface ProductPageResponse {
+export interface ProductSliceResponse {
   items: ProductListItemResponse[];
   page: number;
   size: number;
-  totalElements: number;
-  totalPages: number;
   hasNext: boolean;
 }
 
@@ -26,10 +24,11 @@ export interface ProductRegisterRequest {
 
 export async function listProducts(
   page: number,
-  size: number
-): Promise<ProductPageResponse> {
-  const { data } = await axios.get<ProductPageResponse>("/api/products", {
-    params: { page, size },
+  size: number,
+  name?: string
+): Promise<ProductSliceResponse> {
+  const { data } = await axios.get<ProductSliceResponse>("/api/products", {
+    params: { page, size, name: name || undefined },
   });
   return data;
 }
